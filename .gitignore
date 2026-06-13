@@ -1,0 +1,14 @@
+# Environment — secrets never reach the repo
+.env*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+dist/
+.turbo/
+
+# Test coverage
+coverage/
