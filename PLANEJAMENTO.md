@@ -10,19 +10,19 @@ First client: Contabilidade M Rocha (250–500 companies, 5,000+ invoices/month,
 
 ## 2. v1 scope (modules)
 
-| # | Module | Summary |
-|---|---|---|
-| M1 | Company registry | CNPJ as key; enrichment via public API; contacts, tax regime, departments; spreadsheet onboarding |
-| M2 | Users, roles, audit | Owner/manager/staff per department; `audit_events` records every action |
-| M3 | Task manager | Per company/period; monthly recurrence; status; automatic handoff between departments |
-| M4 | Exception queue | Single generic queue for errors from any automation, with context and resolution action |
-| M5 | Document repository | Hierarchical storage firm → company → period/department; search; preview |
-| M6 | Panels | Macro dashboard; general panel with per-company traffic light; individual panel |
-| M7 | Deadline engine | Monitored documents with due dates; daily cron; configurable triggers; alerts |
-| M8 | Document requests | State machine requested→sent→viewed→received; public client-access page (proof of viewing); e-mail/link delivery |
-| M9 | Mapping-rules engine | Generic engine with 3-level precedence + pending queue; first case: CFOP |
-| M10 | AI triage | Type classification + CNPJ extraction + routing, over uploads; ambiguous → exception queue |
-| M11 | Export batches | XMLs/documents packaged per company/period, renamed, with manifest, ready for ERP import |
+| #   | Module               | Summary                                                                                                          |
+| --- | -------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| M1  | Company registry     | CNPJ as key; enrichment via public API; contacts, tax regime, departments; spreadsheet onboarding                |
+| M2  | Users, roles, audit  | Owner/manager/staff per department; `audit_events` records every action                                          |
+| M3  | Task manager         | Per company/period; monthly recurrence; status; automatic handoff between departments                            |
+| M4  | Exception queue      | Single generic queue for errors from any automation, with context and resolution action                          |
+| M5  | Document repository  | Hierarchical storage firm → company → period/department; search; preview                                         |
+| M6  | Panels               | Macro dashboard; general panel with per-company traffic light; individual panel                                  |
+| M7  | Deadline engine      | Monitored documents with due dates; daily cron; configurable triggers; alerts                                    |
+| M8  | Document requests    | State machine requested→sent→viewed→received; public client-access page (proof of viewing); e-mail/link delivery |
+| M9  | Mapping-rules engine | Generic engine with 3-level precedence + pending queue; first case: CFOP                                         |
+| M10 | AI triage            | Type classification + CNPJ extraction + routing, over uploads; ambiguous → exception queue                       |
+| M11 | Export batches       | XMLs/documents packaged per company/period, renamed, with manifest, ready for ERP import                         |
 
 ## 3. Architecture
 

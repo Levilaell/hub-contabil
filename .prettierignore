@@ -5,3 +5,7 @@ dist
 coverage
 pnpm-lock.yaml
 packages/db/supabase/.temp
+
+# Generated files — owned by their tools, not Prettier (would drift on regen)
+**/next-env.d.ts
+packages/db/src/database.types.ts
