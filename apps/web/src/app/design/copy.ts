@@ -1,0 +1,101 @@
+// UI copy (pt-BR) for the design-system gallery. All Portuguese strings for this
+// screen live here — packages/ui stays language-agnostic (English props only).
+export const copy = {
+  title: 'Design system',
+  subtitle:
+    'Componentes compartilhados em todos os estados. Aprovar visualmente antes de construir qualquer tela de funcionalidade.',
+  sections: {
+    colors: 'Cores semânticas',
+    colorsHint: 'Cor é reservada para status — nunca decoração.',
+    statusBadge: 'StatusBadge',
+    trafficLight: 'Farol',
+    trafficLightHint: 'A metáfora visual central. A regra de agregação é uma função pura testada.',
+    statCard: 'Cartões de número',
+    dataList: 'Listas',
+    states: 'Estados de lista',
+    pageHeader: 'Cabeçalho de página',
+    drawer: 'Gaveta de detalhe',
+    appShell: 'Estrutura do app',
+    darkMode: 'Modo escuro',
+    darkModeHint: 'Os mesmos componentes com os tokens de tema escuro.',
+  },
+  tones: {
+    success: 'sucesso',
+    warning: 'atenção',
+    danger: 'perigo',
+    neutral: 'neutro',
+    muted: 'apagado',
+  },
+  status: {
+    emDia: 'Em dia',
+    venceBreve: 'Vence em breve',
+    vencido: 'Vencido',
+    pendente: 'Pendente',
+    semDados: 'Sem dados',
+  },
+  farol: {
+    vencido: 'Vencido',
+    proximo: 'Próximo do vencimento',
+    emDia: 'Em dia',
+    semDados: 'Sem dados',
+    agg: 'Agregação (3 empresas, 1 vencida):',
+  },
+  stats: {
+    tarefasHoje: 'Tarefas de hoje',
+    excecoes: 'Exceções abertas',
+    prazos: 'Prazos próximos',
+    solicitacoes: 'Solicitações pendentes',
+    hojeVencem: '3 vencem hoje',
+    aguardando: 'aguardando resposta',
+  },
+  list: {
+    companies: [
+      { name: 'Padaria Pão Quente ME', fact1: 'Simples Nacional', fact2: 'São Vicente · SP' },
+      { name: 'Transportes Litoral Ltda', fact1: 'Lucro Presumido', fact2: 'Santos · SP' },
+      { name: 'Clínica Vida Plena', fact1: 'Simples Nacional', fact2: 'Praia Grande · SP' },
+    ],
+    verDetalhes: 'Ver detalhes',
+  },
+  empty: {
+    title: 'Nenhuma exceção pendente',
+    description: 'Tudo em dia por aqui. Quando algo precisar de atenção, aparece nesta lista.',
+    action: 'Atualizar',
+  },
+  error: {
+    title: 'Não foi possível carregar',
+    description: 'Ocorreu um erro ao buscar os dados. Verifique a conexão e tente novamente.',
+    action: 'Tentar novamente',
+  },
+  header: {
+    title: 'Empresas',
+    subtitle: 'Painel geral do escritório',
+    action: 'Nova empresa',
+  },
+  drawer: {
+    open: 'Ver detalhe',
+    title: 'Detalhe da empresa',
+    subtitle: 'Padaria Pão Quente ME',
+    body: 'A lista mostra só o essencial; abas e informações completas vivem aqui, a um clique de distância.',
+    close: 'Fechar',
+    footerAction: 'Abrir empresa',
+  },
+  shell: {
+    brand: 'Hub Contábil',
+    openMenu: 'Abrir menu',
+    closeMenu: 'Fechar menu',
+    content: 'O conteúdo de cada tela entra nesta área.',
+    nav: {
+      inicio: 'Início',
+      empresas: 'Empresas',
+      tarefas: 'Tarefas',
+      documentos: 'Documentos',
+      excecoes: 'Exceções',
+      solicitacoes: 'Solicitações',
+      config: 'Configurações',
+    },
+  },
+  theme: {
+    light: 'Tema claro',
+    dark: 'Tema escuro',
+  },
+} as const;

@@ -1,0 +1,62 @@
+/*
+ * Design-system semantic tokens — single source of truth for status colors.
+ * Imported by every app's globals.css AFTER `@import "tailwindcss"`.
+ *
+ * Pattern mirrors the shadcn base: raw values live in `:root` and `.dark` so
+ * they swap per theme; the `@theme inline` block maps them to Tailwind color
+ * utilities (`bg-success`, `text-danger-foreground`, …). Color is reserved for
+ * status only — never decoration (see CLAUDE.md UX rule #3).
+ */
+
+/*
+ * Two shades per tone:
+ *   --{tone}            strong/vivid — the traffic-light dot and solid fills
+ *   --{tone}-foreground readable text ON a solid {tone} fill
+ *   --{tone}-text       readable text on a soft {tone}/12 tint (WCAG AA, 4.5:1)
+ * A single shade can't be both a vivid yellow dot and AA-readable label text,
+ * so the soft-badge text uses its own darker (light mode) / lighter (dark) shade.
+ */
+:root {
+  --success: oklch(0.55 0.14 150);
+  --success-foreground: oklch(0.98 0.02 150);
+  --success-text: oklch(0.43 0.13 150);
+  --warning: oklch(0.62 0.14 70);
+  --warning-foreground: oklch(0.99 0.02 80);
+  --warning-text: oklch(0.42 0.1 75);
+  --danger: oklch(0.55 0.21 27);
+  --danger-foreground: oklch(0.98 0.02 20);
+  --danger-text: oklch(0.45 0.2 27);
+  --neutral: oklch(0.5 0.03 250);
+  --neutral-foreground: oklch(0.98 0.01 250);
+  --neutral-text: oklch(0.4 0.02 250);
+}
+
+.dark {
+  --success: oklch(0.72 0.15 150);
+  --success-foreground: oklch(0.16 0.04 150);
+  --success-text: oklch(0.8 0.14 150);
+  --warning: oklch(0.8 0.14 75);
+  --warning-foreground: oklch(0.2 0.04 75);
+  --warning-text: oklch(0.86 0.13 80);
+  --danger: oklch(0.7 0.19 25);
+  --danger-foreground: oklch(0.16 0.04 25);
+  --danger-text: oklch(0.8 0.16 25);
+  --neutral: oklch(0.7 0.02 250);
+  --neutral-foreground: oklch(0.16 0.01 250);
+  --neutral-text: oklch(0.8 0.02 250);
+}
+
+@theme inline {
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-text: var(--success-text);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-text: var(--warning-text);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-text: var(--danger-text);
+  --color-neutral: var(--neutral);
+  --color-neutral-foreground: var(--neutral-foreground);
+  --color-neutral-text: var(--neutral-text);
+}
