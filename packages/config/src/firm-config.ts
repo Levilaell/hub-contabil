@@ -1,0 +1,120 @@
+import { z } from 'zod';
+
+// Per-firm configuration persisted in firms.config (JSONB). Business values live
+// here, never in code (golden rule #8). Every field has a default so a freshly
+// seeded firm (config = '{}') parses into a complete, valid config.
+
+const departmentSchema = z.object({ key: z.string().min(1), label: z.string().min(1) });
+
+export const DEFAULT_DEPARTMENTS = [
+  { key: 'fiscal', label: 'Fiscal' },
+  { key: 'contabil', label: 'Contábil' },
+  { key: 'dp', label: 'Departamento Pessoal' },
+  { key: 'compliance', label: 'Societário / Compliance' },
+] as const;
+
+// Closed document taxonomy (PLANEJAMENTO §6) — validate with the partner before AI triage (T20).
+export const DEFAULT_TAXONOMY = [
+  'nfe',
+  'nfce',
+  'nfse',
+  'cte',
+  'das',
+  'darf',
+  'gare_gnre',
+  'iss_slip',
+  'fgts_inss_slip',
+  'boleto',
+  'bank_statement',
+  'card_statement',
+  'payslip',
+  'certificate',
+  'license',
+  'articles_of_incorporation',
+  'power_of_attorney',
+  'payment_receipt',
+  'spreadsheet',
+  'other',
+] as const;
+
+// Document type → department (PLANEJAMENTO §6). Unmapped/low-confidence → exception queue.
+export const DEFAULT_ROUTING_MAP: Record<string, string> = {
+  nfe: 'fiscal',
+  nfce: 'fiscal',
+  nfse: 'fiscal',
+  cte: 'fiscal',
+  das: 'fiscal',
+  darf: 'fiscal',
+  gare_gnre: 'fiscal',
+  iss_slip: 'fiscal',
+  fgts_inss_slip: 'dp',
+  payslip: 'dp',
+  bank_statement: 'contabil',
+  card_statement: 'contabil',
+  certificate: 'compliance',
+  license: 'compliance',
+  articles_of_incorporation: 'compliance',
+  power_of_attorney: 'compliance',
+};
+
+// Allowed statuses per domain — mirrors the state machines (PLANEJAMENTO §5). Minimal; no UI in v1.
+export const DEFAULT_STATUS_VOCABULARIES: Record<string, string[]> = {
+  task: ['pending', 'in_progress', 'done', 'canceled'],
+  document_request: ['requested', 'sent', 'viewed', 'received'],
+  monitored_document: ['no_date', 'valid', 'due_soon', 'overdue', 'needs_update'],
+  exception: ['open', 'resolved', 'ignored'],
+};
+
+export const firmConfigSchema = z
+  .object({
+    departments: z
+      .array(departmentSchema)
+      .min(1)
+      .default([...DEFAULT_DEPARTMENTS]),
+    deadlineTriggers: z
+      .object({
+        // Days before a due date when a deadline turns "due_soon".
+        defaultDays: z
+          .number({ message: 'O prazo de alerta deve ser um número.' })
+          .int({ message: 'O prazo de alerta deve ser um número inteiro de dias.' })
+          .min(1, { message: 'O prazo de alerta deve ser de pelo menos 1 dia.' })
+          .max(365, { message: 'O prazo de alerta deve ser no máximo 365 dias.' })
+          .default(30),
+        byKind: z.record(z.string(), z.number().int().min(1).max(365)).default({}),
+      })
+      .default({}),
+    aiThreshold: z
+      .number({ message: 'O limite de confiança deve ser um número.' })
+      .min(0, { message: 'O limite de confiança deve estar entre 0 e 1.' })
+      .max(1, { message: 'O limite de confiança deve estar entre 0 e 1.' })
+      .default(0.85),
+    taxonomy: z
+      .array(z.string().min(1))
+      .min(1)
+      .default([...DEFAULT_TAXONOMY]),
+    routingMap: z.record(z.string(), z.string()).default(DEFAULT_ROUTING_MAP),
+    statusVocabularies: z
+      .record(z.string(), z.array(z.string()))
+      .default(DEFAULT_STATUS_VOCABULARIES),
+  })
+  .default({});
+
+export type FirmConfig = z.infer<typeof firmConfigSchema>;
+
+/** Parse a raw firms.config value, filling defaults for anything missing. */
+export function parseFirmConfig(raw: unknown): FirmConfig {
+  return firmConfigSchema.parse(raw ?? {});
+}
+
+export type FirmConfigValidation =
+  | { success: true; data: FirmConfig }
+  | { success: false; message: string };
+
+/** Validate a candidate config, returning the first error as a pt-BR message. */
+export function validateFirmConfig(raw: unknown): FirmConfigValidation {
+  const result = firmConfigSchema.safeParse(raw);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return { success: false, message: result.error.issues[0]?.message ?? 'Configuração inválida.' };
+}

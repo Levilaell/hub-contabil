@@ -1,0 +1,19 @@
+// UI copy (pt-BR) for the firm settings screen.
+export const copy = {
+  title: 'Configurações',
+  subtitle: 'Parâmetros do escritório. Valem para todas as empresas.',
+  deadlineLabel: 'Prazo de alerta padrão',
+  deadlineSuffix: 'dias antes do vencimento',
+  deadlineHint: 'Quantos dias antes do vencimento um prazo entra em alerta (amarelo).',
+  aiLabel: 'Limite de confiança da triagem por IA',
+  aiHint: 'Abaixo deste valor o documento vai para a fila de exceções. Entre 0 e 1.',
+  save: 'Salvar',
+  saving: 'Salvando…',
+  saved: 'Configurações salvas.',
+  readOnlyNote: 'Apenas titulares e gestores podem editar as configurações.',
+  advanced: 'Opções avançadas',
+  advancedNote: 'Somente leitura por enquanto — edição chega em uma próxima etapa.',
+  departments: 'Departamentos',
+  taxonomy: 'Tipos de documento',
+  routing: 'Roteamento por tipo de documento',
+} as const;

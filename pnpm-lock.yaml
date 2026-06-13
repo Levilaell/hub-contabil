@@ -32,6 +32,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@hub/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@hub/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@hub/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -125,10 +131,17 @@ importers:
         version: 5.9.3
 
   packages/config:
+    dependencies:
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
     devDependencies:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
+      vitest:
+        specifier: ^3.2.3
+        version: 3.2.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)
 
   packages/core:
     dependencies:
@@ -145,6 +158,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@hub/config':
+        specifier: workspace:*
+        version: link:../config
       '@supabase/supabase-js':
         specifier: ^2.45.0
         version: 2.108.1

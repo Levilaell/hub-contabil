@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "scripts": {
     "db:push": "supabase db push",
     "db:new": "supabase migration new",
@@ -13,6 +15,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@hub/config": "workspace:*",
     "@supabase/supabase-js": "^2.45.0"
   },
   "devDependencies": {
