@@ -1,0 +1,21 @@
+{
+  "name": "@hub/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --env-file=.env --import tsx src/index.ts",
+    "start": "node --env-file=.env --import tsx src/index.ts",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "postgres": "^3.4.7",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@hub/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:push": "supabase db push",
+    "db:new": "supabase migration new",
+    "db:types": "supabase gen types typescript --linked > src/database.types.ts"
+  }
+}
