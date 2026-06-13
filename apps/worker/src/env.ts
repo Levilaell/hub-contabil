@@ -4,6 +4,11 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   DATABASE_URL: z.string().min(1),
+  // Accelerated crons (every 10s) for dev observation; off in prod.
+  CRON_ACCELERATED: z
+    .enum(['true', 'false', '1', '0'])
+    .optional()
+    .transform((value) => value === 'true' || value === '1'),
 });
 
 export type Env = z.infer<typeof envSchema>;

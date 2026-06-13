@@ -105,6 +105,9 @@ importers:
 
   apps/worker:
     dependencies:
+      croner:
+        specifier: ^8.1.0
+        version: 8.1.2
       postgres:
         specifier: ^3.4.7
         version: 3.4.9
@@ -121,6 +124,9 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
+      vitest:
+        specifier: ^3.2.3
+        version: 3.2.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)
 
   clients/mrocha: {}
 
@@ -2549,6 +2555,10 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  croner@8.1.2:
+    resolution: {integrity: sha512-ypfPFcAXHuAZRCzo3vJL6ltENzniTjwe/qsLleH1V2/7SRDjgvRQyrLmumFTLmjFax4IuSxfGXEn79fozXcJog==}
+    engines: {node: '>=18.0'}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -6630,6 +6640,8 @@ snapshots:
       parse-json: 5.2.0
     optionalDependencies:
       typescript: 5.9.3
+
+  croner@8.1.2: {}
 
   cross-spawn@7.0.6:
     dependencies:
