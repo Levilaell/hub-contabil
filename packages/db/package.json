@@ -6,6 +6,20 @@
   "scripts": {
     "db:push": "supabase db push",
     "db:new": "supabase migration new",
-    "db:types": "supabase gen types typescript --linked > src/database.types.ts"
+    "db:types": "supabase gen types typescript --linked --schema public > src/database.types.ts",
+    "seed": "node --env-file=.env --import tsx src/seed.ts",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "@hub/core": "workspace:*",
+    "@types/node": "^20",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.3"
   }
 }

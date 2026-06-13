@@ -15,6 +15,7 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { copy } from './copy';
+import { UserMenu } from './user-menu';
 
 // Single sidebar, max 7 items (CLAUDE.md UX rule #11). Count badges are wired in
 // later tasks (exceptions/requests) — the slot already exists on NavItem.
@@ -39,6 +40,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         linkComponent={Link}
         openMenuLabel={copy.openMenu}
         closeMenuLabel={copy.closeMenu}
+        topbarRight={<UserMenu />}
       >
         {children}
       </AppShell>

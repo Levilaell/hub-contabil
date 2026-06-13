@@ -4,6 +4,7 @@ export const copy = {
   brand: 'Hub Contábil',
   openMenu: 'Abrir menu',
   closeMenu: 'Fechar menu',
+  signOut: 'Sair',
   nav: {
     inicio: 'Início',
     empresas: 'Empresas',
