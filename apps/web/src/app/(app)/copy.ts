@@ -5,6 +5,11 @@ export const copy = {
   openMenu: 'Abrir menu',
   closeMenu: 'Fechar menu',
   signOut: 'Sair',
+  notifications: {
+    label: 'Notificações',
+    title: 'Notificações',
+    empty: 'Nenhuma notificação.',
+  },
   nav: {
     inicio: 'Início',
     empresas: 'Empresas',

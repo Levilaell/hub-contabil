@@ -1,5 +1,6 @@
 'use client';
 
+import type { NotificationItem } from '@hub/db';
 import { AppShell, type NavItem } from '@hub/ui';
 import {
   AlertTriangle,
@@ -15,15 +16,20 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { copy } from './copy';
+import { NotificationsBell } from './notifications-bell';
 import { UserMenu } from './user-menu';
 
 // Single sidebar, max 7 items (CLAUDE.md UX rule #11). The Exceções item carries a
-// count badge of open exceptions (fetched by the server layout, T9).
+// count badge of open exceptions (T9); the topbar shows the notifications bell (T10).
 export function AppNav({
   exceptionCount,
+  notifications,
+  unreadNotifications,
   children,
 }: {
   exceptionCount: number;
+  notifications: NotificationItem[];
+  unreadNotifications: number;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -46,7 +52,12 @@ export function AppNav({
         linkComponent={Link}
         openMenuLabel={copy.openMenu}
         closeMenuLabel={copy.closeMenu}
-        topbarRight={<UserMenu />}
+        topbarRight={
+          <div className="flex items-center gap-1">
+            <NotificationsBell notifications={notifications} unreadCount={unreadNotifications} />
+            <UserMenu />
+          </div>
+        }
       >
         {children}
       </AppShell>

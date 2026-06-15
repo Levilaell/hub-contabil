@@ -240,6 +240,143 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          department: string | null
+          entity: string | null
+          entity_id: string | null
+          firm_id: string
+          id: string
+          kind: string
+          read_at: string | null
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          department?: string | null
+          entity?: string | null
+          entity_id?: string | null
+          firm_id: string
+          id?: string
+          kind: string
+          read_at?: string | null
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          department?: string | null
+          entity?: string | null
+          entity_id?: string | null
+          firm_id?: string
+          id?: string
+          kind?: string
+          read_at?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assignee_id: string | null
+          company_id: string
+          created_at: string
+          department: string
+          firm_id: string
+          handoff_to: string | null
+          id: string
+          period: string | null
+          recurring_task_id: string | null
+          source_task_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          company_id: string
+          created_at?: string
+          department: string
+          firm_id: string
+          handoff_to?: string | null
+          id?: string
+          period?: string | null
+          recurring_task_id?: string | null
+          source_task_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          company_id?: string
+          created_at?: string
+          department?: string
+          firm_id?: string
+          handoff_to?: string | null
+          id?: string
+          period?: string | null
+          recurring_task_id?: string | null
+          source_task_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_firm_id_company_id_fkey"
+            columns: ["firm_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["firm_id", "id"]
+          },
+          {
+            foreignKeyName: "tasks_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_source_task_id_fkey"
+            columns: ["source_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_departments: {
         Row: {
           created_at: string
@@ -325,7 +462,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auth_user_departments: { Args: never; Returns: string[] }
       current_firm_id: { Args: never; Returns: string }
+      handoff_task: { Args: { p_task_id: string }; Returns: string }
+      is_firm_manager: { Args: never; Returns: boolean }
       log_audit: {
         Args: {
           p_action: string
@@ -335,6 +475,7 @@ export type Database = {
         }
         Returns: string
       }
+      mark_notification_read: { Args: { p_id: string }; Returns: undefined }
       request_enrichment: { Args: { p_company_id: string }; Returns: undefined }
       resolve_exception: {
         Args: { p_id: string; p_note?: string; p_status: string }

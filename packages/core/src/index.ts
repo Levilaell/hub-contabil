@@ -26,3 +26,13 @@ export {
   type AnnotatedImportRow,
   type ValidateImportOptions,
 } from './import';
+
+export {
+  TASK_STATUSES,
+  isTaskStatus,
+  allowedTaskTransitions,
+  canTransitionTask,
+  canHandoffTask,
+  HANDOFFABLE_STATUSES,
+  type TaskStatus,
+} from './task';

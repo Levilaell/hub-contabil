@@ -38,4 +38,19 @@ export {
   type ExceptionStatus,
   type ResolveResult,
 } from './exceptions';
+export {
+  listTasks,
+  createTask,
+  updateTaskStatus,
+  handoffTask,
+  type Task,
+  type TaskInput,
+  type TaskMutationResult,
+} from './tasks';
+export {
+  listNotifications,
+  countUnreadNotifications,
+  markNotificationRead,
+  type NotificationItem,
+} from './notifications';
 export type { Database } from './database.types';
