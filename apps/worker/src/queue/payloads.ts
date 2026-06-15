@@ -24,10 +24,16 @@ export const notificationPayloadSchema = basePayloadSchema.extend({
   data: z.record(z.string(), z.unknown()).default({}),
 });
 
+export const enrichmentPayloadSchema = basePayloadSchema.extend({
+  company_id: z.string().uuid(),
+});
+export type EnrichmentPayload = z.infer<typeof enrichmentPayloadSchema>;
+
 export const QUEUES = {
   triage: 'triage',
   export: 'export',
   notifications: 'notifications',
+  enrichment: 'enrichment',
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

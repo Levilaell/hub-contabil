@@ -9,6 +9,9 @@ const envSchema = z.object({
     .enum(['true', 'false', '1', '0'])
     .optional()
     .transform((value) => value === 'true' || value === '1'),
+  // Min ms between outbound CNPJ-enrichment calls (politeness; BrasilAPI asks for
+  // human-paced traffic). Default 1000.
+  ENRICHMENT_THROTTLE_MS: z.coerce.number().int().min(0).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -4,6 +4,7 @@ import {
   createCompany,
   updateCompany,
   setCompanyArchived,
+  requestEnrichment,
   createContact,
   updateContact,
   deleteContact,
@@ -38,8 +39,16 @@ export async function createCompanyAction(
     state: field(formData, 'state'),
   });
   if (!result.ok) return { ok: false, message: result.message };
+  // Auto-enrich (T7): best-effort enqueue — a failure here must NOT undo creation.
+  await requestEnrichment(supabase, result.id);
   revalidatePath('/empresas');
   redirect(`/empresas/${result.id}`);
+}
+
+export async function enrichCompanyAction(companyId: string): Promise<void> {
+  const supabase = await createClient();
+  await requestEnrichment(supabase, companyId);
+  revalidatePath(`/empresas/${companyId}`);
 }
 
 export async function updateCompanyAction(

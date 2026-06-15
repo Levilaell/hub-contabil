@@ -8,10 +8,12 @@ export {
   createCompany,
   updateCompany,
   setCompanyArchived,
+  requestEnrichment,
   type Company,
   type CompanyInput,
   type CompanyEdits,
   type CompanyStatus,
+  type CompanyEnrichmentView,
   type MutationResult,
 } from './companies';
 export {

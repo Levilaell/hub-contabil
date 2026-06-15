@@ -1,9 +1,12 @@
+import { BrasilApiEnrichmentAdapter } from '@hub/adapters';
 import type { Cron } from 'croner';
 import postgres from 'postgres';
 
 import { startCrons } from './cron/scheduler.js';
 import { loadEnv } from './env.js';
+import { createEnrichmentHandler } from './jobs/enrichment.js';
 import {
+  enrichmentPayloadSchema,
   exportPayloadSchema,
   notificationPayloadSchema,
   triagePayloadSchema,
@@ -42,6 +45,17 @@ async function main(): Promise<void> {
       schema: notificationPayloadSchema,
       handler: (payload) =>
         console.log(`[notifications] stub received ${payload.template} for ${payload.to}`),
+    }),
+    defineQueueJob({
+      queue: 'enrichment',
+      schema: enrichmentPayloadSchema,
+      // One adapter instance → its throttle is shared across all jobs. qty/vt are
+      // conservative so a serialized batch finishes well within the visibility window.
+      handler: createEnrichmentHandler(
+        sql,
+        new BrasilApiEnrichmentAdapter({ throttleMs: env.ENRICHMENT_THROTTLE_MS ?? 1000 }),
+      ),
+      options: { qty: 5, vt: 90 },
     }),
   ];
 

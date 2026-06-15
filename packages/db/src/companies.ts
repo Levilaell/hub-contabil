@@ -10,6 +10,19 @@ import { loadFirm } from './firm';
 
 export type CompanyStatus = 'active' | 'archived';
 
+/** Parsed view of companies.enrichment_data (written by the worker / RPC, T7). */
+export interface CompanyEnrichmentView {
+  status: 'pending' | 'done';
+  source: string | null;
+  fetchedAt: string | null;
+  legalName: string | null;
+  tradeName: string | null;
+  cnaePrimaryCode: string | null;
+  cnaePrimaryDescription: string | null;
+  registrationStatus: string | null;
+  addressLine: string | null;
+}
+
 export interface Company {
   id: string;
   cnpj: string;
@@ -19,6 +32,7 @@ export interface Company {
   city: string | null;
   state: string | null;
   status: CompanyStatus;
+  enrichment: CompanyEnrichmentView | null;
   createdAt: string;
 }
 
@@ -46,10 +60,61 @@ interface CompanyRow {
   state: string | null;
   status: string;
   created_at: string;
+  enrichment_data?: unknown; // only selected by getCompany
 }
 
 function fail(message: string): { ok: false; message: string } {
   return { ok: false, message };
+}
+
+function readString(obj: Record<string, unknown>, key: string): string | null {
+  const value = obj[key];
+  if (typeof value === 'number') return String(value);
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
+// Parse the untrusted enrichment_data JSONB into a typed view. Shape written by
+// the worker: { status, source, fetched_at, data: CompanyEnrichment }.
+function parseEnrichment(raw: unknown): CompanyEnrichmentView | null {
+  let parsed: unknown = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+  const root = parsed as Record<string, unknown>;
+  if (root.status !== 'pending' && root.status !== 'done') return null;
+
+  const data =
+    typeof root.data === 'object' && root.data ? (root.data as Record<string, unknown>) : {};
+  const address =
+    typeof data.address === 'object' && data.address
+      ? (data.address as Record<string, unknown>)
+      : {};
+  const addressLine = [
+    readString(address, 'street'),
+    readString(address, 'number'),
+    readString(address, 'district'),
+    readString(address, 'city'),
+    readString(address, 'state'),
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  return {
+    status: root.status,
+    source: readString(root, 'source'),
+    fetchedAt: readString(root, 'fetched_at'),
+    legalName: readString(data, 'legalName'),
+    tradeName: readString(data, 'tradeName'),
+    cnaePrimaryCode: readString(data, 'cnaePrimaryCode'),
+    cnaePrimaryDescription: readString(data, 'cnaePrimaryDescription'),
+    registrationStatus: readString(data, 'registrationStatus'),
+    addressLine: addressLine.length ? addressLine : null,
+  };
 }
 
 function cleanText(value: unknown): string | null {
@@ -76,6 +141,7 @@ function mapCompany(row: CompanyRow): Company {
     city: row.city,
     state: row.state,
     status: row.status === 'archived' ? 'archived' : 'active',
+    enrichment: parseEnrichment(row.enrichment_data),
     createdAt: row.created_at,
   };
 }
@@ -135,11 +201,27 @@ export async function listCompanies(
 export async function getCompany(supabase: SupabaseClient, id: string): Promise<Company | null> {
   const { data, error } = await supabase
     .from('companies')
-    .select('id, cnpj, legal_name, trade_name, tax_regime, city, state, status, created_at')
+    .select(
+      'id, cnpj, legal_name, trade_name, tax_regime, city, state, status, created_at, enrichment_data',
+    )
     .eq('id', id)
     .maybeSingle();
   if (error || !data) return null;
   return mapCompany(data as CompanyRow);
+}
+
+/**
+ * Enqueue a CNPJ-enrichment job for a company via the request_enrichment RPC
+ * (validates firm ownership server-side, marks pending, sends to the worker
+ * queue). Best-effort: callers treat failure as non-fatal so creation never breaks.
+ */
+export async function requestEnrichment(
+  supabase: SupabaseClient,
+  companyId: string,
+): Promise<MutationResult> {
+  const { error } = await supabase.rpc('request_enrichment', { p_company_id: companyId });
+  if (error) return fail('Não foi possível solicitar o enriquecimento.');
+  return { ok: true, id: companyId };
 }
 
 export async function createCompany(

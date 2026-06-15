@@ -3,3 +3,12 @@
 // XmlSourceAdapter and CndProviderAdapter as specified in PLANEJAMENTO §8.
 
 export const ADAPTERS_PACKAGE_NAME = '@hub/adapters';
+
+export {
+  BrasilApiEnrichmentAdapter,
+  type CnpjEnrichmentAdapter,
+  type CompanyEnrichment,
+  type EnrichmentOutcome,
+  type EnrichmentSource,
+  type BrasilApiAdapterOptions,
+} from './cnpj-enrichment';

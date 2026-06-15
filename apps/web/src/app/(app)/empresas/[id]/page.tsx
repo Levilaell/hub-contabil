@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/server';
 import { copy, primaryButtonClass } from '../copy';
 import { ArchiveButton } from './archive-button';
 import { ContactsSection } from './contacts-section';
+import { EnrichButton } from './enrich-button';
 
 const TABS = [
   { key: 'dados', label: copy.detail.tabs.dados, enabled: true },
@@ -119,13 +120,44 @@ export default async function EmpresaDetailPage({
       </div>
 
       {tab === 'dados' ? (
-        <dl className="bg-card divide-border divide-y rounded-xl border px-5 py-2">
-          <DataRow label={copy.detail.fields.cnpj} value={formatCnpj(company.cnpj)} />
-          <DataRow label={copy.detail.fields.legalName} value={company.legalName} />
-          <DataRow label={copy.detail.fields.tradeName} value={company.tradeName} />
-          <DataRow label={copy.detail.fields.taxRegime} value={regimeLabel} />
-          <DataRow label={copy.detail.fields.location} value={location} />
-        </dl>
+        <div className="space-y-4">
+          <dl className="bg-card divide-border divide-y rounded-xl border px-5 py-2">
+            <DataRow label={copy.detail.fields.cnpj} value={formatCnpj(company.cnpj)} />
+            <DataRow label={copy.detail.fields.legalName} value={company.legalName} />
+            <DataRow label={copy.detail.fields.tradeName} value={company.tradeName} />
+            <DataRow label={copy.detail.fields.taxRegime} value={regimeLabel} />
+            <DataRow label={copy.detail.fields.location} value={location} />
+          </dl>
+
+          <section className="bg-card space-y-3 rounded-xl border p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold">{copy.enrichment.title}</h2>
+              <EnrichButton companyId={id} />
+            </div>
+            {!company.enrichment ? (
+              <p className="text-muted-foreground text-sm">{copy.enrichment.none}</p>
+            ) : company.enrichment.status === 'pending' ? (
+              <p className="text-muted-foreground text-sm">{copy.enrichment.pending}</p>
+            ) : (
+              <dl className="divide-border divide-y">
+                <DataRow label={copy.enrichment.legalName} value={company.enrichment.legalName} />
+                <DataRow
+                  label={copy.enrichment.cnae}
+                  value={
+                    [company.enrichment.cnaePrimaryCode, company.enrichment.cnaePrimaryDescription]
+                      .filter(Boolean)
+                      .join(' — ') || null
+                  }
+                />
+                <DataRow
+                  label={copy.enrichment.registration}
+                  value={company.enrichment.registrationStatus}
+                />
+                <DataRow label={copy.enrichment.address} value={company.enrichment.addressLine} />
+              </dl>
+            )}
+          </section>
+        </div>
       ) : null}
 
       {tab === 'contatos' ? <ContactsSection companyId={id} contacts={contacts} /> : null}

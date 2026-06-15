@@ -160,6 +160,35 @@ describe.skipIf(!hasEnv)('company registry (cloud dev)', () => {
     expect(result.ok).toBe(false);
   });
 
+  it('enqueues enrichment for an own company and rejects a foreign one', async () => {
+    // Exercises the request_enrichment RPC end to end: SECURITY DEFINER must be able
+    // to reach pgmq, and the firm-scoping clause must reject another firm's company.
+    const own = await owner.rpc('request_enrichment', { p_company_id: companyAId });
+    expect(own.error).toBeNull();
+
+    const { data: row } = await owner
+      .from('companies')
+      .select('enrichment_data')
+      .eq('id', companyAId)
+      .single();
+    const data = (
+      typeof row?.enrichment_data === 'string'
+        ? JSON.parse(row.enrichment_data)
+        : row?.enrichment_data
+    ) as { status?: string };
+    expect(data?.status).toBe('pending');
+
+    const { data: audit } = await owner
+      .from('audit_events')
+      .select('id')
+      .eq('entity_id', companyAId)
+      .eq('action', 'company.enrichment_requested');
+    expect((audit ?? []).length).toBeGreaterThan(0);
+
+    const foreign = await owner.rpc('request_enrichment', { p_company_id: companyBId });
+    expect(foreign.error).not.toBeNull();
+  });
+
   it('points an archived-CNPJ re-create toward restoring it', async () => {
     expect((await setCompanyArchived(owner, companyAId, true)).ok).toBe(true);
     const result = await createCompany(owner, { cnpj: A_CNPJ, legalName: 'Tentativa' });

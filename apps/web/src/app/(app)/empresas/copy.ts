@@ -70,6 +70,17 @@ export const copy = {
       unset: '—',
     },
   },
+  enrichment: {
+    title: 'Dados oficiais (Receita Federal)',
+    enrich: 'Enriquecer',
+    enriching: 'Buscando…',
+    pending: 'Enriquecendo pelo CNPJ — atualize a página em instantes.',
+    none: 'Ainda não enriquecido. Buscamos razão social, CNAE e endereço pelo CNPJ.',
+    legalName: 'Razão social (oficial)',
+    cnae: 'CNAE principal',
+    registration: 'Situação cadastral',
+    address: 'Endereço',
+  },
   contacts: {
     add: 'Adicionar contato',
     name: 'Nome',
