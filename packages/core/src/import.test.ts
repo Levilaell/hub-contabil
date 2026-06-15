@@ -42,10 +42,10 @@ describe('validateImportRows', () => {
       ],
       { existingCnpjs: [], regimes: REGIMES },
     );
-    expect(r.status).toBe('valid');
-    expect(r.cnpj).toBe(VALID_A);
-    expect(r.taxRegime).toBe('simples_nacional');
-    expect(r.state).toBe('SP');
+    expect(r?.status).toBe('valid');
+    expect(r?.cnpj).toBe(VALID_A);
+    expect(r?.taxRegime).toBe('simples_nacional');
+    expect(r?.state).toBe('SP');
   });
 
   it('flags invalid CNPJ, missing name, bad regime and bad UF with reasons', () => {

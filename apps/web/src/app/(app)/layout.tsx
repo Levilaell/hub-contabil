@@ -1,49 +1,14 @@
-'use client';
-
-import { AppShell, type NavItem } from '@hub/ui';
-import {
-  AlertTriangle,
-  Building2,
-  FileText,
-  LayoutDashboard,
-  ListChecks,
-  Send,
-  Settings,
-} from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { countOpenExceptions } from '@hub/db';
 import type { ReactNode } from 'react';
 
-import { copy } from './copy';
-import { UserMenu } from './user-menu';
+import { createClient } from '@/lib/supabase/server';
 
-// Single sidebar, max 7 items (CLAUDE.md UX rule #11). Count badges are wired in
-// later tasks (exceptions/requests) — the slot already exists on NavItem.
-const nav: NavItem[] = [
-  { label: copy.nav.inicio, href: '/inicio', icon: LayoutDashboard },
-  { label: copy.nav.empresas, href: '/empresas', icon: Building2 },
-  { label: copy.nav.tarefas, href: '/tarefas', icon: ListChecks },
-  { label: copy.nav.documentos, href: '/documentos', icon: FileText },
-  { label: copy.nav.excecoes, href: '/excecoes', icon: AlertTriangle },
-  { label: copy.nav.solicitacoes, href: '/solicitacoes', icon: Send },
-  { label: copy.nav.config, href: '/configuracoes', icon: Settings },
-];
+import { AppNav } from './app-nav';
 
-export default function AppLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  return (
-    <div className="h-dvh">
-      <AppShell
-        brand={copy.brand}
-        nav={nav}
-        activeHref={pathname}
-        linkComponent={Link}
-        openMenuLabel={copy.openMenu}
-        closeMenuLabel={copy.closeMenu}
-        topbarRight={<UserMenu />}
-      >
-        {children}
-      </AppShell>
-    </div>
-  );
+// Server layout: fetches the open-exception count for the sidebar badge (T9), then
+// hands off to the client nav (which needs usePathname for the active item).
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  const supabase = await createClient();
+  const exceptionCount = await countOpenExceptions(supabase);
+  return <AppNav exceptionCount={exceptionCount}>{children}</AppNav>;
 }

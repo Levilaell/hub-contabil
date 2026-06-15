@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { basePayloadSchema } from './payloads';
-import { processQueueOnce } from './runner';
+import { type DeadLetterInfo, processQueueOnce } from './runner';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const hasEnv = Boolean(DATABASE_URL);
@@ -81,15 +81,24 @@ describe.skipIf(!hasEnv)('pgmq job runner (cloud dev)', () => {
     const failing = () => {
       throw new Error('boom');
     };
+    // Capture the dead-letter sink call — proves the hook fires with the payload,
+    // error and attempt count the exception sink needs (T9 wiring).
+    const deadLettered: DeadLetterInfo[] = [];
     // baseBackoff 0 → immediate re-read, no timers needed.
     let last = { processed: 0, retried: 0, deadLettered: 0 };
     for (let i = 0; i < 3; i += 1) {
       last = await processQueueOnce(sql, TEST_QUEUE, testSchema, failing, {
         baseBackoff: 0,
         vt: 5,
+        onDeadLetter: (info) => {
+          deadLettered.push(info);
+        },
       });
     }
     expect(last.deadLettered).toBe(1);
+    expect(deadLettered).toHaveLength(1);
+    expect(deadLettered[0]).toMatchObject({ queue: TEST_QUEUE, error: 'boom', readCt: 3 });
+    expect((deadLettered[0]?.payload as { n: number }).n).toBe(99);
 
     // original queue is empty, DLQ holds the enriched envelope
     const left = await sql`select msg_id from pgmq.read(${TEST_QUEUE}::text, 0, 10)`;

@@ -172,6 +172,50 @@ export type Database = {
           },
         ]
       }
+      exception_queue: {
+        Row: {
+          context: Json
+          created_at: string
+          firm_id: string
+          id: string
+          resolution: Json
+          source: string
+          status: string
+          suggestion: Json
+          updated_at: string
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          firm_id: string
+          id?: string
+          resolution?: Json
+          source: string
+          status?: string
+          suggestion?: Json
+          updated_at?: string
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          firm_id?: string
+          id?: string
+          resolution?: Json
+          source?: string
+          status?: string
+          suggestion?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exception_queue_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       firms: {
         Row: {
           config: Json
@@ -292,6 +336,10 @@ export type Database = {
         Returns: string
       }
       request_enrichment: { Args: { p_company_id: string }; Returns: undefined }
+      resolve_exception: {
+        Args: { p_id: string; p_note?: string; p_status: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

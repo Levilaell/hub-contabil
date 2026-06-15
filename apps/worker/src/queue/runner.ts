@@ -30,6 +30,16 @@ export function defineQueueJob<T>(reg: {
   };
 }
 
+/** Info handed to the dead-letter sink (T9): feeds the exception queue. */
+export interface DeadLetterInfo {
+  queue: string;
+  /** The raw message (may be an invalid payload — that's why it failed). */
+  payload: unknown;
+  error: string;
+  readCt: number;
+}
+export type DeadLetterSink = (info: DeadLetterInfo) => Promise<void> | void;
+
 export interface ProcessOptions {
   /** Visibility timeout while a message is being processed (seconds). In prod
    *  this MUST exceed the max handler runtime or a slow job is read twice. */
@@ -40,6 +50,9 @@ export interface ProcessOptions {
   baseBackoff?: number;
   /** Attempts before a message is dead-lettered. */
   maxAttempts?: number;
+  /** Called after a message lands in the DLQ (T9: record it in the exception
+   *  queue). Best-effort — the message is already safe in the DLQ. */
+  onDeadLetter?: DeadLetterSink;
 }
 
 export interface ProcessResult {
@@ -76,7 +89,7 @@ export async function processQueueOnce<T>(
   handler: JobHandler<T>,
   options: ProcessOptions = {},
 ): Promise<ProcessResult> {
-  const { vt = 30, qty = 10, baseBackoff = 2, maxAttempts = 3 } = options;
+  const { vt = 30, qty = 10, baseBackoff = 2, maxAttempts = 3, onDeadLetter } = options;
   const rows = await sql<PgmqRow[]>`
     select msg_id, read_ct, message from pgmq.read(${queue}::text, ${vt}, ${qty})
   `;
@@ -106,6 +119,17 @@ export async function processQueueOnce<T>(
         console.error(
           `[queue:${queue}] msg ${String(msgId)} → DLQ after ${readCt} attempts: ${reason}`,
         );
+        if (onDeadLetter) {
+          try {
+            await onDeadLetter({ queue, payload: raw, error: reason, readCt });
+          } catch (sinkError) {
+            // The message is already safe in the DLQ — never let the sink hide it.
+            console.error(
+              `[queue:${queue}] dead-letter sink failed (message preserved in the DLQ):`,
+              sinkError,
+            );
+          }
+        }
       } else {
         const delaySeconds = Math.round(baseBackoff * 2 ** (readCt - 1));
         await sql`select pgmq.set_vt(${queue}::text, ${msgId}::bigint, ${delaySeconds})`;
@@ -132,6 +156,8 @@ export class JobRunner {
     private readonly sql: Sql,
     private readonly registrations: QueueRegistration[],
     private readonly pollIntervalMs = 2000,
+    /** Shared dead-letter sink applied to every queue (overridable per options). */
+    private readonly onDeadLetter?: DeadLetterSink,
   ) {}
 
   start(): void {
@@ -148,7 +174,10 @@ export class JobRunner {
     while (this.running) {
       for (const reg of this.registrations) {
         try {
-          await processQueueOnce(this.sql, reg.queue, reg.schema, reg.handler, reg.options);
+          await processQueueOnce(this.sql, reg.queue, reg.schema, reg.handler, {
+            ...reg.options,
+            onDeadLetter: reg.options?.onDeadLetter ?? this.onDeadLetter,
+          });
         } catch (error) {
           // A queue-level failure (transient DB error, etc.) must not kill the loop.
           console.error(`[queue:${reg.queue}] poll error:`, error);

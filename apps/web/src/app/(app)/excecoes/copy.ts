@@ -1,0 +1,58 @@
+// UI copy (pt-BR) for the exception queue (T9). All user-facing strings here.
+export const copy = {
+  title: 'Exceções',
+  subtitle: 'Erros das automações que precisam de atenção.',
+  filters: 'Filtros',
+  statusLabel: 'Situação',
+  statusOpen: 'Abertas',
+  statusResolved: 'Resolvidas',
+  statusIgnored: 'Ignoradas',
+  statusAll: 'Todas',
+  sourceLabel: 'Origem',
+  sourceAll: 'Todas',
+  apply: 'Aplicar',
+  sources: {
+    triage: 'Triagem (IA)',
+    export: 'Exportação',
+    rules: 'Regras',
+    deadlines: 'Prazos',
+    requests: 'Solicitações',
+    enrichment: 'Enriquecimento',
+    notifications: 'Notificações',
+  } as Record<string, string>,
+  badge: {
+    open: 'Aberta',
+    resolved: 'Resolvida',
+    ignored: 'Ignorada',
+  },
+  empty: {
+    title: 'Nenhuma exceção pendente — tudo em dia ✅',
+    description: 'Erros das automações aparecem aqui com o contexto para você resolver.',
+    filteredTitle: 'Nenhuma exceção encontrada',
+    filteredDescription: 'Ajuste a situação ou a origem e tente de novo.',
+  },
+  drawer: {
+    title: 'Detalhe da exceção',
+    error: 'Erro',
+    attempts: 'Tentativas',
+    origin: 'Origem',
+    suggestion: 'Sugestão',
+    technical: 'Detalhes técnicos',
+    note: 'Observação (opcional)',
+    notePlaceholder: 'O que foi feito para resolver?',
+    resolve: 'Resolver',
+    ignore: 'Ignorar',
+    working: 'Salvando…',
+    resolvedBy: 'Resolvida',
+    close: 'Fechar',
+  },
+  noError: 'Sem mensagem de erro.',
+} as const;
+
+// Shared control classes (same as the other feature screens).
+export const inputClass =
+  'w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60';
+export const primaryButtonClass =
+  'inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60';
+export const secondaryButtonClass =
+  'inline-flex items-center justify-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:opacity-60';

@@ -30,4 +30,12 @@ export {
   type ContactEdits,
   type PreferredChannel,
 } from './contacts';
+export {
+  listExceptions,
+  countOpenExceptions,
+  resolveException,
+  type ExceptionItem,
+  type ExceptionStatus,
+  type ResolveResult,
+} from './exceptions';
 export type { Database } from './database.types';

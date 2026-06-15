@@ -50,7 +50,7 @@ First client: Contabilidade M Rocha (250–500 companies, 5,000+ invoices/month,
 - `documents` (company_id, period, department, doc_type, storage_path, source [upload|triage|request], hash, metadata JSONB)
 - `tasks` (company_id, period, department, title, status, assignee_id, recurring_task_id?, handoff_to?)
 - `recurring_tasks` (task template: title, department, generation_day, target rule, active)
-- `exception_queue` (source [triage|export|rules|deadlines|requests], context JSONB, suggestion JSONB, status [open|resolved|ignored], resolution JSONB)
+- `exception_queue` (source [triage|export|rules|deadlines|requests|enrichment|notifications], context JSONB, suggestion JSONB, status [open|resolved|ignored], resolution JSONB) — `enrichment`/`notifications` added in T9: source records the origin, and those worker queues can dead-letter into the queue
 - `monitored_documents` (company_id, doc_kind [federal CND, license…], due_date, trigger_days, status [valid|due_soon|overdue|needs_update|no_date], document_id?)
 - `document_requests` (company_id, description, status [requested|sent|viewed|received], access_token, channel) + child `document_request_events` (timestamp/IP/user-agent)
 - `mapping_rules` (domain ['cfop'…], level [1 specific|2 general], key JSONB, value JSONB, origin [manual|resolution]) — "level 3" is not a rule, it is the pending queue

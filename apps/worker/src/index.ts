@@ -5,6 +5,7 @@ import postgres from 'postgres';
 import { startCrons } from './cron/scheduler.js';
 import { loadEnv } from './env.js';
 import { createEnrichmentHandler } from './jobs/enrichment.js';
+import { recordException } from './jobs/exception-sink.js';
 import {
   enrichmentPayloadSchema,
   exportPayloadSchema,
@@ -59,7 +60,8 @@ async function main(): Promise<void> {
     }),
   ];
 
-  const runner = new JobRunner(sql, registrations);
+  // Dead-lettered jobs surface in the exception queue (T9).
+  const runner = new JobRunner(sql, registrations, 2000, (info) => recordException(sql, info));
   runner.start();
   console.log(`[worker] job runner polling: ${registrations.map((r) => r.queue).join(', ')}`);
 

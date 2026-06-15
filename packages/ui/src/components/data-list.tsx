@@ -28,6 +28,8 @@ export interface DataListRowProps {
   href?: string;
   /** Link element to render when href is set (e.g. Next's Link). Defaults to "a". */
   linkComponent?: ElementType;
+  /** When set (and no href), the row is a button — e.g. to open a detail drawer. */
+  onClick?: () => void;
   className?: string;
 }
 
@@ -38,17 +40,20 @@ export function DataListRow({
   trailing,
   href,
   linkComponent,
+  onClick,
   className,
 }: DataListRowProps) {
-  const Root: ElementType = href ? (linkComponent ?? 'a') : 'div';
+  const Root: ElementType = href ? (linkComponent ?? 'a') : onClick ? 'button' : 'div';
+  const interactive = Boolean(href || onClick);
+  const rootProps = href ? { href } : onClick ? { type: 'button' as const, onClick } : {};
   const shown = facts.slice(0, 2);
   return (
     <li>
       <Root
-        href={href}
+        {...rootProps}
         className={cn(
-          'flex items-center gap-3 p-4',
-          href &&
+          'flex w-full items-center gap-3 p-4 text-left',
+          interactive &&
             'hover:bg-accent focus-visible:ring-ring group transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset',
           className,
         )}
@@ -63,7 +68,7 @@ export function DataListRow({
           ) : null}
         </span>
         {trailing ? <span className="shrink-0">{trailing}</span> : null}
-        {href ? (
+        {interactive ? (
           <ChevronRight
             className="text-muted-foreground size-4 shrink-0 transition-transform group-hover:translate-x-0.5"
             aria-hidden

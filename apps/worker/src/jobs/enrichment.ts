@@ -44,9 +44,11 @@ export function createEnrichmentHandler(sql: Sql, adapter: CnpjEnrichmentAdapter
     };
     const { tradeName, address } = outcome.data;
 
+    // sql.json stores a real jsonb object; `${JSON.stringify(x)}::jsonb` would
+    // double-encode it into a jsonb *string* (breaks ->> / jsonb_typeof queries).
     await sql`
       update public.companies set
-        enrichment_data = ${JSON.stringify(enrichmentData)}::jsonb,
+        enrichment_data = ${sql.json(enrichmentData as unknown as Parameters<typeof sql.json>[0])},
         trade_name = coalesce(trade_name, ${tradeName}),
         city = coalesce(city, ${address.city}),
         state = coalesce(state, ${safeUf(address.state)})
@@ -58,7 +60,7 @@ export function createEnrichmentHandler(sql: Sql, adapter: CnpjEnrichmentAdapter
       insert into public.audit_events (firm_id, action, entity, entity_id, context)
       values (
         ${firm_id}, 'company.enriched', 'company', ${company_id},
-        ${JSON.stringify({ source: outcome.source })}::jsonb
+        ${sql.json({ source: outcome.source })}
       )
     `;
   };
