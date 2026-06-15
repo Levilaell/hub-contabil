@@ -35,6 +35,9 @@ importers:
       '@hub/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@hub/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@hub/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -105,6 +108,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@hub/adapters':
+        specifier: workspace:*
+        version: link:../../packages/adapters
       croner:
         specifier: ^8.1.0
         version: 8.1.2
@@ -131,10 +137,17 @@ importers:
   clients/mrocha: {}
 
   packages/adapters:
+    dependencies:
+      '@hub/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
+      vitest:
+        specifier: ^3.2.3
+        version: 3.2.6(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)
 
   packages/config:
     dependencies:

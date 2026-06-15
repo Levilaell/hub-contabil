@@ -65,6 +65,113 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          city: string | null
+          cnpj: string
+          created_at: string
+          enrichment_data: Json
+          firm_id: string
+          id: string
+          legal_name: string
+          state: string | null
+          status: string
+          tax_regime: string | null
+          trade_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          cnpj: string
+          created_at?: string
+          enrichment_data?: Json
+          firm_id: string
+          id?: string
+          legal_name: string
+          state?: string | null
+          status?: string
+          tax_regime?: string | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          cnpj?: string
+          created_at?: string
+          enrichment_data?: Json
+          firm_id?: string
+          id?: string
+          legal_name?: string
+          state?: string | null
+          status?: string
+          tax_regime?: string | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          company_id: string
+          created_at: string
+          email: string | null
+          firm_id: string
+          id: string
+          is_primary: boolean
+          name: string
+          phone: string | null
+          preferred_channel: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          email?: string | null
+          firm_id: string
+          id?: string
+          is_primary?: boolean
+          name: string
+          phone?: string | null
+          preferred_channel?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          email?: string | null
+          firm_id?: string
+          id?: string
+          is_primary?: boolean
+          name?: string
+          phone?: string | null
+          preferred_channel?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_firm_company_fkey"
+            columns: ["firm_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["firm_id", "id"]
+          },
+          {
+            foreignKeyName: "contacts_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       firms: {
         Row: {
           config: Json
@@ -184,6 +291,7 @@ export type Database = {
         }
         Returns: string
       }
+      request_enrichment: { Args: { p_company_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

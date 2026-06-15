@@ -10,3 +10,5 @@ export {
   type AuditEventInput,
   type AuditEventRow,
 } from './audit';
+
+export { normalizeCnpj, formatCnpj, isValidCnpj } from './cnpj';

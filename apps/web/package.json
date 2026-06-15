@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@hub/config": "workspace:*",
+    "@hub/core": "workspace:*",
     "@hub/db": "workspace:*",
     "@hub/ui": "workspace:*",
     "@supabase/ssr": "^0.5.2",

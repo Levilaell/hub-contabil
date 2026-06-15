@@ -4,13 +4,23 @@ import { z } from 'zod';
 // here, never in code (golden rule #8). Every field has a default so a freshly
 // seeded firm (config = '{}') parses into a complete, valid config.
 
-const departmentSchema = z.object({ key: z.string().min(1), label: z.string().min(1) });
+const vocabularyEntrySchema = z.object({ key: z.string().min(1), label: z.string().min(1) });
 
 export const DEFAULT_DEPARTMENTS = [
   { key: 'fiscal', label: 'Fiscal' },
   { key: 'contabil', label: 'Contábil' },
   { key: 'dp', label: 'Departamento Pessoal' },
   { key: 'compliance', label: 'Societário / Compliance' },
+] as const;
+
+// Tax regimes (config vocabulary, golden rule #8). companies.tax_regime stores the
+// key; the label is for display. National fixed set, but firms may relabel.
+export const DEFAULT_TAX_REGIMES = [
+  { key: 'simples_nacional', label: 'Simples Nacional' },
+  { key: 'lucro_presumido', label: 'Lucro Presumido' },
+  { key: 'lucro_real', label: 'Lucro Real' },
+  { key: 'mei', label: 'MEI' },
+  { key: 'imune_isenta', label: 'Imune / Isenta' },
 ] as const;
 
 // Closed document taxonomy (PLANEJAMENTO §6) — validate with the partner before AI triage (T20).
@@ -68,9 +78,13 @@ export const DEFAULT_STATUS_VOCABULARIES: Record<string, string[]> = {
 export const firmConfigSchema = z
   .object({
     departments: z
-      .array(departmentSchema)
+      .array(vocabularyEntrySchema)
       .min(1)
       .default([...DEFAULT_DEPARTMENTS]),
+    taxRegimes: z
+      .array(vocabularyEntrySchema)
+      .min(1)
+      .default([...DEFAULT_TAX_REGIMES]),
     deadlineTriggers: z
       .object({
         // Days before a due date when a deadline turns "due_soon".

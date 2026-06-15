@@ -10,6 +10,7 @@ describe('parseFirmConfig', () => {
     expect(config.departments.length).toBeGreaterThan(0);
     expect(config.taxonomy).toContain('nfe');
     expect(config.routingMap.nfe).toBe('fiscal');
+    expect(config.taxRegimes.map((r) => r.key)).toContain('simples_nacional');
   });
 
   it('treats null/undefined as empty', () => {
