@@ -1,0 +1,58 @@
+'use server';
+
+import {
+  createRecurringTask,
+  setRecurringTaskActive,
+  updateRecurringTask,
+  type RecurringTargetKind,
+} from '@hub/db';
+import { revalidatePath } from 'next/cache';
+
+import { createClient } from '@/lib/supabase/server';
+
+export type RecurringActionState = { ok: boolean; message: string } | null;
+
+function parse(formData: FormData) {
+  const field = (key: string) => {
+    const v = formData.get(key);
+    return typeof v === 'string' ? v : '';
+  };
+  return {
+    title: field('title'),
+    department: field('department'),
+    generationDay: Number(field('generationDay')),
+    targetKind: field('targetKind') as RecurringTargetKind,
+    companyIds: formData.getAll('companyIds').filter((v): v is string => typeof v === 'string'),
+    regimes: formData.getAll('regimes').filter((v): v is string => typeof v === 'string'),
+    handoffTo: field('handoffTo'),
+  };
+}
+
+export async function createRecurringAction(
+  _prev: RecurringActionState,
+  formData: FormData,
+): Promise<RecurringActionState> {
+  const supabase = await createClient();
+  const result = await createRecurringTask(supabase, parse(formData));
+  if (!result.ok) return { ok: false, message: result.message };
+  revalidatePath('/tarefas/recorrentes');
+  return { ok: true, message: '' };
+}
+
+export async function updateRecurringAction(
+  id: string,
+  _prev: RecurringActionState,
+  formData: FormData,
+): Promise<RecurringActionState> {
+  const supabase = await createClient();
+  const result = await updateRecurringTask(supabase, id, parse(formData));
+  if (!result.ok) return { ok: false, message: result.message };
+  revalidatePath('/tarefas/recorrentes');
+  return { ok: true, message: '' };
+}
+
+export async function toggleRecurringActiveAction(id: string, active: boolean): Promise<void> {
+  const supabase = await createClient();
+  await setRecurringTaskActive(supabase, id, active);
+  revalidatePath('/tarefas/recorrentes');
+}

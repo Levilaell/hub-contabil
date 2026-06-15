@@ -300,6 +300,56 @@ export type Database = {
           },
         ]
       }
+      recurring_tasks: {
+        Row: {
+          active: boolean
+          created_at: string
+          department: string
+          firm_id: string
+          generation_day: number
+          handoff_to: string | null
+          id: string
+          target_kind: string
+          target_value: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          department: string
+          firm_id: string
+          generation_day?: number
+          handoff_to?: string | null
+          id?: string
+          target_kind: string
+          target_value?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          department?: string
+          firm_id?: string
+          generation_day?: number
+          handoff_to?: string | null
+          id?: string
+          target_kind?: string
+          target_value?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_tasks_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assignee_id: string | null
@@ -366,6 +416,13 @@ export type Database = {
             columns: ["firm_id"]
             isOneToOne: false
             referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_recurring_task_id_fkey"
+            columns: ["recurring_task_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_tasks"
             referencedColumns: ["id"]
           },
           {

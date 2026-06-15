@@ -3,6 +3,7 @@ export const copy = {
   title: 'Tarefas',
   subtitle: 'O que precisa ser feito, por empresa e departamento.',
   newTask: 'Nova tarefa',
+  recurring: 'Recorrentes',
   viewMine: 'Minhas tarefas de hoje',
   viewAll: 'Todas as visíveis',
   columns: {

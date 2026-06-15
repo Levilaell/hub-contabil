@@ -1,6 +1,7 @@
 import { parseFirmConfig } from '@hub/config';
 import { listCompanies, listTasks } from '@hub/db';
 import { PageHeader } from '@hub/ui';
+import { Repeat } from 'lucide-react';
 import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/server';
@@ -66,9 +67,16 @@ export default async function TarefasPage({
         }
       />
 
-      <div className="border-border flex gap-1 border-b">
+      <div className="border-border flex items-center gap-1 border-b">
         {tab('mine', copy.viewMine)}
         {tab('all', copy.viewAll)}
+        <Link
+          href="/tarefas/recorrentes"
+          className="text-muted-foreground hover:text-foreground ml-auto inline-flex items-center gap-1 px-3 py-2 text-sm"
+        >
+          <Repeat className="size-4" aria-hidden />
+          {copy.recurring}
+        </Link>
       </div>
 
       <TasksBoard

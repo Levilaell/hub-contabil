@@ -53,4 +53,14 @@ export {
   markNotificationRead,
   type NotificationItem,
 } from './notifications';
+export {
+  listRecurringTasks,
+  createRecurringTask,
+  updateRecurringTask,
+  setRecurringTaskActive,
+  type RecurringTask,
+  type RecurringTaskInput,
+  type RecurringTargetKind,
+  type RecurringMutationResult,
+} from './recurring-tasks';
 export type { Database } from './database.types';

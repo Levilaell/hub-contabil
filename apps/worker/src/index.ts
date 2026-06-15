@@ -65,7 +65,7 @@ async function main(): Promise<void> {
   runner.start();
   console.log(`[worker] job runner polling: ${registrations.map((r) => r.queue).join(', ')}`);
 
-  const crons: Cron[] = startCrons(env.CRON_ACCELERATED);
+  const crons: Cron[] = startCrons(env.CRON_ACCELERATED, sql);
   console.log(
     `[worker] crons scheduled (${env.CRON_ACCELERATED ? 'accelerated' : 'production'}): ${crons
       .map((c) => c.name)
