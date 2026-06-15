@@ -9,12 +9,16 @@ export {
   updateCompany,
   setCompanyArchived,
   requestEnrichment,
+  listExistingCnpjs,
+  bulkCreateCompanies,
   type Company,
   type CompanyInput,
   type CompanyEdits,
   type CompanyStatus,
   type CompanyEnrichmentView,
   type MutationResult,
+  type BulkCreateInput,
+  type BulkCreateResult,
 } from './companies';
 export {
   listContacts,

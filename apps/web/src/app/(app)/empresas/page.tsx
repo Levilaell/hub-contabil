@@ -2,7 +2,7 @@ import { parseFirmConfig } from '@hub/config';
 import { formatCnpj } from '@hub/core';
 import { listCompanies } from '@hub/db';
 import { DataList, DataListRow, EmptyState, PageHeader, StatusBadge } from '@hub/ui';
-import { Building2, Plus } from 'lucide-react';
+import { Building2, Plus, Upload } from 'lucide-react';
 import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/server';
@@ -41,10 +41,19 @@ export default async function EmpresasPage({
       {copy.list.newCompany}
     </Link>
   );
+  const headerActions = (
+    <div className="flex gap-2">
+      <Link href="/empresas/importar" className={secondaryButtonClass}>
+        <Upload className="size-4" aria-hidden />
+        {copy.list.importCompanies}
+      </Link>
+      {newButton}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      <PageHeader title={copy.list.title} description={copy.list.subtitle} action={newButton} />
+      <PageHeader title={copy.list.title} description={copy.list.subtitle} action={headerActions} />
 
       {/* Filters collapsed by default (UX rule #8); opened when a filter is active. */}
       <details open={filtered} className="bg-card rounded-xl border px-4 py-3">

@@ -12,3 +12,17 @@ export {
 } from './audit';
 
 export { normalizeCnpj, formatCnpj, isValidCnpj } from './cnpj';
+
+export {
+  IMPORT_COLUMNS,
+  normalizeHeader,
+  columnKeyForHeader,
+  validateImportRows,
+  type ImportColumn,
+  type ImportColumnKey,
+  type RawImportRow,
+  type ImportRowInput,
+  type ImportRowStatus,
+  type AnnotatedImportRow,
+  type ValidateImportOptions,
+} from './import';

@@ -322,3 +322,70 @@ export async function setCompanyArchived(
   });
   return { ok: true, id };
 }
+
+/** All CNPJs registered in the caller's firm (active + archived) — for the
+ *  spreadsheet-import preview to flag already-registered rows. */
+export async function listExistingCnpjs(supabase: SupabaseClient): Promise<string[]> {
+  const { data, error } = await supabase.from('companies').select('cnpj');
+  if (error || !data) return [];
+  return (data as { cnpj: string }[]).map((r) => normalizeCnpj(r.cnpj));
+}
+
+export interface BulkCreateInput {
+  cnpj: string;
+  legalName: string;
+  tradeName: string | null;
+  taxRegime: string | null;
+  city: string | null;
+  state: string | null;
+}
+
+export type BulkCreateResult =
+  | { ok: true; created: { id: string; cnpj: string }[]; duplicateCnpjs: string[] }
+  | { ok: false; message: string };
+
+/**
+ * Bulk-insert validated company rows with PER-ROW isolation (golden rule #6 — one
+ * bad row never aborts the batch): a single INSERT ... ON CONFLICT DO NOTHING via
+ * upsert(ignoreDuplicates) inserts the non-conflicting rows and skips duplicates,
+ * which we reconcile from the returned ids. Enrichment is enqueued by the caller.
+ */
+export async function bulkCreateCompanies(
+  supabase: SupabaseClient,
+  rows: BulkCreateInput[],
+): Promise<BulkCreateResult> {
+  if (rows.length === 0) return { ok: true, created: [], duplicateCnpjs: [] };
+
+  const firm = await loadFirm(supabase);
+  if (!firm) return { ok: false, message: 'Não foi possível identificar o escritório.' };
+
+  const payload = rows.map((r) => ({
+    firm_id: firm.id,
+    cnpj: normalizeCnpj(r.cnpj),
+    legal_name: r.legalName,
+    trade_name: r.tradeName,
+    tax_regime: r.taxRegime,
+    city: r.city,
+    state: r.state,
+  }));
+
+  const { data, error } = await supabase
+    .from('companies')
+    .upsert(payload, { onConflict: 'firm_id,cnpj', ignoreDuplicates: true })
+    .select('id, cnpj');
+  if (error) return { ok: false, message: 'Não foi possível importar as empresas.' };
+
+  const created = (data ?? []) as { id: string; cnpj: string }[];
+  const createdCnpjs = new Set(created.map((c) => c.cnpj));
+  const duplicateCnpjs = payload.filter((p) => !createdCnpjs.has(p.cnpj)).map((p) => p.cnpj);
+
+  if (created.length > 0) {
+    await supabase.rpc('log_audit', {
+      p_action: 'companies.imported',
+      p_entity: 'company',
+      p_entity_id: null,
+      p_context: { created: created.length, source: 'spreadsheet' },
+    });
+  }
+  return { ok: true, created, duplicateCnpjs };
+}
