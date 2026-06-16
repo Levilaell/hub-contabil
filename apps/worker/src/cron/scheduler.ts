@@ -1,6 +1,8 @@
+import { NoopMessagingAdapter } from '@hub/adapters';
 import { Cron } from 'croner';
 import type { Sql } from 'postgres';
 
+import { runDeadlineSweep, todayInSaoPaulo } from '../jobs/deadlines.js';
 import { currentPeriod, generateRecurringTasks } from '../jobs/recurrences.js';
 
 // Worker-side crons (PLANEJAMENTO §3). recurrences-monthly is wired to real
@@ -17,11 +19,17 @@ export interface CronJob {
 }
 
 export function buildCronJobs(sql: Sql): CronJob[] {
+  const messaging = new NoopMessagingAdapter(); // resend-email lands in T17
   return [
     {
       name: 'deadlines-daily',
       pattern: '0 6 * * *',
-      run: () => console.log('[cron] deadlines-daily — stub (T15 recomputes deadline statuses)'),
+      run: async () => {
+        const r = await runDeadlineSweep(sql, todayInSaoPaulo(), { messaging });
+        console.log(
+          `[cron] deadlines-daily: ${r.transitions} transition(s), ${r.alerts} alert(s), ${r.tasksCreated} renewal task(s) from ${r.scanned} scanned`,
+        );
+      },
     },
     {
       name: 'recurrences-monthly',

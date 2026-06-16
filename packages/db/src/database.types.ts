@@ -489,6 +489,7 @@ export type Database = {
           firm_id: string
           handoff_to: string | null
           id: string
+          monitored_document_id: string | null
           period: string | null
           recurring_task_id: string | null
           source_task_id: string | null
@@ -504,6 +505,7 @@ export type Database = {
           firm_id: string
           handoff_to?: string | null
           id?: string
+          monitored_document_id?: string | null
           period?: string | null
           recurring_task_id?: string | null
           source_task_id?: string | null
@@ -519,6 +521,7 @@ export type Database = {
           firm_id?: string
           handoff_to?: string | null
           id?: string
+          monitored_document_id?: string | null
           period?: string | null
           recurring_task_id?: string | null
           source_task_id?: string | null
@@ -546,6 +549,13 @@ export type Database = {
             columns: ["firm_id"]
             isOneToOne: false
             referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_monitored_document_id_fkey"
+            columns: ["monitored_document_id"]
+            isOneToOne: false
+            referencedRelation: "monitored_documents"
             referencedColumns: ["id"]
           },
           {

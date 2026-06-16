@@ -10,7 +10,11 @@ import { copy } from './copy';
 import { markNotificationReadAction } from './notification-actions';
 
 // Where a notification links to, by entity kind.
-const ENTITY_LINK: Record<string, string> = { task: '/tarefas' };
+function linkFor(item: NotificationItem): string | null {
+  if (item.entity === 'task') return '/tarefas';
+  if (item.entity === 'company' && item.entityId) return `/empresas/${item.entityId}?tab=prazos`;
+  return null;
+}
 
 export function NotificationsBell({
   notifications,
@@ -31,7 +35,7 @@ export function NotificationsBell({
       setCount((c) => Math.max(0, c - 1));
       startTransition(() => markNotificationReadAction(item.id));
     }
-    const link = item.entity ? ENTITY_LINK[item.entity] : null;
+    const link = linkFor(item);
     if (link) router.push(link);
   }
 

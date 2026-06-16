@@ -112,6 +112,11 @@ export const firmConfigSchema = z
           .max(365, { message: 'O prazo de alerta deve ser no máximo 365 dias.' })
           .default(30),
         byKind: z.record(z.string(), z.number().int().min(1).max(365)).default({}),
+        // Auto-create a "Renovar …" task when a monitored doc goes overdue (T15).
+        autoRenewalTask: z.boolean().default(true),
+        // Department the renewal task lands in (falls back to the first department
+        // if this key isn't in `departments`).
+        renewalDepartment: z.string().default('compliance'),
       })
       .default({}),
     aiThreshold: z

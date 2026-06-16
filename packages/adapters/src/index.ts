@@ -12,3 +12,10 @@ export {
   type EnrichmentSource,
   type BrasilApiAdapterOptions,
 } from './cnpj-enrichment';
+
+export {
+  NoopMessagingAdapter,
+  type MessagingAdapter,
+  type EmailMessage,
+  type SendResult,
+} from './messaging';

@@ -123,6 +123,12 @@ importers:
       '@hub/adapters':
         specifier: workspace:*
         version: link:../../packages/adapters
+      '@hub/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@hub/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       croner:
         specifier: ^8.1.0
         version: 8.1.2
