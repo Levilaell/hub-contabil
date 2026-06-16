@@ -15,7 +15,7 @@ const PASSWORD = process.env.SEED_PASSWORD ?? 'hub-dev-2026!';
 const hasEnv = Boolean(URL && ANON && SERVICE);
 
 const FIRM_A = '11111111-1111-4111-8111-111111111111'; // M Rocha (seeded)
-const FIRM_B = '99999999-9999-4999-8999-999999999999'; // foreign firm, created here
+const FIRM_B = '99999999-9999-4999-8999-999999999990'; // foreign firm, created here
 const OWNER_EMAIL = 'owner@mrocha.test';
 const TEST_ACTION = 'rls.test.performed';
 

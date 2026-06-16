@@ -1,7 +1,13 @@
 import { parseFirmConfig } from '@hub/config';
-import { formatCnpj } from '@hub/core';
+import { formatCnpj, monitoredToDeadlineSignal } from '@hub/core';
 import { getCompany, listContacts, listDocuments, listMonitoredDocuments } from '@hub/db';
-import { PageHeader, StatusBadge } from '@hub/ui';
+import {
+  PageHeader,
+  StatusBadge,
+  TrafficLight,
+  aggregateTrafficLight,
+  type DeadlineState,
+} from '@hub/ui';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -66,6 +72,18 @@ export default async function EmpresaDetailPage({
   const location = [company.city, company.state].filter(Boolean).join(' / ') || null;
   const archived = company.status === 'archived';
 
+  // Company farol (CLAUDE.md UX rule #4): aggregate this company's deadline signals.
+  const deadlineSignals = prazos
+    .map((p) => monitoredToDeadlineSignal(p.status))
+    .filter((s): s is DeadlineState => s !== null);
+  const companyLight = aggregateTrafficLight(deadlineSignals);
+  const lightLabel: Record<string, string> = {
+    red: 'Prazo vencido',
+    yellow: 'Prazo a vencer',
+    green: 'Prazos em dia',
+    gray: 'Sem prazos',
+  };
+
   return (
     <div className="space-y-6">
       <Link
@@ -87,11 +105,15 @@ export default async function EmpresaDetailPage({
           </div>
         }
       />
-      <div className="-mt-3">
+      <div className="-mt-3 flex items-center gap-3">
         <StatusBadge
           tone={archived ? 'muted' : 'success'}
           label={archived ? copy.detail.badgeArchived : copy.detail.badgeActive}
         />
+        <span className="inline-flex items-center gap-1.5">
+          <TrafficLight state={companyLight} label={lightLabel[companyLight]} />
+          <span className="text-muted-foreground text-xs">{lightLabel[companyLight]}</span>
+        </span>
       </div>
 
       {/* Tab skeleton — Dados/Contatos live; the rest arrive with their modules. */}

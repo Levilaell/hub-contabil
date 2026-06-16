@@ -40,6 +40,7 @@ export {
 } from './exceptions';
 export {
   listTasks,
+  countOpenTasks,
   createTask,
   updateTaskStatus,
   handoffTask,
@@ -67,6 +68,7 @@ export {
   DOCUMENTS_BUCKET,
   buildStoragePath,
   listDocuments,
+  countDocuments,
   findDocumentByHash,
   insertDocument,
   deleteDocument,

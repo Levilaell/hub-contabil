@@ -128,6 +128,15 @@ export async function listDocuments(
   return (data as DocumentRow[]).map(mapDocument);
 }
 
+/** Count of documents in the firm (dashboard, T13). */
+export async function countDocuments(supabase: SupabaseClient): Promise<number> {
+  const { count, error } = await supabase
+    .from('documents')
+    .select('id', { count: 'exact', head: true });
+  if (error) return 0;
+  return count ?? 0;
+}
+
 /** Existing document with this content hash in the company (for client-side dedup). */
 export async function findDocumentByHash(
   supabase: SupabaseClient,

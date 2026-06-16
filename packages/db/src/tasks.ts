@@ -86,6 +86,16 @@ export async function listTasks(
   return (data as TaskRow[]).map(mapTask);
 }
 
+/** Count of tasks the caller can see that are still open (dashboard, T13). */
+export async function countOpenTasks(supabase: SupabaseClient): Promise<number> {
+  const { count, error } = await supabase
+    .from('tasks')
+    .select('id', { count: 'exact', head: true })
+    .in('status', ['pending', 'in_progress']);
+  if (error) return 0;
+  return count ?? 0;
+}
+
 export async function createTask(
   supabase: SupabaseClient,
   input: TaskInput,
