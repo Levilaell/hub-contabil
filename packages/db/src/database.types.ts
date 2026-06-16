@@ -172,6 +172,72 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          company_id: string
+          created_at: string
+          department: string | null
+          doc_type: string
+          file_name: string
+          firm_id: string
+          hash: string
+          id: string
+          metadata: Json
+          period: string | null
+          size_bytes: number | null
+          source: string
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          department?: string | null
+          doc_type?: string
+          file_name: string
+          firm_id: string
+          hash: string
+          id?: string
+          metadata?: Json
+          period?: string | null
+          size_bytes?: number | null
+          source?: string
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          department?: string | null
+          doc_type?: string
+          file_name?: string
+          firm_id?: string
+          hash?: string
+          id?: string
+          metadata?: Json
+          period?: string | null
+          size_bytes?: number | null
+          source?: string
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_firm_id_company_id_fkey"
+            columns: ["firm_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["firm_id", "id"]
+          },
+          {
+            foreignKeyName: "documents_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exception_queue: {
         Row: {
           context: Json

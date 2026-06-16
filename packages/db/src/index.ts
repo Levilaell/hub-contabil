@@ -63,4 +63,16 @@ export {
   type RecurringTargetKind,
   type RecurringMutationResult,
 } from './recurring-tasks';
+export {
+  DOCUMENTS_BUCKET,
+  buildStoragePath,
+  listDocuments,
+  findDocumentByHash,
+  insertDocument,
+  deleteDocument,
+  createDocumentSignedUrl,
+  type DocumentItem,
+  type DocumentInput,
+  type DocMutationResult,
+} from './documents';
 export type { Database } from './database.types';
