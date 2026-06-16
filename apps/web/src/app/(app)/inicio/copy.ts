@@ -9,7 +9,6 @@ export const copy = {
     companies: 'Empresas',
     documents: 'Documentos',
     requests: 'Solicitações',
-    requestsHint: 'Em breve',
   },
   panel: {
     title: 'Painel das empresas',

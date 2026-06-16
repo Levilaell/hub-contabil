@@ -172,6 +172,134 @@ export type Database = {
           },
         ]
       }
+      document_request_events: {
+        Row: {
+          context: Json
+          event_type: string
+          firm_id: string
+          id: string
+          ip: string | null
+          occurred_at: string
+          request_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          context?: Json
+          event_type: string
+          firm_id: string
+          id?: string
+          ip?: string | null
+          occurred_at?: string
+          request_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          context?: Json
+          event_type?: string
+          firm_id?: string
+          id?: string
+          ip?: string | null
+          occurred_at?: string
+          request_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_request_events_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "document_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_requests: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string
+          document_id: string | null
+          expires_at: string
+          firm_id: string
+          id: string
+          kind: string
+          requested_doc_type: string | null
+          status: string
+          title: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          document_id?: string | null
+          expires_at: string
+          firm_id: string
+          id?: string
+          kind: string
+          requested_doc_type?: string | null
+          status?: string
+          title: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          document_id?: string | null
+          expires_at?: string
+          firm_id?: string
+          id?: string
+          kind?: string
+          requested_doc_type?: string | null
+          status?: string
+          title?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_requests_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_requests_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_requests_firm_id_company_id_fkey"
+            columns: ["firm_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["firm_id", "id"]
+          },
+          {
+            foreignKeyName: "document_requests_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           company_id: string
@@ -660,8 +788,34 @@ export type Database = {
     }
     Functions: {
       auth_user_departments: { Args: never; Returns: string[] }
+      cancel_document_request: { Args: { p_id: string }; Returns: undefined }
       current_firm_id: { Args: never; Returns: string }
+      get_request_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          company_name: string
+          description: string
+          document_file_name: string
+          expires_at: string
+          firm_name: string
+          is_expired: boolean
+          kind: string
+          requested_doc_type: string
+          status: string
+          title: string
+        }[]
+      }
+      get_request_owner: {
+        Args: { p_token: string }
+        Returns: {
+          company_id: string
+          firm_id: string
+          is_expired: boolean
+          kind: string
+        }[]
+      }
       handoff_task: { Args: { p_task_id: string }; Returns: string }
+      hash_request_token: { Args: { p_token: string }; Returns: string }
       is_firm_manager: { Args: never; Returns: boolean }
       log_audit: {
         Args: {
@@ -672,7 +826,27 @@ export type Database = {
         }
         Returns: string
       }
+      log_request_view: {
+        Args: { p_ip?: string; p_token: string; p_user_agent?: string }
+        Returns: undefined
+      }
       mark_notification_read: { Args: { p_id: string }; Returns: undefined }
+      record_request_download: {
+        Args: { p_ip?: string; p_token: string; p_user_agent?: string }
+        Returns: string
+      }
+      record_request_upload: {
+        Args: {
+          p_file_name: string
+          p_hash: string
+          p_ip?: string
+          p_size: number
+          p_storage_path: string
+          p_token: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
       request_enrichment: { Args: { p_company_id: string }; Returns: undefined }
       resolve_exception: {
         Args: { p_id: string; p_note?: string; p_status: string }

@@ -83,7 +83,15 @@ export const DEFAULT_ROUTING_MAP: Record<string, string> = {
 // Allowed statuses per domain — mirrors the state machines (PLANEJAMENTO §5). Minimal; no UI in v1.
 export const DEFAULT_STATUS_VOCABULARIES: Record<string, string[]> = {
   task: ['pending', 'in_progress', 'done', 'canceled'],
-  document_request: ['requested', 'sent', 'viewed', 'received'],
+  document_request: [
+    'requested',
+    'sent',
+    'viewed',
+    'received',
+    'downloaded',
+    'expired',
+    'cancelled',
+  ],
   monitored_document: ['no_date', 'valid', 'due_soon', 'overdue', 'needs_update'],
   exception: ['open', 'resolved', 'ignored'],
 };
@@ -124,6 +132,14 @@ export const firmConfigSchema = z
       .min(0, { message: 'O limite de confiança deve estar entre 0 e 1.' })
       .max(1, { message: 'O limite de confiança deve estar entre 0 e 1.' })
       .default(0.85),
+    // Days a document-request access link stays valid (T16). Business value in
+    // config (golden rule #8); the link's expires_at is stamped from this.
+    requestTokenExpiryDays: z
+      .number({ message: 'A validade do link deve ser um número.' })
+      .int({ message: 'A validade do link deve ser um número inteiro de dias.' })
+      .min(1, { message: 'A validade do link deve ser de pelo menos 1 dia.' })
+      .max(90, { message: 'A validade do link deve ser no máximo 90 dias.' })
+      .default(7),
     taxonomy: z
       .array(z.string().min(1))
       .min(1)

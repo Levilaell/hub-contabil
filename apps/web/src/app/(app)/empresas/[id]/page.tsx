@@ -1,6 +1,12 @@
 import { parseFirmConfig } from '@hub/config';
 import { formatCnpj, monitoredToDeadlineSignal } from '@hub/core';
-import { getCompany, listContacts, listDocuments, listMonitoredDocuments } from '@hub/db';
+import {
+  getCompany,
+  listContacts,
+  listDocuments,
+  listDocumentRequests,
+  listMonitoredDocuments,
+} from '@hub/db';
 import {
   PageHeader,
   StatusBadge,
@@ -19,6 +25,7 @@ import { ArchiveButton } from './archive-button';
 import { ContactsSection } from './contacts-section';
 import { EnrichButton } from './enrich-button';
 import { PrazosSection } from './prazos-section';
+import { SolicitacoesSection } from './solicitacoes-section';
 
 const TABS = [
   { key: 'dados', label: copy.detail.tabs.dados, enabled: true },
@@ -26,7 +33,7 @@ const TABS = [
   { key: 'tarefas', label: copy.detail.tabs.tarefas, enabled: false },
   { key: 'documentos', label: copy.detail.tabs.documentos, enabled: false },
   { key: 'prazos', label: copy.detail.tabs.prazos, enabled: true },
-  { key: 'solicitacoes', label: copy.detail.tabs.solicitacoes, enabled: false },
+  { key: 'solicitacoes', label: copy.detail.tabs.solicitacoes, enabled: true },
   { key: 'regras', label: copy.detail.tabs.regras, enabled: false },
 ] as const;
 
@@ -58,10 +65,11 @@ export default async function EmpresaDetailPage({
   const company = await getCompany(supabase, id);
   if (!company) notFound();
 
-  const [contacts, prazos, companyDocs, { data: firm }] = await Promise.all([
+  const [contacts, prazos, companyDocs, requests, { data: firm }] = await Promise.all([
     listContacts(supabase, id),
     listMonitoredDocuments(supabase, { companyId: id }),
     listDocuments(supabase, { companyId: id }),
+    listDocumentRequests(supabase, { companyId: id }),
     supabase.from('firms').select('config').limit(1).single(),
   ]);
 
@@ -194,6 +202,16 @@ export default async function EmpresaDetailPage({
           kinds={config.monitoredKinds.map((k) => ({ key: k.key, label: k.label }))}
           defaultTriggerDays={config.deadlineTriggers.defaultDays}
           companyDocs={companyDocs.map((d) => ({ id: d.id, fileName: d.fileName }))}
+        />
+      ) : null}
+
+      {tab === 'solicitacoes' ? (
+        <SolicitacoesSection
+          companyId={id}
+          requests={requests}
+          companyDocs={companyDocs.map((d) => ({ id: d.id, fileName: d.fileName }))}
+          docTypes={[...config.taxonomy]}
+          defaultExpiryDays={config.requestTokenExpiryDays}
         />
       ) : null}
     </div>

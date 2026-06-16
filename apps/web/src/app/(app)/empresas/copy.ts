@@ -136,6 +136,50 @@ export const copy = {
       needs_update: 'Revisar',
     } as Record<string, string>,
   },
+  solicitacoes: {
+    add: 'Nova solicitação',
+    empty: 'Nenhuma solicitação.',
+    emptyHint: 'Peça um documento ao cliente ou disponibilize um arquivo por link seguro.',
+    kind: 'Tipo',
+    kindUpload: 'Solicitar envio de documento',
+    kindOffer: 'Disponibilizar documento',
+    title: 'Título',
+    titlePlaceholder: 'Ex.: Envie o contrato social atualizado',
+    description: 'Mensagem ao cliente (opcional)',
+    docType: 'Documento esperado (opcional)',
+    docTypeAny: 'Qualquer documento',
+    document: 'Documento a disponibilizar',
+    documentPick: 'Selecione um documento…',
+    noDocs: 'Esta empresa ainda não tem documentos para disponibilizar.',
+    expiryDays: 'Validade do link (dias)',
+    create: 'Gerar link',
+    creating: 'Gerando…',
+    cancel: 'Cancelar',
+    cancelRequest: 'Cancelar',
+    cancelConfirm: 'Cancelar esta solicitação? O link deixará de funcionar.',
+    expiresIn: (days: number) =>
+      days < 0
+        ? 'link expirado'
+        : days === 0
+          ? 'expira hoje'
+          : days === 1
+            ? 'expira amanhã'
+            : `expira em ${days} dias`,
+    linkTitle: 'Link gerado',
+    linkHint: 'Copie agora — por segurança, o link não é exibido novamente.',
+    copy: 'Copiar link',
+    copied: 'Copiado!',
+    newAnother: 'Nova solicitação',
+    status: {
+      requested: 'Aguardando',
+      sent: 'Enviado',
+      viewed: 'Visualizado',
+      received: 'Recebido',
+      downloaded: 'Baixado',
+      expired: 'Expirado',
+      cancelled: 'Cancelado',
+    } as Record<string, string>,
+  },
   contacts: {
     add: 'Adicionar contato',
     name: 'Nome',

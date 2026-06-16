@@ -87,4 +87,23 @@ export {
   type MonitoredInput,
   type MonitoredMutationResult,
 } from './monitored-documents';
+export {
+  createDocumentRequest,
+  listDocumentRequests,
+  listRequestEvents,
+  countOpenRequests,
+  cancelDocumentRequest,
+  getRequestByToken,
+  getRequestOwner,
+  logRequestView,
+  recordRequestUpload,
+  recordRequestDownload,
+  type DocumentRequest,
+  type RequestEvent,
+  type PublicRequestView,
+  type RequestOwner,
+  type CreateRequestInput,
+  type CreateRequestResult,
+  type RequestActionResult,
+} from './requests';
 export type { Database } from './database.types';

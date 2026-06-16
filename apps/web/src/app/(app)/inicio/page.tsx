@@ -2,6 +2,7 @@ import { monitoredToDeadlineSignal } from '@hub/core';
 import {
   countDocuments,
   countOpenExceptions,
+  countOpenRequests,
   countOpenTasks,
   listCompanies,
   listMonitoredDocuments,
@@ -29,13 +30,15 @@ const LIGHT_ORDER: Record<TrafficLightState, number> = { red: 0, yellow: 1, gree
 
 export default async function InicioPage() {
   const supabase = await createClient();
-  const [openTasks, openExceptions, docCount, companies, monitored] = await Promise.all([
-    countOpenTasks(supabase),
-    countOpenExceptions(supabase),
-    countDocuments(supabase),
-    listCompanies(supabase, { status: 'active' }),
-    listMonitoredDocuments(supabase),
-  ]);
+  const [openTasks, openExceptions, docCount, openRequests, companies, monitored] =
+    await Promise.all([
+      countOpenTasks(supabase),
+      countOpenExceptions(supabase),
+      countDocuments(supabase),
+      countOpenRequests(supabase),
+      listCompanies(supabase, { status: 'active' }),
+      listMonitoredDocuments(supabase),
+    ]);
 
   // Per-company deadline aggregation (status already recomputed on read).
   const stats = new Map<string, { signals: DeadlineState[]; overdue: number; soon: number }>();
@@ -95,10 +98,9 @@ export default async function InicioPage() {
     },
     {
       label: copy.cards.requests,
-      value: 0,
+      value: openRequests,
       icon: Send,
-      tone: 'muted',
-      hint: copy.cards.requestsHint,
+      tone: openRequests > 0 ? 'warning' : 'muted',
     },
   ];
 
