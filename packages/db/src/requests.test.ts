@@ -12,6 +12,7 @@ import {
   logRequestView,
   recordRequestDownload,
   recordRequestUpload,
+  rotateRequestToken,
 } from './requests';
 
 // Integration test for document requests against Supabase Cloud dev. Proves the
@@ -296,6 +297,42 @@ describe.skipIf(!hasEnv)('document requests (cloud dev)', () => {
       .eq('id', created.id)
       .single();
     expect(req?.status).toBe('cancelled');
+  });
+
+  it('rotation issues a fresh link, invalidates the old one, and marks requested→sent', async () => {
+    const created = await createDocumentRequest(owner, {
+      companyId,
+      kind: 'upload_request',
+      title: 'Para reenviar',
+      expiryDays: 7,
+    });
+    if (!created.ok) return;
+
+    const rotated = await rotateRequestToken(owner, created.id);
+    expect(rotated.ok).toBe(true);
+    if (!rotated.ok) return;
+
+    // New token resolves and the request is now 'sent'; old token is dead.
+    const fresh = await getRequestByToken(anon, rotated.token);
+    expect(fresh?.status).toBe('sent');
+    expect(await getRequestByToken(anon, created.token)).toBeNull();
+  });
+
+  it('rotation keeps a viewed request viewed (no state regression)', async () => {
+    const created = await createDocumentRequest(owner, {
+      companyId,
+      kind: 'upload_request',
+      title: 'Já visto',
+      expiryDays: 7,
+    });
+    if (!created.ok) return;
+
+    await logRequestView(anon, created.token); // requested → viewed
+    const rotated = await rotateRequestToken(owner, created.id);
+    if (!rotated.ok) return;
+
+    const fresh = await getRequestByToken(anon, rotated.token);
+    expect(fresh?.status).toBe('viewed'); // not regressed to 'sent'
   });
 
   it('does not list a foreign firm request (RLS)', async () => {

@@ -23,11 +23,13 @@ import { UserMenu } from './user-menu';
 // count badge of open exceptions (T9); the topbar shows the notifications bell (T10).
 export function AppNav({
   exceptionCount,
+  requestCount,
   notifications,
   unreadNotifications,
   children,
 }: {
   exceptionCount: number;
+  requestCount: number;
   notifications: NotificationItem[];
   unreadNotifications: number;
   children: ReactNode;
@@ -39,7 +41,7 @@ export function AppNav({
     { label: copy.nav.tarefas, href: '/tarefas', icon: ListChecks },
     { label: copy.nav.documentos, href: '/documentos', icon: FileText },
     { label: copy.nav.excecoes, href: '/excecoes', icon: AlertTriangle, badge: exceptionCount },
-    { label: copy.nav.solicitacoes, href: '/solicitacoes', icon: Send },
+    { label: copy.nav.solicitacoes, href: '/solicitacoes', icon: Send, badge: requestCount },
     { label: copy.nav.config, href: '/configuracoes', icon: Settings },
   ];
 

@@ -19,7 +19,13 @@ export interface DocumentRequest {
   requestedDocType: string | null;
   status: RequestStatus;
   expiresAt: string;
+  sentAt: string | null;
   createdAt: string;
+}
+
+/** A request joined with its company's display name (global follow-up screen). */
+export interface RequestWithCompany extends DocumentRequest {
+  companyName: string;
 }
 
 interface DocumentRequestRow {
@@ -32,12 +38,13 @@ interface DocumentRequestRow {
   requested_doc_type: string | null;
   status: string;
   expires_at: string;
+  sent_at: string | null;
   created_at: string;
 }
 
 export interface RequestEvent {
   id: string;
-  eventType: 'viewed' | 'received' | 'downloaded';
+  eventType: 'viewed' | 'received' | 'downloaded' | 'sent' | 'reminded';
   ip: string | null;
   userAgent: string | null;
   occurredAt: string;
@@ -73,7 +80,7 @@ export type CreateRequestResult =
 export type RequestActionResult = { ok: true } | { ok: false; message: string };
 
 const SELECT =
-  'id, company_id, kind, title, description, document_id, requested_doc_type, status, expires_at, created_at';
+  'id, company_id, kind, title, description, document_id, requested_doc_type, status, expires_at, sent_at, created_at';
 
 function fail(message: string): { ok: false; message: string } {
   return { ok: false, message };
@@ -90,6 +97,7 @@ function mapRequest(row: DocumentRequestRow): DocumentRequest {
     requestedDocType: row.requested_doc_type,
     status: row.status as RequestStatus,
     expiresAt: row.expires_at,
+    sentAt: row.sent_at,
     createdAt: row.created_at,
   };
 }
@@ -172,6 +180,61 @@ export async function listDocumentRequests(
   const { data, error } = await query.order('created_at', { ascending: false });
   if (error || !data) return [];
   return (data as DocumentRequestRow[]).map(mapRequest);
+}
+
+/** All requests across the firm's companies, with each company's display name,
+ *  for the global follow-up screen. Two queries (robust vs composite-FK embeds). */
+export async function listAllRequests(supabase: SupabaseClient): Promise<RequestWithCompany[]> {
+  const { data, error } = await supabase
+    .from('document_requests')
+    .select(SELECT)
+    .order('created_at', { ascending: false });
+  if (error || !data) return [];
+  const rows = (data as DocumentRequestRow[]).map(mapRequest);
+
+  const companyIds = [...new Set(rows.map((r) => r.companyId))];
+  const names = new Map<string, string>();
+  if (companyIds.length) {
+    const { data: companies } = await supabase
+      .from('companies')
+      .select('id, trade_name, legal_name')
+      .in('id', companyIds);
+    for (const c of companies ?? []) {
+      names.set(c.id as string, ((c.trade_name as string) || (c.legal_name as string)) ?? '');
+    }
+  }
+  return rows.map((r) => ({ ...r, companyName: names.get(r.companyId) ?? '' }));
+}
+
+/** Resolve a company's e-mail recipient: the primary contact, else the first with
+ *  an e-mail. Null when none — the caller decides (ask the user, or skip). */
+export async function getCompanyPrimaryEmail(
+  supabase: SupabaseClient,
+  companyId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('contacts')
+    .select('email, is_primary')
+    .eq('company_id', companyId)
+    .not('email', 'is', null)
+    .order('is_primary', { ascending: false });
+  const first = (data ?? [])[0];
+  return (first?.email as string | null) ?? null;
+}
+
+/** Rotate the access token (resend / new copy-link). Returns the fresh raw token
+ *  to build the link; the previous link stops working. Marks the request sent. */
+export async function rotateRequestToken(
+  supabase: SupabaseClient,
+  id: string,
+  expiryDays?: number,
+): Promise<{ ok: true; token: string } | { ok: false; message: string }> {
+  const { data, error } = await supabase.rpc('rotate_request_token', {
+    p_id: id,
+    p_expiry_days: expiryDays ?? null,
+  });
+  if (error || !data) return fail('Não foi possível gerar um novo link.');
+  return { ok: true, token: data as string };
 }
 
 export async function listRequestEvents(

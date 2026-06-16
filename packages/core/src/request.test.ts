@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   allowedRequestTransitions,
+  canResendRequest,
   canTransitionRequest,
   fulfilledStatusFor,
   isOpenRequest,
   isRequestKind,
   isRequestStatus,
+  statusAfterResend,
 } from './request';
 
 describe('document-request state machine', () => {
@@ -50,6 +52,20 @@ describe('document-request state machine', () => {
   it('maps each kind to its fulfilled status', () => {
     expect(fulfilledStatusFor('upload_request')).toBe('received');
     expect(fulfilledStatusFor('document_offer')).toBe('downloaded');
+  });
+
+  it('allows resend only from open statuses', () => {
+    expect(canResendRequest('requested')).toBe(true);
+    expect(canResendRequest('sent')).toBe(true);
+    expect(canResendRequest('viewed')).toBe(true);
+    expect(canResendRequest('received')).toBe(false);
+    expect(canResendRequest('cancelled')).toBe(false);
+  });
+
+  it('advances requested→sent on resend but never regresses viewed', () => {
+    expect(statusAfterResend('requested')).toBe('sent');
+    expect(statusAfterResend('sent')).toBe('sent');
+    expect(statusAfterResend('viewed')).toBe('viewed'); // keep "client already opened"
   });
 
   it('guards the status and kind types', () => {

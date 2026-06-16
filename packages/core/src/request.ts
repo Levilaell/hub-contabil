@@ -53,6 +53,21 @@ export function isOpenRequest(status: RequestStatus): boolean {
   return OPEN_REQUEST_STATUSES.includes(status);
 }
 
+// A link can be (re)sent while the request is still open. Rotation advances
+// requested → sent, but must NOT regress viewed → sent (that would erase the
+// fact the client already opened it) — it keeps sent/viewed as-is and only
+// refreshes the link. MUST mirror the guard in the rotate_request_token RPC.
+export const RESENDABLE_STATUSES: RequestStatus[] = ['requested', 'sent', 'viewed'];
+
+export function canResendRequest(status: RequestStatus): boolean {
+  return RESENDABLE_STATUSES.includes(status);
+}
+
+/** Status after a (re)send: requested becomes sent; sent/viewed are preserved. */
+export function statusAfterResend(status: RequestStatus): RequestStatus {
+  return status === 'requested' ? 'sent' : status;
+}
+
 // The two request kinds: ask the client to upload a document, or make one
 // available for the client to download.
 export const REQUEST_KINDS = ['upload_request', 'document_offer'] as const;

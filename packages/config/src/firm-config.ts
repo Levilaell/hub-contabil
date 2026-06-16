@@ -140,6 +140,14 @@ export const firmConfigSchema = z
       .min(1, { message: 'A validade do link deve ser de pelo menos 1 dia.' })
       .max(90, { message: 'A validade do link deve ser no máximo 90 dias.' })
       .default(7),
+    // Days a request may sit in 'sent' (link delivered, client hasn't opened)
+    // before the reminder cron re-sends it (T17). Business value in config (#8).
+    requestReminderDays: z
+      .number({ message: 'O lembrete deve ser um número.' })
+      .int({ message: 'O lembrete deve ser um número inteiro de dias.' })
+      .min(1, { message: 'O lembrete deve ser de pelo menos 1 dia.' })
+      .max(60, { message: 'O lembrete deve ser no máximo 60 dias.' })
+      .default(3),
     taxonomy: z
       .array(z.string().min(1))
       .min(1)

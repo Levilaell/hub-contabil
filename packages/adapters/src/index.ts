@@ -15,7 +15,11 @@ export {
 
 export {
   NoopMessagingAdapter,
+  ResendMessagingAdapter,
+  createMessagingAdapter,
   type MessagingAdapter,
+  type MessagingEnv,
   type EmailMessage,
   type SendResult,
+  type ResendAdapterOptions,
 } from './messaging';

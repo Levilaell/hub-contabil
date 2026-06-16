@@ -101,6 +101,7 @@ export default async function InicioPage() {
       value: openRequests,
       icon: Send,
       tone: openRequests > 0 ? 'warning' : 'muted',
+      href: '/solicitacoes',
     },
   ];
 

@@ -231,7 +231,9 @@ export type Database = {
           firm_id: string
           id: string
           kind: string
+          last_reminded_at: string | null
           requested_doc_type: string | null
+          sent_at: string | null
           status: string
           title: string
           token_hash: string
@@ -247,7 +249,9 @@ export type Database = {
           firm_id: string
           id?: string
           kind: string
+          last_reminded_at?: string | null
           requested_doc_type?: string | null
+          sent_at?: string | null
           status?: string
           title: string
           token_hash: string
@@ -263,7 +267,9 @@ export type Database = {
           firm_id?: string
           id?: string
           kind?: string
+          last_reminded_at?: string | null
           requested_doc_type?: string | null
+          sent_at?: string | null
           status?: string
           title?: string
           token_hash?: string
@@ -851,6 +857,10 @@ export type Database = {
       resolve_exception: {
         Args: { p_id: string; p_note?: string; p_status: string }
         Returns: undefined
+      }
+      rotate_request_token: {
+        Args: { p_expiry_days?: number; p_id: string }
+        Returns: string
       }
     }
     Enums: {

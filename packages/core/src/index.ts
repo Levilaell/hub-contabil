@@ -55,6 +55,11 @@ export {
   REQUEST_KINDS,
   isRequestKind,
   fulfilledStatusFor,
+  RESENDABLE_STATUSES,
+  canResendRequest,
+  statusAfterResend,
   type RequestStatus,
   type RequestKind,
 } from './request';
+
+export { buildRequestEmail, type RequestEmailInput, type BuiltEmail } from './request-email';

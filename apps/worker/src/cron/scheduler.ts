@@ -1,9 +1,10 @@
-import { NoopMessagingAdapter } from '@hub/adapters';
+import { NoopMessagingAdapter, createMessagingAdapter } from '@hub/adapters';
 import { Cron } from 'croner';
 import type { Sql } from 'postgres';
 
 import { runDeadlineSweep, todayInSaoPaulo } from '../jobs/deadlines.js';
 import { currentPeriod, generateRecurringTasks } from '../jobs/recurrences.js';
+import { runRequestReminderSweep } from '../jobs/request-reminders.js';
 
 // Worker-side crons (PLANEJAMENTO §3). recurrences-monthly is wired to real
 // generation (T11); the others remain logging stubs until their feature task.
@@ -19,7 +20,12 @@ export interface CronJob {
 }
 
 export function buildCronJobs(sql: Sql): CronJob[] {
-  const messaging = new NoopMessagingAdapter(); // resend-email lands in T17
+  // Deadline alerts go to a firm placeholder recipient (not a real inbox yet), so
+  // they stay on the no-op. Request reminders go to real client e-mails, so they
+  // use the configured adapter (Resend when RESEND_API_KEY is set, else no-op).
+  const messaging = new NoopMessagingAdapter();
+  const clientMessaging = createMessagingAdapter();
+  const appBaseUrl = process.env.APP_BASE_URL ?? 'http://localhost:3000';
   return [
     {
       name: 'deadlines-daily',
@@ -45,7 +51,15 @@ export function buildCronJobs(sql: Sql): CronJob[] {
     {
       name: 'alerts',
       pattern: '0 * * * *',
-      run: () => console.log('[cron] alerts — stub (T17 reminder sweep)'),
+      run: async () => {
+        const r = await runRequestReminderSweep(sql, new Date(), {
+          messaging: clientMessaging,
+          baseUrl: appBaseUrl,
+        });
+        console.log(
+          `[cron] alerts: ${r.reminded} reminder(s), ${r.exceptions} exception(s) from ${r.scanned} scanned`,
+        );
+      },
     },
   ];
 }
