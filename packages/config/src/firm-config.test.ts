@@ -11,6 +11,7 @@ describe('parseFirmConfig', () => {
     expect(config.taxonomy).toContain('nfe');
     expect(config.routingMap.nfe).toBe('fiscal');
     expect(config.taxRegimes.map((r) => r.key)).toContain('simples_nacional');
+    expect(config.monitoredKinds.map((k) => k.key)).toContain('cnd_federal');
   });
 
   it('treats null/undefined as empty', () => {

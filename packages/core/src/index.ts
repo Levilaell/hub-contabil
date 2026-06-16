@@ -36,3 +36,11 @@ export {
   HANDOFFABLE_STATUSES,
   type TaskStatus,
 } from './task';
+
+export {
+  deriveMonitoredStatus,
+  monitoredToDeadlineSignal,
+  type MonitoredStatus,
+  type MonitoredDateStatus,
+  type DeadlineSignal,
+} from './monitored';

@@ -306,6 +306,70 @@ export type Database = {
         }
         Relationships: []
       }
+      monitored_documents: {
+        Row: {
+          company_id: string
+          created_at: string
+          doc_kind: string
+          document_id: string | null
+          due_date: string | null
+          firm_id: string
+          id: string
+          metadata: Json
+          status: string
+          trigger_days: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          doc_kind: string
+          document_id?: string | null
+          due_date?: string | null
+          firm_id: string
+          id?: string
+          metadata?: Json
+          status?: string
+          trigger_days?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          doc_kind?: string
+          document_id?: string | null
+          due_date?: string | null
+          firm_id?: string
+          id?: string
+          metadata?: Json
+          status?: string
+          trigger_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitored_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monitored_documents_firm_id_company_id_fkey"
+            columns: ["firm_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["firm_id", "id"]
+          },
+          {
+            foreignKeyName: "monitored_documents_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null

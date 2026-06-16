@@ -23,6 +23,19 @@ export const DEFAULT_TAX_REGIMES = [
   { key: 'imune_isenta', label: 'Imune / Isenta' },
 ] as const;
 
+// Monitored-document kinds for the deadline engine (T14). Config vocabulary
+// ({key,label}); firms can relabel/extend. trigger days per kind live in
+// deadlineTriggers.byKind (keyed by these keys).
+export const DEFAULT_MONITORED_KINDS = [
+  { key: 'cnd_federal', label: 'CND Federal (RFB/PGFN)' },
+  { key: 'cnd_estadual', label: 'CND Estadual' },
+  { key: 'cnd_municipal', label: 'CND Municipal' },
+  { key: 'cndt', label: 'CNDT (Trabalhista)' },
+  { key: 'fgts_crf', label: 'CRF / FGTS' },
+  { key: 'alvara', label: 'Alvará / Licença' },
+  { key: 'certificado_a1', label: 'Certificado Digital A1' },
+] as const;
+
 // Closed document taxonomy (PLANEJAMENTO §6) — validate with the partner before AI triage (T20).
 export const DEFAULT_TAXONOMY = [
   'nfe',
@@ -85,6 +98,10 @@ export const firmConfigSchema = z
       .array(vocabularyEntrySchema)
       .min(1)
       .default([...DEFAULT_TAX_REGIMES]),
+    monitoredKinds: z
+      .array(vocabularyEntrySchema)
+      .min(1)
+      .default([...DEFAULT_MONITORED_KINDS]),
     deadlineTriggers: z
       .object({
         // Days before a due date when a deadline turns "due_soon".

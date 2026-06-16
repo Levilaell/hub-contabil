@@ -75,4 +75,14 @@ export {
   type DocumentInput,
   type DocMutationResult,
 } from './documents';
+export {
+  firmToday,
+  listMonitoredDocuments,
+  createMonitoredDocument,
+  updateMonitoredDocument,
+  deleteMonitoredDocument,
+  type MonitoredDoc,
+  type MonitoredInput,
+  type MonitoredMutationResult,
+} from './monitored-documents';
 export type { Database } from './database.types';

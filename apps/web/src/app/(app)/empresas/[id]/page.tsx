@@ -1,6 +1,6 @@
 import { parseFirmConfig } from '@hub/config';
 import { formatCnpj } from '@hub/core';
-import { getCompany, listContacts } from '@hub/db';
+import { getCompany, listContacts, listDocuments, listMonitoredDocuments } from '@hub/db';
 import { PageHeader, StatusBadge } from '@hub/ui';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -12,13 +12,14 @@ import { copy, primaryButtonClass } from '../copy';
 import { ArchiveButton } from './archive-button';
 import { ContactsSection } from './contacts-section';
 import { EnrichButton } from './enrich-button';
+import { PrazosSection } from './prazos-section';
 
 const TABS = [
   { key: 'dados', label: copy.detail.tabs.dados, enabled: true },
   { key: 'contatos', label: copy.detail.tabs.contatos, enabled: true },
   { key: 'tarefas', label: copy.detail.tabs.tarefas, enabled: false },
   { key: 'documentos', label: copy.detail.tabs.documentos, enabled: false },
-  { key: 'prazos', label: copy.detail.tabs.prazos, enabled: false },
+  { key: 'prazos', label: copy.detail.tabs.prazos, enabled: true },
   { key: 'solicitacoes', label: copy.detail.tabs.solicitacoes, enabled: false },
   { key: 'regras', label: copy.detail.tabs.regras, enabled: false },
 ] as const;
@@ -51,14 +52,16 @@ export default async function EmpresaDetailPage({
   const company = await getCompany(supabase, id);
   if (!company) notFound();
 
-  const [contacts, { data: firm }] = await Promise.all([
+  const [contacts, prazos, companyDocs, { data: firm }] = await Promise.all([
     listContacts(supabase, id),
+    listMonitoredDocuments(supabase, { companyId: id }),
+    listDocuments(supabase, { companyId: id }),
     supabase.from('firms').select('config').limit(1).single(),
   ]);
 
+  const config = parseFirmConfig(firm?.config);
   const regimeLabel = company.taxRegime
-    ? (parseFirmConfig(firm?.config).taxRegimes.find((r) => r.key === company.taxRegime)?.label ??
-      company.taxRegime)
+    ? (config.taxRegimes.find((r) => r.key === company.taxRegime)?.label ?? company.taxRegime)
     : null;
   const location = [company.city, company.state].filter(Boolean).join(' / ') || null;
   const archived = company.status === 'archived';
@@ -161,6 +164,16 @@ export default async function EmpresaDetailPage({
       ) : null}
 
       {tab === 'contatos' ? <ContactsSection companyId={id} contacts={contacts} /> : null}
+
+      {tab === 'prazos' ? (
+        <PrazosSection
+          companyId={id}
+          prazos={prazos}
+          kinds={config.monitoredKinds.map((k) => ({ key: k.key, label: k.label }))}
+          defaultTriggerDays={config.deadlineTriggers.defaultDays}
+          companyDocs={companyDocs.map((d) => ({ id: d.id, fileName: d.fileName }))}
+        />
+      ) : null}
     </div>
   );
 }
