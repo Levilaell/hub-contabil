@@ -14,9 +14,9 @@ const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const PASSWORD = process.env.SEED_PASSWORD ?? 'hub-dev-2026!';
 const hasEnv = Boolean(URL && ANON && SERVICE);
 
-const FIRM_A = '11111111-1111-4111-8111-111111111111'; // M Rocha (seeded)
+const FIRM_A = '11111111-1111-4111-8111-111111111111'; // Demo (seeded)
 const FIRM_B = '99999999-9999-4999-8999-999999999990'; // foreign firm, created here
-const OWNER_EMAIL = 'owner@mrocha.test';
+const OWNER_EMAIL = 'owner@demo.test';
 const TEST_ACTION = 'rls.test.performed';
 
 describe.skipIf(!hasEnv)('RLS tenant isolation (cloud dev)', () => {
@@ -26,7 +26,7 @@ describe.skipIf(!hasEnv)('RLS tenant isolation (cloud dev)', () => {
 
   beforeAll(async () => {
     if (!URL || !ANON || !SERVICE) throw new Error('missing env');
-    // Service role (bypasses RLS) sets up a foreign firm the M Rocha user must not see.
+    // Service role (bypasses RLS) sets up a foreign firm the Demo user must not see.
     service = createClient<Database>(URL, SERVICE, { auth: { persistSession: false } });
     const { error: setupError } = await service
       .from('firms')

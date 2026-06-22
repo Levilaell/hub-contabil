@@ -10,7 +10,7 @@ import { createEnrichmentHandler } from './enrichment';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const hasEnv = Boolean(DATABASE_URL);
-const FIRM = '11111111-1111-4111-8111-111111111111'; // M Rocha (seeded)
+const FIRM = '11111111-1111-4111-8111-111111111111'; // Demo (seeded)
 
 function fakeAdapter(outcome: EnrichmentOutcome): CnpjEnrichmentAdapter {
   return { enrich: () => Promise.resolve(outcome) };

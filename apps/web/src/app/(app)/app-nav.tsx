@@ -15,6 +15,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { Brand } from '@/components/brand';
+
 import { copy } from './copy';
 import { NotificationsBell } from './notifications-bell';
 import { UserMenu } from './user-menu';
@@ -48,7 +50,7 @@ export function AppNav({
   return (
     <div className="h-dvh">
       <AppShell
-        brand={copy.brand}
+        brand={<Brand />}
         nav={nav}
         activeHref={pathname}
         linkComponent={Link}

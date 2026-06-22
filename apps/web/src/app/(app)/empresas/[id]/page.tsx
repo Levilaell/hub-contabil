@@ -2,39 +2,49 @@ import { parseFirmConfig } from '@hub/config';
 import { formatCnpj, monitoredToDeadlineSignal } from '@hub/core';
 import {
   getCompany,
+  listClassificationsByDocuments,
   listContacts,
   listDocuments,
   listDocumentRequests,
   listMonitoredDocuments,
+  listTasks,
+  type Classification,
+  type Task,
 } from '@hub/db';
 import {
+  EmptyState,
   PageHeader,
   StatusBadge,
   TrafficLight,
   aggregateTrafficLight,
   type DeadlineState,
 } from '@hub/ui';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
 
-import { copy, primaryButtonClass } from '../copy';
+import { copy, primaryButtonClass, secondaryButtonClass } from '../copy';
 import { ArchiveButton } from './archive-button';
 import { ContactsSection } from './contacts-section';
 import { EnrichButton } from './enrich-button';
 import { PrazosSection } from './prazos-section';
 import { SolicitacoesSection } from './solicitacoes-section';
+// The Tarefas and Documentos tabs consume the existing task (T10) and document
+// repository (T12) modules, scoped to this company — no status visuals re-implemented.
+import { DocumentList } from '../../documentos/document-list';
+import { CreateTaskButton } from '../../tarefas/create-task-button';
+import { TasksBoard } from '../../tarefas/tasks-board';
 
 const TABS = [
   { key: 'dados', label: copy.detail.tabs.dados, enabled: true },
   { key: 'contatos', label: copy.detail.tabs.contatos, enabled: true },
-  { key: 'tarefas', label: copy.detail.tabs.tarefas, enabled: false },
-  { key: 'documentos', label: copy.detail.tabs.documentos, enabled: false },
+  { key: 'tarefas', label: copy.detail.tabs.tarefas, enabled: true },
+  { key: 'documentos', label: copy.detail.tabs.documentos, enabled: true },
   { key: 'prazos', label: copy.detail.tabs.prazos, enabled: true },
   { key: 'solicitacoes', label: copy.detail.tabs.solicitacoes, enabled: true },
-  { key: 'regras', label: copy.detail.tabs.regras, enabled: false },
+  // CFOP mapping rules are firm-wide (T19) → managed in /regras, not per company.
 ] as const;
 
 function resolveTab(raw: string | undefined): string {
@@ -79,6 +89,35 @@ export default async function EmpresaDetailPage({
     : null;
   const location = [company.city, company.state].filter(Boolean).join(' / ') || null;
   const archived = company.status === 'archived';
+  const companyName = company.tradeName || company.legalName;
+  const departmentLabels = Object.fromEntries(config.departments.map((d) => [d.key, d.label]));
+
+  // Tasks tab consumes the task module (T10) scoped to this company. Fetched only
+  // when the tab is active (the assignee list is the one extra query worth saving).
+  let tasks: Task[] = [];
+  let userOptions: { id: string; name: string }[] = [];
+  let me = '';
+  if (tab === 'tarefas') {
+    const [{ data: userData }, companyTasks, { data: users }] = await Promise.all([
+      supabase.auth.getUser(),
+      listTasks(supabase, { companyId: id }),
+      supabase.from('users').select('id, full_name, email'),
+    ]);
+    me = userData.user?.id ?? '';
+    tasks = companyTasks;
+    userOptions = (users ?? []).map((u) => ({ id: u.id, name: u.full_name || u.email }));
+  }
+
+  // Classifications for the documents tab ("classificado por IA" badge, T21).
+  let documentClassifications: Record<string, Classification> = {};
+  if (tab === 'documentos') {
+    documentClassifications = Object.fromEntries(
+      await listClassificationsByDocuments(
+        supabase,
+        companyDocs.map((d) => d.id),
+      ),
+    );
+  }
 
   // Company farol (CLAUDE.md UX rule #4): aggregate this company's deadline signals.
   const deadlineSignals = prazos
@@ -194,6 +233,55 @@ export default async function EmpresaDetailPage({
       ) : null}
 
       {tab === 'contatos' ? <ContactsSection companyId={id} contacts={contacts} /> : null}
+
+      {tab === 'tarefas' ? (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <CreateTaskButton
+              companyOptions={[{ id, name: companyName }]}
+              departments={config.departments.map((d) => ({ key: d.key, label: d.label }))}
+              userOptions={userOptions}
+            />
+          </div>
+          <TasksBoard
+            tasks={tasks}
+            view="all"
+            me={me}
+            companyNames={{ [id]: companyName }}
+            departmentLabels={departmentLabels}
+            userNames={Object.fromEntries(userOptions.map((u) => [u.id, u.name]))}
+          />
+        </div>
+      ) : null}
+
+      {tab === 'documentos' ? (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <Link href={`/documentos?company=${id}`} className={secondaryButtonClass}>
+              {copy.detail.openRepository}
+            </Link>
+          </div>
+          {companyDocs.length === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title={copy.detail.documentsEmpty}
+              description={copy.detail.documentsEmptyHint}
+              action={
+                <Link href={`/documentos?company=${id}`} className={primaryButtonClass}>
+                  {copy.detail.openRepository}
+                </Link>
+              }
+            />
+          ) : (
+            <DocumentList
+              documents={companyDocs}
+              departmentLabels={departmentLabels}
+              classifications={documentClassifications}
+              docTypes={[...config.taxonomy]}
+            />
+          )}
+        </div>
+      ) : null}
 
       {tab === 'prazos' ? (
         <PrazosSection

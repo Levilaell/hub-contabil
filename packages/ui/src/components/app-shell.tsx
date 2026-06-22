@@ -58,13 +58,17 @@ function NavList({
             aria-current={active ? 'page' : undefined}
             onClick={onNavigate}
             className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              'relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              // Active item: orange tint + a 4px orange accent bar glued to the left.
               active
-                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground before:bg-primary before:absolute before:top-1.5 before:bottom-1.5 before:left-0 before:w-1 before:rounded-full before:content-[""]'
                 : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
             )}
           >
-            <item.icon className="size-4 shrink-0" aria-hidden />
+            <item.icon
+              className={cn('size-4 shrink-0', active && 'text-primary')}
+              aria-hidden
+            />
             <span className="flex-1 truncate">{item.label}</span>
             {item.badge ? (
               <span className="bg-danger text-danger-foreground inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold tabular-nums">

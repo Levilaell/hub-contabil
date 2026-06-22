@@ -18,7 +18,7 @@ describe('ResendMessagingAdapter', () => {
     } | null = null;
     const adapter = new ResendMessagingAdapter({
       apiKey: 'rk_test',
-      from: 'M Rocha <no-reply@mrocha.test>',
+      from: 'Demo <no-reply@demo.test>',
       fetchImpl: async (url, init) => {
         captured = { url, init };
         return { ok: true, status: 200, text: async () => JSON.stringify({ id: 'email_123' }) };

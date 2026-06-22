@@ -40,7 +40,7 @@ describe.skipIf(!hasEnv)('documents (cloud dev)', () => {
 
     owner = createClient<Database>(URL, ANON, { auth: { persistSession: false } });
     const { error: signInError } = await owner.auth.signInWithPassword({
-      email: 'owner@mrocha.test',
+      email: 'owner@demo.test',
       password: PASSWORD,
     });
     if (signInError) throw signInError;

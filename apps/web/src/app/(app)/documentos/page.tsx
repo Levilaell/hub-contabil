@@ -1,6 +1,6 @@
 import { parseFirmConfig } from '@hub/config';
 import { formatCnpj } from '@hub/core';
-import { listCompanies, listDocuments } from '@hub/db';
+import { listClassificationsByDocuments, listCompanies, listDocuments } from '@hub/db';
 import { DataList, DataListRow, EmptyState, PageHeader } from '@hub/ui';
 import { Building2, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server';
 
 import { copy, inputClass, secondaryButtonClass } from './copy';
 import { DocumentList } from './document-list';
+import { InboxButton } from './inbox-button';
 import { UploadButton } from './upload-button';
 
 export default async function DocumentosPage({
@@ -37,7 +38,18 @@ export default async function DocumentosPage({
   if (!company) {
     return (
       <div className="space-y-6">
-        <PageHeader title={copy.title} description={copy.pickCompany} />
+        <PageHeader
+          title={copy.title}
+          description={copy.pickCompany}
+          action={
+            <div className="flex gap-2">
+              <InboxButton firmId={firmId} />
+              <Link href="/exportacao" className={secondaryButtonClass}>
+                {copy.exportLink}
+              </Link>
+            </div>
+          }
+        />
         {companies.length === 0 ? (
           <EmptyState icon={Building2} title={copy.empty.companies} />
         ) : (
@@ -76,6 +88,12 @@ export default async function DocumentosPage({
   );
   const filtered = Boolean(sp.period || sp.department || sp.docType || q);
   const base = `/documentos?company=${company.id}`;
+  const classifications = Object.fromEntries(
+    await listClassificationsByDocuments(
+      supabase,
+      docs.map((d) => d.id),
+    ),
+  );
 
   return (
     <div className="space-y-6">
@@ -176,7 +194,12 @@ export default async function DocumentosPage({
           }
         />
       ) : (
-        <DocumentList documents={docs} departmentLabels={departmentLabels} />
+        <DocumentList
+          documents={docs}
+          departmentLabels={departmentLabels}
+          classifications={classifications}
+          docTypes={[...config.taxonomy]}
+        />
       )}
     </div>
   );

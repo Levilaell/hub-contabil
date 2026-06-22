@@ -10,6 +10,11 @@ export const copy = {
     documents: 'Documentos',
     requests: 'Solicitações',
   },
+  hints: {
+    exceptions: 'precisam de atenção',
+    deadlines: 'vencem em breve',
+    allClear: 'tudo em dia ✅',
+  },
   panel: {
     title: 'Painel das empresas',
     subtitle: 'Farol por empresa — vermelho se algum prazo está vencido.',

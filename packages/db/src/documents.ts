@@ -192,6 +192,57 @@ export async function insertDocument(
   return { ok: true, id: data.id };
 }
 
+/** Inbox path for a triage upload (no company chosen yet): firm/{firm}/inbox/... */
+export function buildInboxPath(firmId: string, hash: string, fileName: string): string {
+  return `firm/${firmId}/inbox/${hash.slice(0, 12)}-${safeFileName(fileName)}`;
+}
+
+export interface InboxDocumentInput {
+  storagePath: string;
+  hash: string;
+  fileName: string;
+  sizeBytes: number | null;
+}
+
+/** Insert an inbox document (company_id null, source 'triage') for the AI pipeline
+ *  to classify and file (T21). The caller enqueues triage after this returns. */
+export async function insertInboxDocument(
+  supabase: SupabaseClient,
+  input: InboxDocumentInput,
+): Promise<DocMutationResult> {
+  const firm = await loadFirm(supabase);
+  if (!firm) return fail('Não foi possível identificar o escritório.');
+
+  const { data, error } = await supabase
+    .from('documents')
+    .insert({
+      firm_id: firm.id,
+      company_id: null,
+      period: null,
+      department: null,
+      doc_type: 'other',
+      storage_path: input.storagePath,
+      hash: input.hash,
+      file_name: input.fileName,
+      size_bytes: input.sizeBytes,
+      source: 'triage',
+    })
+    .select('id')
+    .single();
+  if (error || !data) {
+    if (error?.code === '23505') return fail('Documento duplicado (mesmo conteúdo já existe).');
+    return fail('Não foi possível registrar o documento.');
+  }
+
+  await supabase.rpc('log_audit', {
+    p_action: 'document.created',
+    p_entity: 'document',
+    p_entity_id: data.id,
+    p_context: { source: 'inbox', fileName: input.fileName },
+  });
+  return { ok: true, id: data.id };
+}
+
 export async function deleteDocument(
   supabase: SupabaseClient,
   id: string,

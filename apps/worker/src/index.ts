@@ -1,4 +1,5 @@
-import { BrasilApiEnrichmentAdapter } from '@hub/adapters';
+import { BrasilApiEnrichmentAdapter, createClassificationAdapter } from '@hub/adapters';
+import { createClient } from '@supabase/supabase-js';
 import type { Cron } from 'croner';
 import postgres from 'postgres';
 
@@ -6,6 +7,8 @@ import { startCrons } from './cron/scheduler.js';
 import { loadEnv } from './env.js';
 import { createEnrichmentHandler } from './jobs/enrichment.js';
 import { recordException } from './jobs/exception-sink.js';
+import { createExportHandler } from './jobs/export.js';
+import { createTriageHandler } from './jobs/triage.js';
 import {
   enrichmentPayloadSchema,
   exportPayloadSchema,
@@ -30,16 +33,30 @@ async function main(): Promise<void> {
   }
   console.log(`[worker] connected to Supabase Cloud — db time ${row.now.toISOString()}`);
 
+  // Service-role client for Storage (download source files, upload export zips).
+  // DB still goes through `sql`; this is only for the object store.
+  const storage = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
+
+  // Anthropic when ANTHROPIC_API_KEY is set, else the heuristic no-op (→ everything
+  // to the exception queue). Shared across triage jobs.
+  const classifier = createClassificationAdapter(process.env);
+
   const registrations: QueueRegistration[] = [
     defineQueueJob({
       queue: 'triage',
       schema: triagePayloadSchema,
-      handler: (payload) => console.log(`[triage] stub received document ${payload.document_id}`),
+      // Vision/LLM calls take time — modest concurrency, generous visibility window.
+      handler: createTriageHandler(sql, storage, classifier),
+      options: { qty: 3, vt: 120 },
     }),
     defineQueueJob({
       queue: 'export',
       schema: exportPayloadSchema,
-      handler: (payload) => console.log(`[export] stub received batch ${payload.batch_id}`),
+      handler: createExportHandler(sql, storage),
+      // Building downloads + zips many files — give it room and serialize.
+      options: { qty: 1, vt: 300 },
     }),
     defineQueueJob({
       queue: 'notifications',

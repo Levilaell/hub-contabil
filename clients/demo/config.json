@@ -1,0 +1,16 @@
+{
+  "_comment": "Initial firm config for Escritório Demo (T25). Partial overrides — parseFirmConfig (packages/config) fills every omitted field with its default (departments, taxRegimes, monitoredKinds, taxonomy, routingMap, statusVocabularies). Stored in firms.config (JSONB); editable later via the Settings screen. Validate the taxonomy/routing with the partner before relying on AI triage.",
+  "deadlineTriggers": {
+    "defaultDays": 30,
+    "autoRenewalTask": true,
+    "renewalDepartment": "compliance"
+  },
+  "requestTokenExpiryDays": 7,
+  "requestReminderDays": 3,
+  "aiThreshold": 0.85,
+  "aiModel": "claude-opus-4-8",
+  "exportBatch": {
+    "fileNameConvention": "{cnpj}_{period}_{type}_{seq}.{ext}",
+    "warnOnReExport": true
+  }
+}

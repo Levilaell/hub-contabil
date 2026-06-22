@@ -46,7 +46,7 @@ describe.skipIf(!hasEnv)('monitored documents (cloud dev)', () => {
 
     owner = createClient<Database>(URL, ANON, { auth: { persistSession: false } });
     const { error: e } = await owner.auth.signInWithPassword({
-      email: 'owner@mrocha.test',
+      email: 'owner@demo.test',
       password: PASSWORD,
     });
     if (e) throw e;

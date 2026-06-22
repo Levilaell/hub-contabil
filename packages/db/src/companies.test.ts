@@ -16,9 +16,9 @@ const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const PASSWORD = process.env.SEED_PASSWORD ?? 'hub-dev-2026!';
 const hasEnv = Boolean(URL && ANON && SERVICE);
 
-const FIRM_A = '11111111-1111-4111-8111-111111111111'; // M Rocha (seeded)
+const FIRM_A = '11111111-1111-4111-8111-111111111111'; // Demo (seeded)
 const FIRM_B = '99999999-9999-4999-8999-999999999991'; // foreign firm, created here
-const OWNER_EMAIL = 'owner@mrocha.test';
+const OWNER_EMAIL = 'owner@demo.test';
 
 const A_CNPJ = '11222333000181'; // valid; created by the firm A user
 const B_CNPJ = '00000000000191'; // valid; planted in firm B (service role)
@@ -35,7 +35,7 @@ describe.skipIf(!hasEnv)('company registry (cloud dev)', () => {
     if (!URL || !ANON || !SERVICE) throw new Error('missing env');
     service = createClient<Database>(URL, SERVICE, { auth: { persistSession: false } });
 
-    // Foreign firm B + a company the M Rocha user must never see (service role).
+    // Foreign firm B + a company the Demo user must never see (service role).
     await service.from('firms').upsert({ id: FIRM_B, name: 'Foreign Firm B' });
     const { data: companyB, error } = await service
       .from('companies')

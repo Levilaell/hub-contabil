@@ -1,5 +1,6 @@
 'use client';
 
+import { parseNfe } from '@hub/core';
 import { DOCUMENTS_BUCKET, buildStoragePath, findDocumentByHash, insertDocument } from '@hub/db';
 import { DetailDrawer, StatusBadge, type StatusTone } from '@hub/ui';
 import { Upload, UploadCloud } from 'lucide-react';
@@ -8,6 +9,7 @@ import { useRef, useState, type DragEvent } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 
+import { applyCfopAction } from './actions';
 import { copy, inputClass, primaryButtonClass, secondaryButtonClass } from './copy';
 
 interface Department {
@@ -106,6 +108,19 @@ export function UploadButton({
           continue;
         }
         setStatus(i, 'done');
+        // NF-e XML → resolve CFOPs and fill documents.metadata.entry_cfop (T19).
+        // Best-effort: the deterministic parse runs client-side; failures never
+        // touch the upload result.
+        if (file.name.toLowerCase().endsWith('.xml')) {
+          try {
+            const parsed = parseNfe(await file.text());
+            if (parsed.isNfe && parsed.items.length > 0) {
+              await applyCfopAction(registered.id, parsed.issuerCnpj, parsed.items);
+            }
+          } catch {
+            // ignore — CFOP application is an enhancement, not part of the upload
+          }
+        }
       } catch {
         setStatus(i, 'error');
       }

@@ -11,7 +11,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@hub/core": "workspace:*"
+    "@anthropic-ai/sdk": "^0.105.0",
+    "@hub/core": "workspace:*",
+    "fflate": "^0.8.3"
   },
   "devDependencies": {
     "typescript": "^5.8.3",

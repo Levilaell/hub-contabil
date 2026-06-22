@@ -19,12 +19,28 @@ const accent = cva('grid size-10 shrink-0 place-items-center rounded-lg', {
   defaultVariants: { tone: 'muted' },
 });
 
+// The hint line is colored by meaning ("5 vencem hoje" in amber, etc.).
+const hintCls = cva('block truncate text-xs font-medium', {
+  variants: {
+    tone: {
+      success: 'text-success-text',
+      warning: 'text-warning-text',
+      danger: 'text-danger-text',
+      neutral: 'text-neutral-text',
+      muted: 'text-muted-foreground',
+    },
+  },
+  defaultVariants: { tone: 'muted' },
+});
+
 export interface StatCardProps extends VariantProps<typeof accent> {
   label: string;
   value: string | number;
   icon?: ComponentType<LucideProps>;
   /** Optional supporting line, e.g. "3 vencem hoje". */
   hint?: string;
+  /** Colors the hint by meaning (defaults to muted). */
+  hintTone?: VariantProps<typeof hintCls>['tone'];
   /** When set, the whole card links here. */
   href?: string;
   /** Link element to render when href is set (e.g. Next's Link). Defaults to "a". */
@@ -37,6 +53,7 @@ export function StatCard({
   value,
   icon: Icon,
   hint,
+  hintTone,
   tone,
   href,
   linkComponent,
@@ -61,7 +78,7 @@ export function StatCard({
       <span className="min-w-0 flex-1">
         <span className="text-muted-foreground block truncate text-sm font-medium">{label}</span>
         <span className="block text-2xl font-semibold tracking-tight tabular-nums">{value}</span>
-        {hint ? <span className="text-muted-foreground block truncate text-xs">{hint}</span> : null}
+        {hint ? <span className={hintCls({ tone: hintTone })}>{hint}</span> : null}
       </span>
       {href ? (
         <ChevronRight

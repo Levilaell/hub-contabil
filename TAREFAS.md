@@ -7,7 +7,7 @@ Execution: **one task at a time**, in order. When done, stop and wait for review
 ## Phase 0 — Foundation
 
 **T1 · Monorepo bootstrap**
-pnpm monorepo with `apps/web` (Next.js + TS + Tailwind + shadcn/ui), `apps/worker` (Node + TS), `packages/db`, `packages/core`, `packages/adapters`, `packages/config`, `packages/ui`, `clients/mrocha`. Shared strict tsconfig, ESLint, Prettier, Vitest, dev scripts. Supabase CLI linked to the **cloud dev project** (no local DB). Acceptance: `pnpm dev` runs web and worker against Supabase Cloud; lint and typecheck clean; README with commands and env var list.
+pnpm monorepo with `apps/web` (Next.js + TS + Tailwind + shadcn/ui), `apps/worker` (Node + TS), `packages/db`, `packages/core`, `packages/adapters`, `packages/config`, `packages/ui`, `clients/demo`. Shared strict tsconfig, ESLint, Prettier, Vitest, dev scripts. Supabase CLI linked to the **cloud dev project** (no local DB). Acceptance: `pnpm dev` runs web and worker against Supabase Cloud; lint and typecheck clean; README with commands and env var list.
 
 **T2 · Design system + app shell (`packages/ui`)**
 Semantic tokens (success/warning/danger/neutral/muted), typography and spacing scale; components: `StatusBadge` (color+icon+label), `TrafficLight` (incl. aggregation logic), `StatCard` (big number, clickable), `EmptyState`, `DataList` (list row: indicator + title + up to 2 facts + chevron), `DetailDrawer`, `PageHeader` (title + ONE primary action), skeleton loaders. App shell: single sidebar (max 7 items, icons, count-badge slot), topbar, responsive breakpoints. Storybook-style demo page rendering all components in all states. Acceptance: demo page approved visually **before any feature screen is built**; no feature may re-implement status visuals.
@@ -117,7 +117,7 @@ Playwright: spreadsheet onboarding; upload→triage→exception→resolution; re
 RLS review table by table (PR checklist); rate limit and validation on the public route; sweep of worker queries asserting `firm_id` filter (custom lint or assertive grep on CI); error pages; Supabase Cloud backups confirmed (PITR on prod project). Acceptance: documented completed checklist.
 
 **T25 · M Rocha deployment**
-Provision prod instance (dedicated Supabase Cloud project + Railway + domain), documented env vars, initial config in `clients/mrocha`, production seed (firm, users, departments), deployment runbook in `clients/mrocha/RUNBOOK.md` (reproducible step-by-step for client #2). Acceptance: production environment working end to end with realistic test data.
+Provision prod instance (dedicated Supabase Cloud project + Railway + domain), documented env vars, initial config in `clients/demo`, production seed (firm, users, departments), deployment runbook in `clients/demo/RUNBOOK.md` (reproducible step-by-step for client #2). Acceptance: production environment working end to end with realistic test data.
 
 ---
 

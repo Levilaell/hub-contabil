@@ -4,7 +4,7 @@ import { buildRequestEmail } from './request-email';
 
 describe('buildRequestEmail', () => {
   const base = {
-    firmName: 'Contabilidade M Rocha',
+    firmName: 'Escritório Demo',
     companyName: 'Padaria do Zé',
     title: 'Envie o contrato social',
     link: 'https://app.test/s/tok123',
@@ -15,7 +15,7 @@ describe('buildRequestEmail', () => {
     const email = buildRequestEmail(base);
     expect(email.body).toContain('https://app.test/s/tok123');
     expect(email.html).toContain('https://app.test/s/tok123');
-    expect(email.subject).toContain('M Rocha');
+    expect(email.subject).toContain('Demo');
   });
 
   it('uses a reminder subject/lead when reminder=true', () => {

@@ -46,6 +46,22 @@ export const copy = {
     resolvedBy: 'Resolvida',
     close: 'Fechar',
   },
+  rule: {
+    saveAsRule: 'Salvar como regra',
+    title: 'Criar regra a partir desta pendência',
+    subtitle: 'A próxima ocorrência igual se resolve sozinha.',
+    level: 'Precedência',
+    levelSpecific: 'Específica (prevalece)',
+    levelGeneral: 'Geral',
+    scope: 'Quando aplicar',
+    scopeHint: 'Desmarque um campo para a regra valer para qualquer valor dele.',
+    value: 'Resultado da regra',
+    noValue: 'Defina o resultado da regra.',
+    save: 'Salvar regra',
+    saving: 'Salvando…',
+    cancel: 'Cancelar',
+    missing: 'Esta pendência não tem dados de regra para salvar.',
+  },
   noError: 'Sem mensagem de erro.',
 } as const;
 

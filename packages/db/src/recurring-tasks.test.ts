@@ -29,8 +29,8 @@ describe.skipIf(!hasEnv)('recurring tasks (cloud dev)', () => {
   beforeAll(async () => {
     if (!URL || !ANON || !SERVICE) throw new Error('missing env');
     service = createClient<Database>(URL, SERVICE, { auth: { persistSession: false } });
-    manager = await signIn(URL, ANON, 'manager@mrocha.test');
-    staff = await signIn(URL, ANON, 'staff@mrocha.test');
+    manager = await signIn(URL, ANON, 'manager@demo.test');
+    staff = await signIn(URL, ANON, 'staff@demo.test');
   });
 
   afterAll(async () => {

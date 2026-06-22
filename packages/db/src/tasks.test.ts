@@ -50,8 +50,8 @@ describe.skipIf(!hasEnv)('tasks + handoff (cloud dev)', () => {
     if (error) throw error;
     companyId = company.id;
 
-    staff = await signIn(URL, ANON, 'staff@mrocha.test');
-    manager = await signIn(URL, ANON, 'manager@mrocha.test');
+    staff = await signIn(URL, ANON, 'staff@demo.test');
+    manager = await signIn(URL, ANON, 'manager@demo.test');
   });
 
   afterAll(async () => {

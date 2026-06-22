@@ -1,6 +1,7 @@
 'use server';
 
-import { resolveException } from '@hub/db';
+import { type MappingRuleLevel } from '@hub/core';
+import { resolveException, saveResolutionAsRule } from '@hub/db';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
@@ -16,6 +17,41 @@ export async function resolveExceptionAction(
   const result = await resolveException(supabase, id, status, note || undefined);
   if (!result.ok) return { ok: false, message: result.message };
   // 'layout' scope so the sidebar open-count badge refreshes too, not just the list.
+  revalidatePath('/excecoes', 'layout');
+  return { ok: true, message: '' };
+}
+
+export interface SaveRulePayload {
+  domain: string;
+  level: number;
+  key: Record<string, unknown>;
+  value: Record<string, unknown>;
+}
+
+// Resolve a 'rules' pending by saving it as a mapping rule (T18). The new rule
+// auto-resolves the next identical case via the engine; this also marks the
+// pending resolved in one round trip.
+export async function saveRuleFromExceptionAction(
+  exceptionId: string,
+  payload: SaveRulePayload,
+): Promise<ResolveActionState> {
+  if (payload.level !== 1 && payload.level !== 2) {
+    return { ok: false, message: 'Precedência inválida.' };
+  }
+  if (!payload.domain || Object.keys(payload.key).length === 0) {
+    return { ok: false, message: 'Dados da regra incompletos.' };
+  }
+  const supabase = await createClient();
+  const result = await saveResolutionAsRule(supabase, {
+    exceptionId,
+    input: {
+      domain: payload.domain,
+      level: payload.level as MappingRuleLevel,
+      key: payload.key,
+      value: payload.value,
+    },
+  });
+  if (!result.ok) return { ok: false, message: result.message };
   revalidatePath('/excecoes', 'layout');
   return { ok: true, message: '' };
 }

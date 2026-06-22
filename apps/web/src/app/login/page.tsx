@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useState } from 'react';
 
+import { BrandMark } from '@/components/brand';
 import { createClient } from '@/lib/supabase/client';
 
 import { copy } from './copy';
@@ -33,13 +34,26 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background p-6">
+    <main
+      className="flex min-h-dvh items-center justify-center p-6"
+      style={{
+        background:
+          'radial-gradient(120% 90% at 50% -10%, #FFF6E8 0%, var(--background) 55%)',
+      }}
+    >
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">{copy.brand}</h1>
-          <p className="text-muted-foreground mt-1 text-sm">{copy.subtitle}</p>
+        <div className="mb-7 flex flex-col items-center gap-3 text-center">
+          <BrandMark className="size-12 rounded-2xl" />
+          <span className="text-lg font-extrabold tracking-tight">{copy.brand}</span>
         </div>
-        <form onSubmit={onSubmit} className="bg-card space-y-4 rounded-xl border p-6">
+        <form
+          onSubmit={onSubmit}
+          className="bg-card space-y-4 rounded-3xl border p-6 shadow-[0_1px_2px_rgba(26,26,26,0.04),0_8px_24px_rgba(26,26,26,0.06)] sm:p-7"
+        >
+          <div className="mb-1 space-y-1">
+            <h1 className="text-xl font-bold tracking-tight">{copy.greeting}</h1>
+            <p className="text-muted-foreground text-sm">{copy.subtitle}</p>
+          </div>
           <div className="space-y-1.5">
             <label htmlFor="email" className="text-sm font-medium">
               {copy.email}

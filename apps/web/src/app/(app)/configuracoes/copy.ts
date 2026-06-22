@@ -16,4 +16,10 @@ export const copy = {
   departments: 'Departamentos',
   taxonomy: 'Tipos de documento',
   routing: 'Roteamento por tipo de documento',
+  links: {
+    title: 'Mais configurações',
+    rulesTitle: 'Regras de CFOP',
+    rulesDescription: 'De-para de CFOP de origem para CFOP de entrada, por fornecedor.',
+    open: 'Abrir',
+  },
 } as const;

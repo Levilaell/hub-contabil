@@ -28,6 +28,8 @@ export async function createTaskAction(
   });
   if (!result.ok) return { ok: false, message: result.message };
   revalidatePath('/tarefas');
+  // The board is also reused on the company panel (T13) — keep its tab fresh.
+  revalidatePath('/empresas', 'layout');
   return { ok: true, message: '' };
 }
 
@@ -37,6 +39,7 @@ export async function updateStatusAction(id: string, status: string): Promise<Ta
   const result = await updateTaskStatus(supabase, id, status as TaskStatus);
   if (!result.ok) return { ok: false, message: result.message };
   revalidatePath('/tarefas');
+  revalidatePath('/empresas', 'layout');
   return { ok: true, message: '' };
 }
 
@@ -46,5 +49,6 @@ export async function handoffAction(id: string): Promise<TaskActionState> {
   if (!result.ok) return { ok: false, message: result.message };
   // 'layout' so the topbar notification badge refreshes (handoff writes one).
   revalidatePath('/tarefas', 'layout');
+  revalidatePath('/empresas', 'layout');
   return { ok: true, message: '' };
 }

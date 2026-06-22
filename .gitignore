@@ -12,3 +12,8 @@ dist/
 
 # Test coverage
 coverage/
+
+# Playwright auth state
+apps/web/e2e/.auth/
+apps/web/test-results/
+apps/web/playwright-report/

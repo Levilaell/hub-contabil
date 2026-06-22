@@ -30,7 +30,7 @@ packages/
   config/       Zod schemas for per-firm configuration
   ui/           shared design system (StatusBadge, TrafficLight, …)
 clients/
-  mrocha/       config and overrides for this deployment only
+  demo/       config and overrides for this deployment only
 ```
 
 Dependency direction: `clients/* → packages/*`, never the reverse. `core` never

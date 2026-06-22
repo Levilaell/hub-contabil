@@ -53,6 +53,9 @@ export const copy = {
     badgeActive: 'Ativa',
     badgeArchived: 'Arquivada',
     soon: 'Disponível em breve.',
+    openRepository: 'Abrir repositório',
+    documentsEmpty: 'Nenhum documento desta empresa ainda.',
+    documentsEmptyHint: 'Envie arquivos pelo repositório — eles aparecem aqui organizados.',
     tabs: {
       dados: 'Dados',
       contatos: 'Contatos',

@@ -1,5 +1,7 @@
 import { parseFirmConfig } from '@hub/config';
 import { PageHeader } from '@hub/ui';
+import { ChevronRight, SlidersHorizontal } from 'lucide-react';
+import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/server';
 
@@ -28,6 +30,25 @@ export default async function ConfiguracoesPage() {
         taxonomy={config.taxonomy}
         routingMap={config.routingMap}
       />
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold">{copy.links.title}</h2>
+        <Link
+          href="/regras"
+          className="bg-card hover:bg-accent flex items-center gap-3 rounded-xl border p-4 transition-colors"
+        >
+          <span className="bg-muted text-muted-foreground grid size-9 place-items-center rounded-full">
+            <SlidersHorizontal className="size-4" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">{copy.links.rulesTitle}</span>
+            <span className="text-muted-foreground block truncate text-xs">
+              {copy.links.rulesDescription}
+            </span>
+          </span>
+          <ChevronRight className="text-muted-foreground size-4" aria-hidden />
+        </Link>
+      </section>
     </div>
   );
 }

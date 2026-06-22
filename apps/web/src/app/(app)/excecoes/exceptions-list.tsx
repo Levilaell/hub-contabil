@@ -5,7 +5,7 @@ import { DataList, DataListRow, DetailDrawer, StatusBadge, type StatusTone } fro
 import { AlertTriangle } from 'lucide-react';
 import { useState, useTransition } from 'react';
 
-import { resolveExceptionAction } from './actions';
+import { resolveExceptionAction, saveRuleFromExceptionAction } from './actions';
 import { copy, inputClass, primaryButtonClass, secondaryButtonClass } from './copy';
 
 const STATUS: Record<string, { tone: StatusTone; label: string }> = {
@@ -25,6 +25,12 @@ function ctxValue(ctx: Record<string, unknown>, key: string): string | null {
   return null;
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
 function timeAgo(iso: string): string {
   const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (min < 1) return 'agora';
@@ -40,10 +46,22 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // Save-as-rule mode (T18): turn a 'rules' pending into a mapping rule.
+  const [ruleMode, setRuleMode] = useState(false);
+  const [level, setLevel] = useState<1 | 2>(1);
+  const [included, setIncluded] = useState<Set<string>>(new Set());
+  const [values, setValues] = useState<Record<string, string>>({});
+
   function open(item: ExceptionItem) {
     setSelected(item);
     setNote('');
     setError(null);
+    setRuleMode(false);
+  }
+
+  function close() {
+    setSelected(null);
+    setRuleMode(false);
   }
 
   function resolve(status: 'resolved' | 'ignored') {
@@ -52,7 +70,46 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
     startTransition(async () => {
       const res = await resolveExceptionAction(selected.id, status, note);
       if (res && !res.ok) setError(res.message);
-      else setSelected(null);
+      else close();
+    });
+  }
+
+  function startRule() {
+    if (!selected) return;
+    setError(null);
+    setLevel(1);
+    setIncluded(new Set(Object.keys(asRecord(selected.context.key))));
+    const seed: Record<string, string> = {};
+    for (const [k, v] of Object.entries(selected.suggestion)) seed[k] = v == null ? '' : String(v);
+    setValues(seed);
+    setRuleMode(true);
+  }
+
+  function toggleField(field: string) {
+    setIncluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(field)) next.delete(field);
+      else next.add(field);
+      return next;
+    });
+  }
+
+  function submitRule() {
+    if (!selected) return;
+    setError(null);
+    const domain = ctxValue(selected.context, 'domain') ?? '';
+    const fullKey = asRecord(selected.context.key);
+    const key: Record<string, unknown> = {};
+    for (const field of Object.keys(fullKey)) if (included.has(field)) key[field] = fullKey[field];
+    startTransition(async () => {
+      const res = await saveRuleFromExceptionAction(selected.id, {
+        domain,
+        level,
+        key,
+        value: { ...values },
+      });
+      if (res && !res.ok) setError(res.message);
+      else close();
     });
   }
 
@@ -61,6 +118,16 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
   const payload = selected?.context.payload;
   const hasSuggestion = selected ? Object.keys(selected.suggestion).length > 0 : false;
   const resolvedBy = selected ? ctxValue(selected.resolution, 'resolvedBy') : null;
+
+  // A 'rules' pending carries { domain, key } in its context — the raw material for
+  // a mapping rule (T18). Only then do we offer "save as rule".
+  const ruleDomain = selected ? (ctxValue(selected.context, 'domain') ?? '') : '';
+  const ruleKey = selected ? asRecord(selected.context.key) : {};
+  const canMakeRule =
+    selected?.source === 'rules' &&
+    selected.status === 'open' &&
+    ruleDomain !== '' &&
+    Object.keys(ruleKey).length > 0;
 
   return (
     <>
@@ -85,92 +152,198 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
 
       <DetailDrawer
         open={selected !== null}
-        onOpenChange={(o) => !o && setSelected(null)}
+        onOpenChange={(o) => !o && close()}
         title={selected ? sourceLabel(selected.source) : copy.drawer.title}
         description={copy.drawer.title}
         closeLabel={copy.drawer.close}
         footer={
           selected?.status === 'open' ? (
-            <div className="space-y-3">
-              {error ? <p className="text-danger-text text-sm">{error}</p> : null}
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder={copy.drawer.notePlaceholder}
-                rows={2}
-                className={inputClass}
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => resolve('resolved')}
-                  disabled={pending}
-                  className={primaryButtonClass}
-                >
-                  {pending ? copy.drawer.working : copy.drawer.resolve}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => resolve('ignored')}
-                  disabled={pending}
-                  className={secondaryButtonClass}
-                >
-                  {copy.drawer.ignore}
-                </button>
+            ruleMode ? (
+              <div className="space-y-3">
+                {error ? <p className="text-danger-text text-sm">{error}</p> : null}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={submitRule}
+                    disabled={pending}
+                    className={primaryButtonClass}
+                  >
+                    {pending ? copy.rule.saving : copy.rule.save}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRuleMode(false);
+                      setError(null);
+                    }}
+                    className={secondaryButtonClass}
+                  >
+                    {copy.rule.cancel}
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                {error ? <p className="text-danger-text text-sm">{error}</p> : null}
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder={copy.drawer.notePlaceholder}
+                  rows={2}
+                  className={inputClass}
+                />
+                <div className="flex flex-wrap gap-2">
+                  {canMakeRule ? (
+                    <button
+                      type="button"
+                      onClick={startRule}
+                      disabled={pending}
+                      className={primaryButtonClass}
+                    >
+                      {copy.rule.saveAsRule}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => resolve('resolved')}
+                    disabled={pending}
+                    className={canMakeRule ? secondaryButtonClass : primaryButtonClass}
+                  >
+                    {pending ? copy.drawer.working : copy.drawer.resolve}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => resolve('ignored')}
+                    disabled={pending}
+                    className={secondaryButtonClass}
+                  >
+                    {copy.drawer.ignore}
+                  </button>
+                </div>
+              </div>
+            )
           ) : null
         }
       >
         {selected ? (
-          <dl className="space-y-3 text-sm">
-            <div>
-              <dt className="text-muted-foreground text-xs">{copy.drawer.error}</dt>
-              <dd className="mt-0.5 font-medium">{errorText ?? copy.noError}</dd>
-            </div>
-            <div className="flex gap-6">
+          ruleMode ? (
+            <div className="space-y-4">
               <div>
-                <dt className="text-muted-foreground text-xs">{copy.drawer.origin}</dt>
-                <dd className="mt-0.5">{sourceLabel(selected.source)}</dd>
+                <p className="text-sm font-medium">{copy.rule.title}</p>
+                <p className="text-muted-foreground text-xs">{copy.rule.subtitle}</p>
               </div>
-              {attempts ? (
+
+              <div className="space-y-1.5">
+                <label htmlFor="rule-level" className="text-xs font-medium">
+                  {copy.rule.level}
+                </label>
+                <select
+                  id="rule-level"
+                  value={level}
+                  onChange={(e) => setLevel(Number(e.target.value) === 2 ? 2 : 1)}
+                  className={inputClass}
+                >
+                  <option value={1}>{copy.rule.levelSpecific}</option>
+                  <option value={2}>{copy.rule.levelGeneral}</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
                 <div>
-                  <dt className="text-muted-foreground text-xs">{copy.drawer.attempts}</dt>
-                  <dd className="mt-0.5">{attempts}</dd>
+                  <p className="text-xs font-medium">{copy.rule.scope}</p>
+                  <p className="text-muted-foreground text-xs">{copy.rule.scopeHint}</p>
+                </div>
+                <ul className="space-y-1.5">
+                  {Object.entries(ruleKey).map(([field, value]) => (
+                    <li key={field} className="flex items-center gap-2">
+                      <input
+                        id={`rule-field-${field}`}
+                        type="checkbox"
+                        checked={included.has(field)}
+                        onChange={() => toggleField(field)}
+                        className="size-4"
+                      />
+                      <label htmlFor={`rule-field-${field}`} className="text-sm">
+                        <span className="font-medium">{field}</span>: {String(value ?? '—')}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-medium">{copy.rule.value}</p>
+                {Object.keys(values).length === 0 ? (
+                  <p className="text-muted-foreground text-sm">{copy.rule.noValue}</p>
+                ) : (
+                  Object.keys(values).map((field) => (
+                    <div key={field} className="space-y-1">
+                      <label htmlFor={`rule-value-${field}`} className="text-muted-foreground text-xs">
+                        {field}
+                      </label>
+                      <input
+                        id={`rule-value-${field}`}
+                        value={values[field]}
+                        onChange={(e) =>
+                          setValues((prev) => ({ ...prev, [field]: e.target.value }))
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : (
+            <dl className="space-y-3 text-sm">
+              <div>
+                <dt className="text-muted-foreground text-xs">{copy.drawer.error}</dt>
+                <dd className="mt-0.5 font-medium">{errorText ?? copy.noError}</dd>
+              </div>
+              <div className="flex gap-6">
+                <div>
+                  <dt className="text-muted-foreground text-xs">{copy.drawer.origin}</dt>
+                  <dd className="mt-0.5">{sourceLabel(selected.source)}</dd>
+                </div>
+                {attempts ? (
+                  <div>
+                    <dt className="text-muted-foreground text-xs">{copy.drawer.attempts}</dt>
+                    <dd className="mt-0.5">{attempts}</dd>
+                  </div>
+                ) : null}
+              </div>
+
+              {hasSuggestion ? (
+                <div>
+                  <dt className="text-muted-foreground text-xs">{copy.drawer.suggestion}</dt>
+                  <dd className="mt-0.5">{JSON.stringify(selected.suggestion)}</dd>
                 </div>
               ) : null}
-            </div>
 
-            {hasSuggestion ? (
-              <div>
-                <dt className="text-muted-foreground text-xs">{copy.drawer.suggestion}</dt>
-                <dd className="mt-0.5">{JSON.stringify(selected.suggestion)}</dd>
-              </div>
-            ) : null}
+              {selected.status !== 'open' && resolvedBy ? (
+                <div>
+                  <dt className="text-muted-foreground text-xs">{copy.drawer.resolvedBy}</dt>
+                  <dd className="mt-0.5">
+                    {STATUS[selected.status].label}
+                    {ctxValue(selected.resolution, 'note')
+                      ? ` — ${ctxValue(selected.resolution, 'note')}`
+                      : ''}
+                  </dd>
+                </div>
+              ) : null}
 
-            {selected.status !== 'open' && resolvedBy ? (
-              <div>
-                <dt className="text-muted-foreground text-xs">{copy.drawer.resolvedBy}</dt>
-                <dd className="mt-0.5">
-                  {STATUS[selected.status].label}
-                  {ctxValue(selected.resolution, 'note')
-                    ? ` — ${ctxValue(selected.resolution, 'note')}`
-                    : ''}
-                </dd>
-              </div>
-            ) : null}
-
-            {payload !== undefined ? (
-              <details className="rounded-lg border p-3">
-                <summary className="text-muted-foreground cursor-pointer text-xs">
-                  {copy.drawer.technical}
-                </summary>
-                <pre className="text-muted-foreground mt-2 overflow-x-auto text-xs">
-                  {JSON.stringify(payload, null, 2)}
-                </pre>
-              </details>
-            ) : null}
-          </dl>
+              {payload !== undefined ? (
+                <details className="rounded-lg border p-3">
+                  <summary className="text-muted-foreground cursor-pointer text-xs">
+                    {copy.drawer.technical}
+                  </summary>
+                  <pre className="text-muted-foreground mt-2 overflow-x-auto text-xs">
+                    {JSON.stringify(payload, null, 2)}
+                  </pre>
+                </details>
+              ) : null}
+            </dl>
+          )
         ) : null}
       </DetailDrawer>
     </>

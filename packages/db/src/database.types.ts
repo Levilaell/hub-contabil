@@ -65,6 +65,105 @@ export type Database = {
           },
         ]
       }
+      classification_examples: {
+        Row: {
+          context: Json
+          created_at: string
+          doc_type: string
+          document_id: string | null
+          extracted_cnpj: string | null
+          firm_id: string
+          id: string
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          doc_type: string
+          document_id?: string | null
+          extracted_cnpj?: string | null
+          firm_id: string
+          id?: string
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          doc_type?: string
+          document_id?: string | null
+          extracted_cnpj?: string | null
+          firm_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_examples_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_examples_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classifications: {
+        Row: {
+          confidence: number
+          created_at: string
+          decided_by: string
+          document_id: string
+          extracted_cnpj: string | null
+          firm_id: string
+          id: string
+          model: string
+          suggested_type: string
+          updated_at: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          decided_by?: string
+          document_id: string
+          extracted_cnpj?: string | null
+          firm_id: string
+          id?: string
+          model?: string
+          suggested_type: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          decided_by?: string
+          document_id?: string
+          extracted_cnpj?: string | null
+          firm_id?: string
+          id?: string
+          model?: string
+          suggested_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classifications_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classifications_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           city: string | null
@@ -308,7 +407,7 @@ export type Database = {
       }
       documents: {
         Row: {
-          company_id: string
+          company_id: string | null
           created_at: string
           department: string | null
           doc_type: string
@@ -324,7 +423,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          company_id: string
+          company_id?: string | null
           created_at?: string
           department?: string | null
           doc_type?: string
@@ -416,6 +515,102 @@ export type Database = {
           },
         ]
       }
+      export_batch_documents: {
+        Row: {
+          batch_id: string
+          created_at: string
+          document_id: string
+          export_name: string
+          firm_id: string
+          id: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          document_id: string
+          export_name: string
+          firm_id: string
+          id?: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          document_id?: string
+          export_name?: string
+          firm_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "export_batch_documents_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "export_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "export_batch_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "export_batch_documents_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      export_batches: {
+        Row: {
+          created_at: string
+          error: string | null
+          filters: Json
+          firm_id: string
+          id: string
+          manifest: Json
+          period: string | null
+          status: string
+          updated_at: string
+          zip_path: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          filters?: Json
+          firm_id: string
+          id?: string
+          manifest?: Json
+          period?: string | null
+          status?: string
+          updated_at?: string
+          zip_path?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          filters?: Json
+          firm_id?: string
+          id?: string
+          manifest?: Json
+          period?: string | null
+          status?: string
+          updated_at?: string
+          zip_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "export_batches_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       firms: {
         Row: {
           config: Json
@@ -439,6 +634,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      mapping_rules: {
+        Row: {
+          created_at: string
+          domain: string
+          firm_id: string
+          id: string
+          key: Json
+          level: number
+          origin: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          firm_id: string
+          id?: string
+          key: Json
+          level: number
+          origin?: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          firm_id?: string
+          id?: string
+          key?: Json
+          level?: number
+          origin?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mapping_rules_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       monitored_documents: {
         Row: {
@@ -793,9 +1032,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_cfop_metadata: {
+        Args: { p_document_id: string; p_entries: Json }
+        Returns: undefined
+      }
       auth_user_departments: { Args: never; Returns: string[] }
       cancel_document_request: { Args: { p_id: string }; Returns: undefined }
+      correct_classification: {
+        Args: { p_doc_type: string; p_document_id: string }
+        Returns: undefined
+      }
+      create_export_batch: { Args: { p_filters: Json }; Returns: string }
       current_firm_id: { Args: never; Returns: string }
+      enqueue_triage: { Args: { p_document_id: string }; Returns: undefined }
       get_request_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -836,7 +1085,12 @@ export type Database = {
         Args: { p_ip?: string; p_token: string; p_user_agent?: string }
         Returns: undefined
       }
+      mark_export_downloaded: { Args: { p_id: string }; Returns: undefined }
       mark_notification_read: { Args: { p_id: string }; Returns: undefined }
+      queue_rules_exception: {
+        Args: { p_context: Json; p_suggestion?: Json }
+        Returns: string
+      }
       record_request_download: {
         Args: { p_ip?: string; p_token: string; p_user_agent?: string }
         Returns: string

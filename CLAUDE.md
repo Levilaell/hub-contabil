@@ -69,7 +69,7 @@ UI definition of done (every screen task): checklist 1–13 verified + empty/loa
   /config       → Zod schemas for per-firm configuration
   /ui           → shared design system: StatusBadge, TrafficLight, StatCard, EmptyState, DataList, DetailDrawer, tokens
 /clients
-  /mrocha       → ONLY config and overrides for this deployment (never core logic)
+  /demo       → ONLY config and overrides for this deployment (never core logic)
 ```
 
 Allowed dependency direction: `clients/*` → `packages/*`. Never the reverse. `core` does not import from `adapters`. `web` consumes `ui` for all status/layout primitives.

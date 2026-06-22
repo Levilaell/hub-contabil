@@ -67,14 +67,17 @@ export {
 export {
   DOCUMENTS_BUCKET,
   buildStoragePath,
+  buildInboxPath,
   listDocuments,
   countDocuments,
   findDocumentByHash,
   insertDocument,
+  insertInboxDocument,
   deleteDocument,
   createDocumentSignedUrl,
   type DocumentItem,
   type DocumentInput,
+  type InboxDocumentInput,
   type DocMutationResult,
 } from './documents';
 export {
@@ -110,4 +113,41 @@ export {
   type CreateRequestResult,
   type RequestActionResult,
 } from './requests';
+export {
+  listMappingRules,
+  createMappingRule,
+  updateMappingRule,
+  deleteMappingRule,
+  resolveOrQueue,
+  saveResolutionAsRule,
+  type MappingRuleRecord,
+  type MappingRuleInput,
+  type RuleOrigin,
+  type RuleMutationResult,
+  type ResolveOutcome,
+} from './mapping-rules';
+export {
+  applyCfopResolution,
+  type CfopEntry,
+  type CfopApplyResult,
+} from './cfop';
+export {
+  listExportBatches,
+  getExportBatch,
+  listExportableDocuments,
+  listExportedDocumentIds,
+  createExportBatch,
+  markExportDownloaded,
+  type ExportBatch,
+  type ExportBatchStatus,
+  type ExportFilters,
+  type CreateBatchResult,
+} from './export-batches';
+export {
+  listClassificationsByDocuments,
+  enqueueTriage,
+  correctClassification,
+  type Classification,
+  type TriageActionResult,
+} from './classifications';
 export type { Database } from './database.types';

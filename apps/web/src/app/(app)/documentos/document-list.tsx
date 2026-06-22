@@ -1,14 +1,20 @@
 'use client';
 
-import { createDocumentSignedUrl, deleteDocument, type DocumentItem } from '@hub/db';
+import {
+  correctClassification,
+  createDocumentSignedUrl,
+  deleteDocument,
+  type Classification,
+  type DocumentItem,
+} from '@hub/db';
 import { DataList, DataListRow, DetailDrawer } from '@hub/ui';
-import { FileText } from 'lucide-react';
+import { FileText, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 
-import { copy, primaryButtonClass, secondaryButtonClass } from './copy';
+import { copy, inputClass, primaryButtonClass, secondaryButtonClass } from './copy';
 
 function fileKind(name: string): 'pdf' | 'image' | 'xml' | 'other' {
   const ext = (name.split('.').pop() ?? '').toLowerCase();
@@ -28,19 +34,25 @@ function humanSize(bytes: number | null): string {
 export function DocumentList({
   documents,
   departmentLabels,
+  classifications,
+  docTypes,
 }: {
   documents: DocumentItem[];
   departmentLabels: Record<string, string>;
+  classifications: Record<string, Classification>;
+  docTypes: string[];
 }) {
   const router = useRouter();
   const supabase = createClient();
   const [selected, setSelected] = useState<DocumentItem | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(false);
+  const [correctType, setCorrectType] = useState('');
   const [pending, startTransition] = useTransition();
 
   async function open(doc: DocumentItem) {
     setSelected(doc);
+    setCorrectType(doc.docType);
     setUrl(null);
     setLoadingUrl(true);
     setUrl(await createDocumentSignedUrl(supabase, doc.storagePath, 300));
@@ -56,7 +68,18 @@ export function DocumentList({
     });
   }
 
+  function saveCorrection(doc: DocumentItem) {
+    startTransition(async () => {
+      const res = await correctClassification(supabase, doc.id, correctType);
+      if (res.ok) {
+        setSelected(null);
+        router.refresh();
+      }
+    });
+  }
+
   const kind = selected ? fileKind(selected.fileName) : 'other';
+  const selectedAi = selected ? classifications[selected.id]?.decidedBy === 'ai' : false;
 
   return (
     <>
@@ -65,6 +88,7 @@ export function DocumentList({
           const place = [doc.period, departmentLabels[doc.department ?? ''] ?? doc.department]
             .filter(Boolean)
             .join(' · ');
+          const isAi = classifications[doc.id]?.decidedBy === 'ai';
           return (
             <DataListRow
               key={doc.id}
@@ -77,7 +101,12 @@ export function DocumentList({
               title={doc.fileName}
               facts={[doc.docType, place].filter(Boolean) as string[]}
               trailing={
-                <span className="text-muted-foreground text-xs">{humanSize(doc.sizeBytes)}</span>
+                <span className="flex items-center gap-1.5">
+                  {isAi ? (
+                    <Sparkles className="text-primary size-3.5" aria-label={copy.list.aiBadge} />
+                  ) : null}
+                  <span className="text-muted-foreground text-xs">{humanSize(doc.sizeBytes)}</span>
+                </span>
               }
             />
           );
@@ -111,26 +140,66 @@ export function DocumentList({
         }
       >
         {selected ? (
-          loadingUrl ? (
-            <p className="text-muted-foreground text-sm">{copy.preview.loading}</p>
-          ) : !url ? (
-            <p className="text-muted-foreground text-sm">{copy.preview.unsupported}</p>
-          ) : kind === 'image' ? (
-            // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL preview
-            <img
-              src={url}
-              alt={selected.fileName}
-              className="max-h-[70vh] w-full rounded-lg object-contain"
-            />
-          ) : kind === 'pdf' || kind === 'xml' ? (
-            <iframe
-              src={url}
-              title={selected.fileName}
-              className="h-[70vh] w-full rounded-lg border"
-            />
-          ) : (
-            <p className="text-muted-foreground text-sm">{copy.preview.unsupported}</p>
-          )
+          <div className="space-y-4">
+            {/* Correct the AI's type and feed back a few-shot example (T21). */}
+            <div className="bg-card space-y-2 rounded-lg border p-3">
+              <div className="flex items-center gap-1.5">
+                {selectedAi ? <Sparkles className="text-primary size-3.5" aria-hidden /> : null}
+                <span className="text-xs font-medium">{copy.correct.title}</span>
+              </div>
+              <div className="flex items-end gap-2">
+                <div className="flex-1 space-y-1">
+                  <label htmlFor="correct-type" className="text-muted-foreground text-xs">
+                    {copy.correct.label}
+                  </label>
+                  <select
+                    id="correct-type"
+                    value={correctType}
+                    onChange={(e) => setCorrectType(e.target.value)}
+                    className={inputClass}
+                  >
+                    {(docTypes.includes(selected.docType)
+                      ? docTypes
+                      : [selected.docType, ...docTypes]
+                    ).map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => saveCorrection(selected)}
+                  disabled={pending || correctType === selected.docType}
+                  className={secondaryButtonClass}
+                >
+                  {pending ? copy.correct.saving : copy.correct.save}
+                </button>
+              </div>
+            </div>
+
+            {loadingUrl ? (
+              <p className="text-muted-foreground text-sm">{copy.preview.loading}</p>
+            ) : !url ? (
+              <p className="text-muted-foreground text-sm">{copy.preview.unsupported}</p>
+            ) : kind === 'image' ? (
+              // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL preview
+              <img
+                src={url}
+                alt={selected.fileName}
+                className="max-h-[70vh] w-full rounded-lg object-contain"
+              />
+            ) : kind === 'pdf' || kind === 'xml' ? (
+              <iframe
+                src={url}
+                title={selected.fileName}
+                className="h-[70vh] w-full rounded-lg border"
+              />
+            ) : (
+              <p className="text-muted-foreground text-sm">{copy.preview.unsupported}</p>
+            )}
+          </div>
         ) : null}
       </DetailDrawer>
     </>

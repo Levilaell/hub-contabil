@@ -2,7 +2,7 @@ import { type User, createClient } from '@supabase/supabase-js';
 
 import type { Database } from './database.types';
 
-// Seeds the M Rocha firm + one user per role into the linked Supabase Cloud
+// Seeds the Demo firm + one user per role into the linked Supabase Cloud
 // project. Uses the service role (bypasses RLS). Idempotent — safe to re-run.
 // firm_id and role go into auth app_metadata, which Supabase embeds in the JWT
 // so RLS (public.current_firm_id()) can enforce tenant isolation.
@@ -18,7 +18,7 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 
 // Deterministic ids keep the seed idempotent and let tests reference the firm.
 const FIRM_ID = '11111111-1111-4111-8111-111111111111';
-const FIRM_NAME = 'Contabilidade M Rocha';
+const FIRM_NAME = 'Escritório Demo';
 
 type Role = 'owner' | 'manager' | 'staff';
 interface SeedUser {
@@ -29,10 +29,10 @@ interface SeedUser {
 }
 
 const SEED_USERS: SeedUser[] = [
-  { email: 'owner@mrocha.test', fullName: 'Dono M Rocha', role: 'owner', departments: [] },
-  { email: 'manager@mrocha.test', fullName: 'Gerente M Rocha', role: 'manager', departments: [] },
+  { email: 'owner@demo.test', fullName: 'Dono Demo', role: 'owner', departments: [] },
+  { email: 'manager@demo.test', fullName: 'Gerente Demo', role: 'manager', departments: [] },
   {
-    email: 'staff@mrocha.test',
+    email: 'staff@demo.test',
     fullName: 'Analista Fiscal',
     role: 'staff',
     departments: ['fiscal'],

@@ -63,3 +63,37 @@ export {
 } from './request';
 
 export { buildRequestEmail, type RequestEmailInput, type BuiltEmail } from './request-email';
+
+export {
+  resolveMappingRule,
+  isMappingRuleLevel,
+  MAPPING_RULE_LEVELS,
+  type MappingRule,
+  type MappingRuleLevel,
+  type RuleMatch,
+  type RuleResolution,
+} from './mapping-rules';
+
+export { parseNfe, CFOP_DOMAIN, type ParsedNfe, type NfeItem } from './nfe';
+
+export {
+  routeDepartment,
+  decideTriage,
+  type TriageDecision,
+  type TriageReason,
+  type TriageInput,
+  type TriageOutcome,
+} from './triage';
+
+export {
+  buildExportManifest,
+  exportExclusionReason,
+  parseCfopMetadata,
+  manifestToCsv,
+  type ExportDoc,
+  type ExportManifest,
+  type ManifestEntry,
+  type ExcludedEntry,
+  type ExclusionReason,
+  type CfopEntrySummary,
+} from './export';

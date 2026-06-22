@@ -23,3 +23,23 @@ export {
   type SendResult,
   type ResendAdapterOptions,
 } from './messaging';
+
+export {
+  ManualExportErpAdapter,
+  createErpAdapter,
+  type ErpAdapter,
+  type ErpBatchFile,
+  type ErpBatchInput,
+  type ErpBatchResult,
+} from './erp';
+
+export {
+  AnthropicClassificationAdapter,
+  HeuristicClassificationAdapter,
+  createClassificationAdapter,
+  type ClassificationAdapter,
+  type ClassificationInput,
+  type ClassificationResult,
+  type ClassificationEnv,
+  type AnthropicClassificationOptions,
+} from './classification';

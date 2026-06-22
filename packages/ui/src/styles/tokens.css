@@ -17,18 +17,21 @@
  * so the soft-badge text uses its own darker (light mode) / lighter (dark) shade.
  */
 :root {
-  --success: oklch(0.55 0.14 150);
-  --success-foreground: oklch(0.98 0.02 150);
-  --success-text: oklch(0.43 0.13 150);
-  --warning: oklch(0.62 0.14 70);
-  --warning-foreground: oklch(0.99 0.02 80);
-  --warning-text: oklch(0.42 0.1 75);
-  --danger: oklch(0.55 0.21 27);
-  --danger-foreground: oklch(0.98 0.02 20);
-  --danger-text: oklch(0.45 0.2 27);
-  --neutral: oklch(0.5 0.03 250);
-  --neutral-foreground: oklch(0.98 0.01 250);
-  --neutral-text: oklch(0.4 0.02 250);
+  /* Hub Contábil design handoff — status palette. The warning is a golden yellow,
+     deliberately distinct from the brand orange (#FFA500) so "atenção" never reads
+     as a brand action (see design/README.md). */
+  --success: #2e9e5b;
+  --success-foreground: #ffffff;
+  --success-text: #1e7f46;
+  --warning: #e6b833;
+  --warning-foreground: #1a1a1a;
+  --warning-text: #8a6a12;
+  --danger: #db4b43;
+  --danger-foreground: #ffffff;
+  --danger-text: #b23a33;
+  --neutral: #c4beb2;
+  --neutral-foreground: #1a1a1a;
+  --neutral-text: #76716a;
 }
 
 .dark {

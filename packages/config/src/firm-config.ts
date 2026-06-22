@@ -132,6 +132,9 @@ export const firmConfigSchema = z
       .min(0, { message: 'O limite de confiança deve estar entre 0 e 1.' })
       .max(1, { message: 'O limite de confiança deve estar entre 0 e 1.' })
       .default(0.85),
+    // Anthropic model for the AI triage pipeline (T20). Defaults to the latest
+    // Opus; a firm may set Haiku/Sonnet here to trade accuracy for cost (#8).
+    aiModel: z.string().min(1).default('claude-opus-4-8'),
     // Days a document-request access link stays valid (T16). Business value in
     // config (golden rule #8); the link's expires_at is stamped from this.
     requestTokenExpiryDays: z
@@ -148,6 +151,15 @@ export const firmConfigSchema = z
       .min(1, { message: 'O lembrete deve ser de pelo menos 1 dia.' })
       .max(60, { message: 'O lembrete deve ser no máximo 60 dias.' })
       .default(3),
+    // Export batches (T22). The filename convention the ERP batch renames files to,
+    // and whether a re-export of already-exported documents needs a warning. Tokens:
+    // {cnpj} {period} {type} {seq} {ext} {original}. Business value in config (#8).
+    exportBatch: z
+      .object({
+        fileNameConvention: z.string().min(1).default('{cnpj}_{period}_{type}_{seq}.{ext}'),
+        warnOnReExport: z.boolean().default(true),
+      })
+      .default({}),
     taxonomy: z
       .array(z.string().min(1))
       .min(1)

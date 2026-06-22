@@ -12,10 +12,12 @@ export type BasePayload = z.infer<typeof basePayloadSchema>;
 export const triagePayloadSchema = basePayloadSchema.extend({
   document_id: z.string().uuid(),
 });
+export type TriagePayload = z.infer<typeof triagePayloadSchema>;
 
 export const exportPayloadSchema = basePayloadSchema.extend({
   batch_id: z.string().uuid(),
 });
+export type ExportPayload = z.infer<typeof exportPayloadSchema>;
 
 export const notificationPayloadSchema = basePayloadSchema.extend({
   channel: z.string().min(1),

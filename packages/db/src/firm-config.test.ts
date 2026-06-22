@@ -36,8 +36,8 @@ describe.skipIf(!hasEnv)('saveFirmConfig (cloud dev)', () => {
   beforeAll(async () => {
     if (!URL || !ANON || !SERVICE) throw new Error('missing env');
     service = createClient<Database>(URL, SERVICE, { auth: { persistSession: false } });
-    owner = await signedInClient(URL, ANON, 'owner@mrocha.test');
-    staff = await signedInClient(URL, ANON, 'staff@mrocha.test');
+    owner = await signedInClient(URL, ANON, 'owner@demo.test');
+    staff = await signedInClient(URL, ANON, 'staff@demo.test');
     const { data } = await owner.auth.getUser();
     ownerId = data.user?.id ?? '';
   });

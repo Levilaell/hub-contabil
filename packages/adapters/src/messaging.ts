@@ -35,7 +35,7 @@ type FetchLike = (url: string, init: FetchInit) => Promise<FetchResponse>;
 
 export interface ResendAdapterOptions {
   apiKey: string;
-  /** Verified sender, e.g. "Contabilidade M Rocha <no-reply@mrocha.com.br>". */
+  /** Verified sender, e.g. "Escritório Demo <no-reply@demo.example>". */
   from: string;
   fetchImpl?: FetchLike;
 }

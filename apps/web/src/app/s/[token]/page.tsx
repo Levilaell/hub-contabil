@@ -13,13 +13,32 @@ import { ViewLogger } from './view-logger';
 // the product: brand + one sentence + one action. Always dynamically rendered.
 export const dynamic = 'force-dynamic';
 
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
 function Shell({ brand, children }: { brand?: string; children: React.ReactNode }) {
   return (
-    <main className="bg-muted/40 flex min-h-full flex-1 items-center justify-center p-4">
-      <div className="bg-card w-full max-w-md space-y-6 rounded-2xl border p-6 shadow-sm sm:p-8">
+    <main
+      className="flex min-h-full flex-1 items-center justify-center p-4"
+      style={{
+        background: 'radial-gradient(120% 90% at 50% -10%, #FFF6E8 0%, var(--background) 55%)',
+      }}
+    >
+      <div className="bg-card w-full max-w-md space-y-6 rounded-[28px] border p-6 shadow-[0_1px_2px_rgba(26,26,26,0.04),0_12px_32px_rgba(26,26,26,0.07)] sm:p-8">
         {brand ? (
           <div className="flex items-center justify-between border-b pb-4">
-            <span className="font-semibold">{brand}</span>
+            <span className="inline-flex items-center gap-2.5">
+              <span className="bg-foreground text-background grid size-9 place-items-center rounded-xl text-xs font-bold">
+                {initials(brand)}
+              </span>
+              <span className="font-semibold">{brand}</span>
+            </span>
             <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
               <ShieldCheck className="size-3.5" aria-hidden />
               {copy.secure}

@@ -15,7 +15,7 @@ const PASSWORD = process.env.SEED_PASSWORD ?? 'hub-dev-2026!';
 const hasEnv = Boolean(URL && ANON && SERVICE);
 
 const FIRM_A = '11111111-1111-4111-8111-111111111111';
-const OWNER_EMAIL = 'owner@mrocha.test';
+const OWNER_EMAIL = 'owner@demo.test';
 
 function checkDigit(base: string): number {
   let sum = 0;

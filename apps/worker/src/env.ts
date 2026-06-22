@@ -12,6 +12,9 @@ const envSchema = z.object({
   // Min ms between outbound CNPJ-enrichment calls (politeness; BrasilAPI asks for
   // human-paced traffic). Default 1000.
   ENRICHMENT_THROTTLE_MS: z.coerce.number().int().min(0).optional(),
+  // AI triage (T20). When absent the pipeline falls back to the heuristic adapter
+  // (everything → exception queue), so the worker still runs without a key.
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

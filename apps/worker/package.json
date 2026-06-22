@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node --watch --env-file=.env --import tsx src/index.ts",
     "start": "node --env-file=.env --import tsx src/index.ts",
+    "start:prod": "node --import tsx src/index.ts",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -14,6 +15,7 @@
     "@hub/adapters": "workspace:*",
     "@hub/config": "workspace:*",
     "@hub/core": "workspace:*",
+    "@supabase/supabase-js": "^2.108.1",
     "croner": "^8.1.0",
     "postgres": "^3.4.7",
     "zod": "^3.25.0"

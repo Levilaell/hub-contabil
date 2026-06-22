@@ -2,7 +2,8 @@
 export const copy = {
   brand: 'Hub Contábil',
   title: 'Entrar',
-  subtitle: 'Acesse o painel do escritório.',
+  greeting: 'Bom te ver de novo 👋',
+  subtitle: 'Acesse o painel do seu escritório.',
   email: 'E-mail',
   emailPlaceholder: 'voce@escritorio.com.br',
   password: 'Senha',

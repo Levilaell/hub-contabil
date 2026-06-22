@@ -61,6 +61,7 @@ export default async function InicioPage() {
     tone: StatusTone;
     href?: string;
     hint?: string;
+    hintTone?: StatusTone;
   }[] = [
     {
       label: copy.cards.openTasks,
@@ -75,12 +76,16 @@ export default async function InicioPage() {
       icon: AlertTriangle,
       tone: openExceptions > 0 ? 'danger' : 'muted',
       href: '/excecoes',
+      hint: openExceptions > 0 ? copy.hints.exceptions : copy.hints.allClear,
+      hintTone: openExceptions > 0 ? 'danger' : 'success',
     },
     {
       label: copy.cards.deadlines,
       value: attention,
       icon: CalendarClock,
       tone: attention > 0 ? 'warning' : 'muted',
+      hint: attention > 0 ? copy.hints.deadlines : copy.hints.allClear,
+      hintTone: attention > 0 ? 'warning' : 'success',
     },
     {
       label: copy.cards.companies,
@@ -125,6 +130,7 @@ export default async function InicioPage() {
             icon={card.icon}
             tone={card.tone}
             hint={card.hint}
+            hintTone={card.hintTone}
             href={card.href}
             linkComponent={card.href ? Link : undefined}
           />
