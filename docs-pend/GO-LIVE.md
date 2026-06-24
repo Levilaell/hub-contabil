@@ -13,9 +13,9 @@ Legenda: 👤 = você/externo · 🤖 = a IA consegue fazer aqui no repo · ⏱�
 - [ ] 👤 **Rotacionar os 3 segredos expostos no chat** ⏱️P — `service_role` e senha do banco
       (Supabase → Settings) e a **chave Anthropic** (console Anthropic). Foram colados aqui;
       trate como vazados. Atualize os `.env` locais depois.
-- [ ] 👤 **Colocar o código em git + GitHub** ⏱️P — hoje **não é um reppositório git**. É
-      pré-requisito pra deploy (Vercel/Railway puxam de um repo) e pra ter histórico/CI.
-      `git init` → commit → push para um repo privado.
+- [ ] 👤 **Publicar no GitHub** ⏱️P — o repo git **já existe localmente** (histórico até T25);
+      falta criar o **remote privado no GitHub** e dar `push`. É pré-requisito pra deploy
+      (Vercel/Railway puxam de um repo) e pra CI.
 - [ ] 👤 **`pnpm install`** na sua máquina e rodar `pnpm typecheck && pnpm lint && pnpm test`
       (com `packages/db/.env` apontando pro dev) ⏱️P — confirmar verde fora deste ambiente.
 

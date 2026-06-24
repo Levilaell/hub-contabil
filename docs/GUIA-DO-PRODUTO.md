@@ -407,8 +407,10 @@ Esta parte é só para você responder perguntas mais técnicas. Em linguagem si
 ## 6.3 Qualidade e operação
 - **Testes automatizados** acompanham as partes críticas (regras de negócio, fluxos ponta a
   ponta) para reduzir bugs.
-- **Hospedagem:** o robô e a tela rodam numa plataforma de nuvem (Railway), conectados ao
-  banco na nuvem (Supabase). Há ambientes separados de **teste** e **produção**, e **backups**.
+- **Hospedagem:** a tela (web) roda na **Vercel** e o robô (worker) num host persistente
+  (**Railway**) — o worker é um processo sempre ligado, que não cabe no modelo serverless da
+  Vercel. Ambos conectados ao banco na nuvem (**Supabase**). Há ambientes separados de
+  **teste** e **produção**, e **backups**.
 
 > Em resumo técnico para o cliente: “é um sistema web moderno, na nuvem, com **ambiente
 > dedicado e isolado para o seu escritório**, IA auditável, e arquitetura que cresce por
@@ -506,9 +508,11 @@ Esta parte é só para você responder perguntas mais técnicas. Em linguagem si
 > apresenta a visão completa (como combinamos); aqui você sabe onde pisar firme e onde dizer
 > “está no nosso roadmap próximo”.
 
-O projeto é dividido em 25 etapas (T1–T25). Pelo código existente hoje:
+O projeto é dividido em 25 etapas (T1–T25). **Todas as 25 estão construídas e com testes
+verdes**, validadas contra o ambiente de DEV (Supabase dev + dados sintéticos). Pelo código
+existente hoje:
 
-**✅ Já construído (pode demonstrar com segurança / está pronto ou quase):**
+**✅ Construído e demonstrável (todo o produto-base v1):**
 - Estrutura base, login, papéis e **auditoria**.
 - **Configuração por escritório** (prazos, taxonomia, limites).
 - **Cadastro de empresas + contatos** e **enriquecimento automático de CNPJ**.
@@ -519,19 +523,25 @@ O projeto é dividido em 25 etapas (T1–T25). Pelo código existente hoje:
 - **Painéis e farol** (dashboard, painel geral, painel individual).
 - **Motor de prazos** (documentos monitorados, robô diário, alertas, criação de tarefa).
 - **Solicitações de documentos + página pública** com prova de leitura, e **lembretes/e-mail**.
+- **Motor de regras + CFOP** (M9) — leitor determinístico de XML + de-para com precedência.
+- **Triagem por IA** (M10) e sua integração com a caixa de entrada (classifica, identifica a
+  empresa, arquiva; em dúvida → fila de exceções; a correção vira exemplo).
+- **Lotes de exportação para o ERP** (M11) — .zip renomeado + manifesto.
+- **Testes ponta a ponta (E2E)** e **blindagem (hardening)** dos fluxos críticos.
 
-**🚧 Ainda NÃO construído (é roadmap — fale como “próximo”, sem cravar data):**
-- **Motor de regras + CFOP** (M9) — projetado, ainda não implementado.
-- **Triagem por IA** (M10) e sua integração com a caixa de entrada (o recurso mais “uau” da
-  demo — **ainda não existe no código**; cuidado especial aqui).
-- **Lotes de exportação para o ERP** (M11).
-- **Testes ponta a ponta, blindagem final (hardening) e o deploy de produção** do M Rocha.
+**🚧 Ainda pendente (não é feature faltando — é o que falta para operar de verdade):**
+- **Deploy de produção nunca foi provisionado** — tudo rodou só em DEV; produção é a Fase 2
+  do `GO-LIVE.md` (Supabase prod, web na Vercel, worker no Railway, domínio, segredos).
+- **IA não validada em documentos reais** — precisão e custo por documento ainda não foram
+  medidos com notas/guias reais; é o maior risco de produto antes de prometer números.
+- **Integrações externas automáticas** (captura de XML via SIEG/PlugStorage, WhatsApp, CNDs
+  automáticas, conexão direta com o ERP) — roadmap por encaixe (adapter); ver `ADAPTERS.md`.
 
-**Recomendação prática de venda:** lidere a demonstração pelos blocos **já prontos**
-(painel/farol, prazos, tarefas, solicitações, documentos, exceções) — eles já entregam a
-promessa central (“visibilidade + nunca perca prazo + nada se perde”). Apresente **IA de
-triagem, CFOP e exportação** como **“o que vem a seguir”**, sem prometer prazo, até confirmar
-que foram construídos. Se um cliente fechar por causa da IA, alinhe o cronograma real antes.
+**Recomendação prática de venda:** o produto-base inteiro (incluindo IA, CFOP e exportação)
+já é demonstrável em DEV — lidere pela promessa central (visibilidade + nunca perca prazo +
+nada se perde) e mostre a IA com segurança. Os dois cuidados honestos: (a) **valide a precisão
+da IA em documentos reais antes de prometer números** de acerto/custo; (b) **produção ainda
+não foi provisionada** — alinhe o cronograma de go-live antes de assinar.
 
 ---
 
@@ -593,7 +603,7 @@ que foram construídos. Se um cliente fechar por causa da IA, alinhe o cronogram
 | --- | --- | --- |
 | Enriquecimento de CNPJ (BrasilAPI/ReceitaWS) | **R$ 0** (APIs públicas gratuitas) | 🟢 |
 | E-mail transacional (Resend) | **Grátis** até ~3 mil/mês; ~US$ 20/mês até 50 mil | 🟢 |
-| IA de triagem (Claude) | **~dezenas a poucas centenas de R$/mês** por escritório | 🚧 |
+| IA de triagem (Claude) | **~dezenas a poucas centenas de R$/mês** por escritório | 🟢 (custo a validar em docs reais) |
 | WhatsApp (Meta Cloud API oficial) | **~R$ 0,034/msg** de utilidade; entrada do cliente **grátis** | 🚧 |
 | Infraestrutura (Supabase + Railway), por escritório | **custo fixo recorrente** — define o piso de preço (ver 10.6) | 🟢 |
 
@@ -624,7 +634,7 @@ cada cliente roda isolado (single-tenant). É ele que define o **piso da assinat
   como marcador genérico — o encanamento existe, mas “qual e-mail do escritório recebe o alerta”
   é um ajuste a concluir. O aviso **dentro do sistema** já funciona completo.
 
-## 10.4 Custo da IA de triagem (detalhe) 🚧
+## 10.4 Custo da IA de triagem (detalhe) 🟢 (custo a validar em docs reais)
 
 **A pergunta central — “todos os documentos vão para a IA?” → NÃO**, e é isso que segura o custo:
 
@@ -680,9 +690,9 @@ volume de documentos), mas a **estrutura** do preço já é esta: **piso de infr
 Dois caminhos, pela regra de ouro:
 
 - **Caminho A — estruturados (XML): leitor exato, SEM IA.** NF-e (produto), NFC-e (consumidor),
-  CT-e (transporte). É aqui que o **motor de CFOP** (🚧) preenche a tradução **sem alterar o XML
+  CT-e (transporte). É aqui que o **motor de CFOP** (🟢) preenche a tradução **sem alterar o XML
   original** (a nota é imutável por lei).
-- **Caminho B — não estruturados (PDF/imagem): IA de visão (🚧).** Guias (DAS, DARF, GARE, ISS),
+- **Caminho B — não estruturados (PDF/imagem): IA de visão (🟢).** Guias (DAS, DARF, GARE, ISS),
   extratos, certidões, contratos, comprovantes, folha.
 
 Cada tipo tem **destino configurável**: notas/guias → Fiscal; extratos → Contábil; folha/encargos →
@@ -693,7 +703,7 @@ DP; certidões/contratos → Compliance; em dúvida → fila de exceções.
 > “NFS-e Nacional” entrando aos poucos desde 2026). Pode exigir tratamento por município ou cair na
 > IA/visão. **Nunca prometa “lê qualquer NFS-e de qualquer cidade”** sem validar o layout antes.
 
-## 10.8 Exportação para o ERP — sim, é setup por cliente 🚧
+## 10.8 Exportação para o ERP — sim, é setup por cliente 🟢
 
 O setup tem **duas camadas**, e por isso é “configurado por cliente conforme o ERP”:
 1. **Configuração (por escritório):** a **convenção de nome dos arquivos**
@@ -704,7 +714,8 @@ O setup tem **duas camadas**, e por isso é “configurado por cliente conforme 
    automáticas por ERP (`alterdata-nfstock`, `dominio-onvio`…) entram **no mesmo encaixe**, no futuro.
 
 > **Mesmo produto-base; a saída para o ERP do cliente é questão de configuração + qual adapter de ERP
-> está ligado.** (A tela de exportação ainda é roadmap; a fundação da config já existe.)
+> está ligado.** (A tela de exportação e o `manual-export` já estão construídos; adapters automáticos
+> por ERP — `alterdata-nfstock`, `dominio-onvio`… — é que são roadmap.)
 
 ## 10.9 Como o sistema cresce sem virar bagunça (escala)
 

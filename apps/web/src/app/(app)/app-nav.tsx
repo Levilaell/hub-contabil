@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Building2,
   FileText,
+  HelpCircle,
   LayoutDashboard,
   ListChecks,
   Send,
@@ -58,6 +59,14 @@ export function AppNav({
         closeMenuLabel={copy.closeMenu}
         topbarRight={
           <div className="flex items-center gap-1">
+            <Link
+              href="/ajuda"
+              aria-label={copy.nav.ajuda}
+              title={copy.nav.ajuda}
+              className="hover:bg-accent grid size-9 place-items-center rounded-md transition-colors"
+            >
+              <HelpCircle className="size-5" aria-hidden />
+            </Link>
             <NotificationsBell notifications={notifications} unreadCount={unreadNotifications} />
             <UserMenu />
           </div>

@@ -18,5 +18,6 @@ export const copy = {
     excecoes: 'Exceções',
     solicitacoes: 'Solicitações',
     config: 'Configurações',
+    ajuda: 'Tutorial',
   },
 } as const;

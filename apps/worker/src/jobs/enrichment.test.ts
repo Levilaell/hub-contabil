@@ -45,6 +45,17 @@ describe.skipIf(!hasEnv)('enrichment consumer (cloud dev)', () => {
   const ids: string[] = [];
 
   async function insertCompany(cnpj: string, extra: Record<string, unknown> = {}): Promise<string> {
+    // Self-heal against rows left behind by an interrupted prior run: the fixed
+    // CNPJ + firm_id is unique, so a stale orphan would otherwise wedge every
+    // future run with a duplicate-key error.
+    const stale = await sql<{ id: string }[]>`
+      select id from public.companies where firm_id = ${FIRM} and cnpj = ${cnpj}
+    `;
+    for (const { id } of stale) {
+      await sql`delete from public.audit_events where entity_id = ${id}`;
+      await sql`delete from public.companies where id = ${id}`;
+    }
+
     const [row] = await sql<{ id: string }[]>`
       insert into public.companies ${sql({ firm_id: FIRM, cnpj, legal_name: 'Razão Original', ...extra })}
       returning id

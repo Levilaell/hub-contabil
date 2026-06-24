@@ -22,5 +22,10 @@ export default defineConfig({
     env,
     testTimeout: 30000,
     hookTimeout: 30000,
+    // These suites run against the shared Supabase Cloud dev project and each file
+    // signs in with a password. Running every file in parallel bursts the GoTrue
+    // auth endpoint and trips "Request rate limit reached"; it also lets files race
+    // on shared rows. Run files sequentially to keep auth calls under the window.
+    fileParallelism: false,
   },
 });

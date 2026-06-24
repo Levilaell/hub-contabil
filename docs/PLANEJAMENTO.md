@@ -39,7 +39,7 @@ First client: Contabilidade M Rocha (250–500 companies, 5,000+ invoices/month,
 - Web uses anon key + RLS (`supabase-js`). Worker uses service role + **mandatory `firm_id` filter** (`postgres.js` over the connection pooler; no ORM). Database types generated via Supabase CLI.
 - pgmq queues: `triage`, `export`, `notifications`. Each DLQ feeds the exception queue.
 - Crons (worker): `deadlines-daily` (06:00), `recurrences-monthly` (day 1), `alerts` (hourly).
-- Deployment: **one Railway project per firm with two services (`web` and `worker`)**, both pointing to that firm's Supabase Cloud project — single platform keeps the T25 runbook simple.
+- Deployment per firm: **web on Vercel, worker on a persistent host (Railway)** — the worker is a long-running poller/cron that does not fit Vercel's serverless model. Both point to that firm's Supabase Cloud project. (An all-Railway or all-Vercel setup is possible; see `clients/demo/RUNBOOK.md` §5 for the trade-off.)
 
 ## 4. Data model (core) — all tables prefixed by `firm_id`, RLS on
 
