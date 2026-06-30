@@ -43,3 +43,40 @@ export {
   type ClassificationEnv,
   type AnthropicClassificationOptions,
 } from './classification';
+
+export {
+  MetaWhatsappAdapter,
+  NoopWhatsappAdapter,
+  createWhatsappAdapter,
+  parseWhatsappInbound,
+  verifyWhatsappSignature,
+  type WhatsappAdapter,
+  type WhatsappInboundMessage,
+  type WhatsappMedia,
+  type WhatsappAdapterOptions,
+  type WhatsappEnv,
+  type SendTextResult,
+} from './whatsapp';
+
+export {
+  ImapFlowInboundAdapter,
+  NoopImapInboundAdapter,
+  createImapInboundAdapter,
+  imapConfigured,
+  type ImapInboundAdapter,
+  type ImapAdapterOptions,
+  type ImapEnv,
+  type InboundEmail,
+  type InboundAttachment,
+} from './inbound-imap';
+
+export {
+  AnthropicSupportAssistant,
+  HeuristicSupportAssistant,
+  createSupportAssistant,
+  type SupportAssistantAdapter,
+  type SupportAssistantInput,
+  type SupportAssistantResult,
+  type SupportAssistantEnv,
+  type AnthropicSupportOptions,
+} from './support-assistant';

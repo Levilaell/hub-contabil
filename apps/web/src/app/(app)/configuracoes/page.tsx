@@ -26,6 +26,8 @@ export default async function ConfiguracoesPage() {
         canEdit={canEdit}
         deadlineDefaultDays={config.deadlineTriggers.defaultDays}
         aiThreshold={config.aiThreshold}
+        supportAutoReply={config.support.autoReply}
+        supportAiThreshold={config.support.aiThreshold}
         departments={config.departments}
         taxonomy={config.taxonomy}
         routingMap={config.routingMap}

@@ -31,11 +31,31 @@ export const enrichmentPayloadSchema = basePayloadSchema.extend({
 });
 export type EnrichmentPayload = z.infer<typeof enrichmentPayloadSchema>;
 
+// Inbound channel pipeline (entrada via WhatsApp/IMAP): the webhook records the
+// message and enqueues its id; the worker downloads media / routes it to triage,
+// support, or the exception queue. IMAP runs end-to-end in its poll cron, so it
+// does not use this queue.
+export const inboundPayloadSchema = basePayloadSchema.extend({
+  inbound_id: z.string().uuid(),
+});
+export type InboundPayload = z.infer<typeof inboundPayloadSchema>;
+
+// Support (atendimento): 'inbound' = a new client message to handle with the AI;
+// 'deliver' = send a queued outbound message (a human's reply) over the channel.
+export const supportPayloadSchema = basePayloadSchema.extend({
+  ticket_id: z.string().uuid(),
+  message_id: z.string().uuid(),
+  kind: z.enum(['inbound', 'deliver']),
+});
+export type SupportPayload = z.infer<typeof supportPayloadSchema>;
+
 export const QUEUES = {
   triage: 'triage',
   export: 'export',
   notifications: 'notifications',
   enrichment: 'enrichment',
+  inbound: 'inbound',
+  support: 'support',
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

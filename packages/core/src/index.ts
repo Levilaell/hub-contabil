@@ -97,3 +97,36 @@ export {
   type ExclusionReason,
   type CfopEntrySummary,
 } from './export';
+
+export {
+  INBOUND_CHANNELS,
+  isInboundChannel,
+  classifyInboundKind,
+  decideInboundRouting,
+  normalizeInboundPhone,
+  normalizeInboundEmail,
+  type InboundChannel,
+  type InboundKind,
+  type InboundTarget,
+  type InboundReason,
+  type InboundClassifyInput,
+  type InboundRouteOutcome,
+} from './inbound';
+
+export {
+  SUPPORT_STATUSES,
+  isSupportStatus,
+  allowedSupportTransitions,
+  canTransitionSupport,
+  statusAfterInbound,
+  OPEN_SUPPORT_STATUSES,
+  isOpenSupport,
+  decideSupportResponse,
+  isWithin24hWindow,
+  SERVICE_WINDOW_MS,
+  type SupportStatus,
+  type SupportAction,
+  type SupportReason,
+  type SupportDecisionInput,
+  type SupportDecision,
+} from './support';

@@ -150,4 +150,15 @@ export {
   type Classification,
   type TriageActionResult,
 } from './classifications';
+export {
+  listSupportTickets,
+  countOpenSupportTickets,
+  listSupportMessages,
+  replySupportTicket,
+  setSupportStatus,
+  type SupportTicket,
+  type SupportMessage,
+  type SupportStatus,
+  type SupportActionResult,
+} from './support';
 export type { Database } from './database.types';

@@ -8,6 +8,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export interface FirmConfigEdits {
   deadlineDefaultDays: number;
   aiThreshold: number;
+  // Atendimento (support). Optional so existing callers (the deadline/AI form) keep
+  // working unchanged; when present they patch the support block.
+  supportAutoReply?: boolean;
+  supportAiThreshold?: number;
 }
 
 export type SaveFirmConfigResult = { ok: true } | { ok: false; message: string };
@@ -31,6 +35,11 @@ export async function saveFirmConfig(
     ...current,
     deadlineTriggers: { ...current.deadlineTriggers, defaultDays: edits.deadlineDefaultDays },
     aiThreshold: edits.aiThreshold,
+    support: {
+      ...current.support,
+      ...(edits.supportAutoReply !== undefined ? { autoReply: edits.supportAutoReply } : {}),
+      ...(edits.supportAiThreshold !== undefined ? { aiThreshold: edits.supportAiThreshold } : {}),
+    },
   };
 
   const validation = validateFirmConfig(candidate);

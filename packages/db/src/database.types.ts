@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
       audit_events: {
@@ -439,7 +434,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          company_id?: string
+          company_id?: string | null
           created_at?: string
           department?: string | null
           doc_type?: string
@@ -634,6 +629,59 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      inbound_messages: {
+        Row: {
+          channel: string
+          created_at: string
+          external_id: string
+          firm_id: string
+          id: string
+          kind: string
+          raw: Json
+          received_at: string
+          sender: string
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          external_id: string
+          firm_id: string
+          id?: string
+          kind?: string
+          raw?: Json
+          received_at?: string
+          sender?: string
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          external_id?: string
+          firm_id?: string
+          id?: string
+          kind?: string
+          raw?: Json
+          received_at?: string
+          sender?: string
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_messages_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mapping_rules: {
         Row: {
@@ -846,6 +894,129 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "recurring_tasks_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_messages: {
+        Row: {
+          author: string
+          body: string
+          created_at: string
+          delivered_at: string | null
+          delivery: string
+          direction: string
+          external_id: string | null
+          firm_id: string
+          id: string
+          ticket_id: string
+          updated_at: string
+        }
+        Insert: {
+          author: string
+          body?: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery?: string
+          direction: string
+          external_id?: string | null
+          firm_id: string
+          id?: string
+          ticket_id: string
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          body?: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery?: string
+          direction?: string
+          external_id?: string | null
+          firm_id?: string
+          id?: string
+          ticket_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_messages_firm_id_ticket_id_fkey"
+            columns: ["firm_id", "ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["firm_id", "id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          ai_handled: boolean
+          assignee_id: string | null
+          channel: string
+          company_id: string | null
+          contact_identifier: string
+          contact_name: string | null
+          created_at: string
+          firm_id: string
+          id: string
+          last_inbound_at: string | null
+          last_message_at: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          ai_handled?: boolean
+          assignee_id?: string | null
+          channel: string
+          company_id?: string | null
+          contact_identifier: string
+          contact_name?: string | null
+          created_at?: string
+          firm_id: string
+          id?: string
+          last_inbound_at?: string | null
+          last_message_at?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_handled?: boolean
+          assignee_id?: string | null
+          channel?: string
+          company_id?: string | null
+          contact_identifier?: string
+          contact_name?: string | null
+          created_at?: string
+          firm_id?: string
+          id?: string
+          last_inbound_at?: string | null
+          last_message_at?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_firm_id_fkey"
             columns: ["firm_id"]
             isOneToOne: false
             referencedRelation: "firms"
@@ -1091,6 +1262,18 @@ export type Database = {
         Args: { p_context: Json; p_suggestion?: Json }
         Returns: string
       }
+      record_inbound_message: {
+        Args: {
+          p_channel: string
+          p_external_id: string
+          p_firm_id: string
+          p_kind: string
+          p_raw?: Json
+          p_sender: string
+          p_subject?: string
+        }
+        Returns: string
+      }
       record_request_download: {
         Args: { p_ip?: string; p_token: string; p_user_agent?: string }
         Returns: string
@@ -1107,6 +1290,10 @@ export type Database = {
         }
         Returns: string
       }
+      reply_support_ticket: {
+        Args: { p_body: string; p_ticket_id: string }
+        Returns: string
+      }
       request_enrichment: { Args: { p_company_id: string }; Returns: undefined }
       resolve_exception: {
         Args: { p_id: string; p_note?: string; p_status: string }
@@ -1115,6 +1302,10 @@ export type Database = {
       rotate_request_token: {
         Args: { p_expiry_days?: number; p_id: string }
         Returns: string
+      }
+      set_support_status: {
+        Args: { p_note?: string; p_status: string; p_ticket_id: string }
+        Returns: undefined
       }
     }
     Enums: {
@@ -1248,3 +1439,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

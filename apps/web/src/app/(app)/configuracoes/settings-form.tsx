@@ -12,13 +12,24 @@ interface SettingsFormProps {
   canEdit: boolean;
   deadlineDefaultDays: number;
   aiThreshold: number;
+  supportAutoReply: boolean;
+  supportAiThreshold: number;
   departments: { key: string; label: string }[];
   taxonomy: string[];
   routingMap: Record<string, string>;
 }
 
 export function SettingsForm(props: SettingsFormProps) {
-  const { canEdit, deadlineDefaultDays, aiThreshold, departments, taxonomy, routingMap } = props;
+  const {
+    canEdit,
+    deadlineDefaultDays,
+    aiThreshold,
+    supportAutoReply,
+    supportAiThreshold,
+    departments,
+    taxonomy,
+    routingMap,
+  } = props;
   const [state, formAction, pending] = useActionState(updateFirmConfigAction, null);
 
   return (
@@ -64,6 +75,43 @@ export function SettingsForm(props: SettingsFormProps) {
             className={`${inputClass} max-w-28`}
           />
           <p className="text-muted-foreground text-xs">{copy.aiHint}</p>
+        </div>
+
+        <div className="space-y-3 border-t pt-5">
+          <p className="text-sm font-semibold">{copy.supportTitle}</p>
+          <label className="flex items-start gap-2.5">
+            <input
+              type="checkbox"
+              name="supportAutoReply"
+              disabled={!canEdit}
+              defaultChecked={supportAutoReply}
+              className="mt-0.5 size-4"
+            />
+            <span>
+              <span className="block text-sm font-medium">{copy.supportAutoReplyLabel}</span>
+              <span className="text-muted-foreground block text-xs">
+                {copy.supportAutoReplyHint}
+              </span>
+            </span>
+          </label>
+          <div className="space-y-1.5">
+            <label htmlFor="supportAiThreshold" className="text-sm font-medium">
+              {copy.supportThresholdLabel}
+            </label>
+            <input
+              id="supportAiThreshold"
+              name="supportAiThreshold"
+              type="number"
+              min={0}
+              max={1}
+              step={0.01}
+              required
+              disabled={!canEdit}
+              defaultValue={supportAiThreshold}
+              className={`${inputClass} max-w-28`}
+            />
+            <p className="text-muted-foreground text-xs">{copy.supportThresholdHint}</p>
+          </div>
         </div>
 
         {state && !state.ok ? <p className="text-danger-text text-sm">{state.message}</p> : null}

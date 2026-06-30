@@ -1,6 +1,7 @@
 import {
   countOpenExceptions,
   countOpenRequests,
+  countOpenSupportTickets,
   countUnreadNotifications,
   listNotifications,
 } from '@hub/db';
@@ -15,16 +16,19 @@ import { AppNav } from './app-nav';
 // off to the client nav (which needs usePathname for the active item).
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient();
-  const [exceptionCount, requestCount, notifications, unreadNotifications] = await Promise.all([
-    countOpenExceptions(supabase),
-    countOpenRequests(supabase),
-    listNotifications(supabase, { limit: 15 }),
-    countUnreadNotifications(supabase),
-  ]);
+  const [exceptionCount, requestCount, supportCount, notifications, unreadNotifications] =
+    await Promise.all([
+      countOpenExceptions(supabase),
+      countOpenRequests(supabase),
+      countOpenSupportTickets(supabase),
+      listNotifications(supabase, { limit: 15 }),
+      countUnreadNotifications(supabase),
+    ]);
   return (
     <AppNav
       exceptionCount={exceptionCount}
       requestCount={requestCount}
+      supportCount={supportCount}
       notifications={notifications}
       unreadNotifications={unreadNotifications}
     >

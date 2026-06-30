@@ -13,9 +13,12 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
     "@hub/core": "workspace:*",
-    "fflate": "^0.8.3"
+    "fflate": "^0.8.3",
+    "imapflow": "^1.0.196",
+    "mailparser": "^3.7.1"
   },
   "devDependencies": {
+    "@types/mailparser": "^3.4.5",
     "typescript": "^5.8.3",
     "vitest": "^3.2.3"
   }

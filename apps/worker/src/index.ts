@@ -1,4 +1,9 @@
-import { BrasilApiEnrichmentAdapter, createClassificationAdapter } from '@hub/adapters';
+import {
+  BrasilApiEnrichmentAdapter,
+  createClassificationAdapter,
+  createSupportAssistant,
+  createWhatsappAdapter,
+} from '@hub/adapters';
 import { createClient } from '@supabase/supabase-js';
 import type { Cron } from 'croner';
 import postgres from 'postgres';
@@ -8,11 +13,15 @@ import { loadEnv } from './env.js';
 import { createEnrichmentHandler } from './jobs/enrichment.js';
 import { recordException } from './jobs/exception-sink.js';
 import { createExportHandler } from './jobs/export.js';
+import { createInboundHandler } from './jobs/inbound.js';
+import { createSupportHandler } from './jobs/support.js';
 import { createTriageHandler } from './jobs/triage.js';
 import {
   enrichmentPayloadSchema,
   exportPayloadSchema,
+  inboundPayloadSchema,
   notificationPayloadSchema,
+  supportPayloadSchema,
   triagePayloadSchema,
 } from './queue/payloads.js';
 import { JobRunner, type QueueRegistration, defineQueueJob } from './queue/runner.js';
@@ -42,6 +51,11 @@ async function main(): Promise<void> {
   // Anthropic when ANTHROPIC_API_KEY is set, else the heuristic no-op (→ everything
   // to the exception queue). Shared across triage jobs.
   const classifier = createClassificationAdapter(process.env);
+
+  // Inbound channels + atendimento. Each falls back to a no-op when its env is
+  // absent (WhatsApp token / Anthropic key), so the worker runs without them wired.
+  const whatsapp = createWhatsappAdapter(process.env);
+  const supportAssistant = createSupportAssistant(process.env);
 
   const registrations: QueueRegistration[] = [
     defineQueueJob({
@@ -75,6 +89,20 @@ async function main(): Promise<void> {
       ),
       options: { qty: 5, vt: 90 },
     }),
+    defineQueueJob({
+      queue: 'inbound',
+      schema: inboundPayloadSchema,
+      // WhatsApp media download + Storage upload — modest concurrency, room to run.
+      handler: createInboundHandler(sql, storage, whatsapp),
+      options: { qty: 3, vt: 120 },
+    }),
+    defineQueueJob({
+      queue: 'support',
+      schema: supportPayloadSchema,
+      // AI draft + channel send per message — keep concurrency modest.
+      handler: createSupportHandler(sql, whatsapp, supportAssistant),
+      options: { qty: 3, vt: 120 },
+    }),
   ];
 
   // Dead-lettered jobs surface in the exception queue (T9).
@@ -82,7 +110,7 @@ async function main(): Promise<void> {
   runner.start();
   console.log(`[worker] job runner polling: ${registrations.map((r) => r.queue).join(', ')}`);
 
-  const crons: Cron[] = startCrons(env.CRON_ACCELERATED, sql);
+  const crons: Cron[] = startCrons(env.CRON_ACCELERATED, sql, storage);
   console.log(
     `[worker] crons scheduled (${env.CRON_ACCELERATED ? 'accelerated' : 'production'}): ${crons
       .map((c) => c.name)

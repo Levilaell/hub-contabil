@@ -15,6 +15,7 @@ export const copy = {
     empresas: 'Empresas',
     tarefas: 'Tarefas',
     documentos: 'Documentos',
+    atendimento: 'Atendimento',
     excecoes: 'Exceções',
     solicitacoes: 'Solicitações',
     config: 'Configurações',

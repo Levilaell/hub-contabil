@@ -1,8 +1,15 @@
-import { NoopMessagingAdapter, createMessagingAdapter } from '@hub/adapters';
+import {
+  NoopMessagingAdapter,
+  createImapInboundAdapter,
+  createMessagingAdapter,
+  imapConfigured,
+} from '@hub/adapters';
 import { Cron } from 'croner';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Sql } from 'postgres';
 
 import { runDeadlineSweep, todayInSaoPaulo } from '../jobs/deadlines.js';
+import { runImapPoll } from '../jobs/imap-poll.js';
 import { currentPeriod, generateRecurringTasks } from '../jobs/recurrences.js';
 import { runRequestReminderSweep } from '../jobs/request-reminders.js';
 
@@ -19,14 +26,14 @@ export interface CronJob {
   run: () => void | Promise<void>;
 }
 
-export function buildCronJobs(sql: Sql): CronJob[] {
+export function buildCronJobs(sql: Sql, storage?: SupabaseClient): CronJob[] {
   // Deadline alerts go to a firm placeholder recipient (not a real inbox yet), so
   // they stay on the no-op. Request reminders go to real client e-mails, so they
   // use the configured adapter (Resend when RESEND_API_KEY is set, else no-op).
   const messaging = new NoopMessagingAdapter();
   const clientMessaging = createMessagingAdapter();
   const appBaseUrl = process.env.APP_BASE_URL ?? 'http://localhost:3000';
-  return [
+  const jobs: CronJob[] = [
     {
       name: 'deadlines-daily',
       pattern: '0 6 * * *',
@@ -62,13 +69,32 @@ export function buildCronJobs(sql: Sql): CronJob[] {
       },
     },
   ];
+
+  // E-mail inbound (entrada por IMAP). Only scheduled when an inbox is configured
+  // and Storage is available (it stores attachments) — off by default, like the
+  // other adapter-gated features.
+  if (storage && imapConfigured()) {
+    const imap = createImapInboundAdapter();
+    jobs.push({
+      name: 'inbound-imap',
+      pattern: '*/10 * * * *',
+      run: async () => {
+        const r = await runImapPoll(sql, storage, imap);
+        console.log(
+          `[cron] inbound-imap: ${r.routed} routed, ${r.skipped} skipped from ${r.scanned} scanned`,
+        );
+      },
+    });
+  }
+
+  return jobs;
 }
 
 // Every 10s (6-field, includes seconds) so crons are observable in dev.
 const ACCELERATED_PATTERN = '*/10 * * * * *';
 
-export function startCrons(accelerated: boolean, sql: Sql): Cron[] {
-  return buildCronJobs(sql).map(
+export function startCrons(accelerated: boolean, sql: Sql, storage?: SupabaseClient): Cron[] {
+  return buildCronJobs(sql, storage).map(
     (job) =>
       new Cron(accelerated ? ACCELERATED_PATTERN : job.pattern, { name: job.name }, () => {
         void job.run();

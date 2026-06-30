@@ -2,11 +2,17 @@ import { type CookieOptions, createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 
 // Routes reachable without a session. Everything else requires login — new
-// routes are protected by default. `/s/` is the future public client page.
+// routes are protected by default. `/s/` is the public client page; `/api/webhooks/`
+// are machine endpoints authenticated by their own signature (e.g. WhatsApp's
+// X-Hub-Signature-256), never by a user session.
 const PUBLIC_PATHS = ['/login', '/', '/design'];
 
 function isPublic(pathname: string): boolean {
-  return PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/s/');
+  return (
+    PUBLIC_PATHS.includes(pathname) ||
+    pathname.startsWith('/s/') ||
+    pathname.startsWith('/api/webhooks/')
+  );
 }
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {

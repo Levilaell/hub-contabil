@@ -160,6 +160,37 @@ export const firmConfigSchema = z
         warnOnReExport: z.boolean().default(true),
       })
       .default({}),
+    // Inbound channels (entrada via WhatsApp/e-mail). Secrets (WhatsApp token, IMAP
+    // password) live in env vars and pick the adapter (golden rule #3); only the
+    // non-secret business switches live here (#8). A document lands in AI triage; a
+    // text question opens a support ticket; an empty message → exception queue.
+    inbound: z
+      .object({
+        // Route a document from a sender we don't recognize to a human instead of
+        // trusting triage alone. Triage still resolves the company from the doc's CNPJ.
+        unknownSenderToException: z.boolean().default(true),
+        // IMAP folder the poller watches.
+        imapFolder: z.string().min(1).default('INBOX'),
+      })
+      .default({}),
+    // Atendimento (support). The AI answers trivial questions with the firm's own
+    // context and escalates the rest; it never decides alone (#5). Off by default —
+    // a firm opts in. The threshold is independent from the triage aiThreshold.
+    support: z
+      .object({
+        autoReply: z.boolean().default(false),
+        aiThreshold: z
+          .number({ message: 'O limite de confiança do atendimento deve ser um número.' })
+          .min(0, { message: 'O limite de confiança deve estar entre 0 e 1.' })
+          .max(1, { message: 'O limite de confiança deve estar entre 0 e 1.' })
+          .default(0.8),
+        // Shown when the AI is off/escalates, so the client knows a human will reply.
+        escalationMessage: z
+          .string()
+          .min(1)
+          .default('Recebemos sua mensagem e um de nossos contadores vai te responder em breve.'),
+      })
+      .default({}),
     taxonomy: z
       .array(z.string().min(1))
       .min(1)

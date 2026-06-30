@@ -15,9 +15,17 @@ export async function updateFirmConfigAction(
 ): Promise<ConfigActionState> {
   const deadlineDefaultDays = Number(formData.get('deadlineDefaultDays'));
   const aiThreshold = Number(formData.get('aiThreshold'));
+  // An unchecked checkbox submits nothing → false.
+  const supportAutoReply = formData.get('supportAutoReply') === 'on';
+  const supportAiThreshold = Number(formData.get('supportAiThreshold'));
 
   const supabase = await createClient();
-  const result = await saveFirmConfig(supabase, { deadlineDefaultDays, aiThreshold });
+  const result = await saveFirmConfig(supabase, {
+    deadlineDefaultDays,
+    aiThreshold,
+    supportAutoReply,
+    supportAiThreshold,
+  });
 
   if (result.ok) {
     revalidatePath('/configuracoes');
