@@ -91,5 +91,7 @@ Allowed dependency direction: `clients/*` → `packages/*`. Never the reverse. `
 ## What NOT to do in v1
 
 - ERP connector (AlterData) — only `ErpAdapter` with a `manual-export` implementation exists.
-- Automatic XML capture (SIEG/PlugStorage), WhatsApp, inbound e-mail monitoring, automatic CNDs, Integra Contador, certificate vault, full client portal, BI.
+- Automatic XML capture (SIEG/PlugStorage), automatic CNDs, Integra Contador, certificate vault, full client portal, BI.
 - Do not create abstractions for those beyond the specified adapter interfaces.
+
+> **Implemented post-base (jun/2026), beyond original v1 scope:** inbound document entry via **WhatsApp Cloud API** + **generic IMAP** (feeding the same AI triage) and **atendimento** (support tickets + AI assistant). These followed every golden rule above (adapters behind interfaces with no-op fallbacks, `firm_id` everywhere, exception queue, audit). See `AULA-CODEBASE.md` §17.

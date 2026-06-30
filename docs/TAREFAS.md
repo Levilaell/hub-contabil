@@ -123,4 +123,6 @@ Provision prod instance (dedicated Supabase Cloud project + Railway + domain), d
 
 ## Backlog (DO NOT execute — reference)
 
-AlterData connector (API/RPA) · SIEG/PlugStorage capture · WhatsApp Cloud API · inbound e-mail monitoring · A1 certificate vault · automatic CNDs (Infosimples/Dootax) · Integra Contador · city systems (Giss/São Vicente) · tax-calculation validation · full client portal · core extraction (week 1 of client #2).
+AlterData connector (API/RPA) · SIEG/PlugStorage capture · A1 certificate vault · automatic CNDs (Infosimples/Dootax) · Integra Contador · city systems (Giss/São Vicente) · tax-calculation validation · full client portal · core extraction (week 1 of client #2).
+
+> **Post-base addition (29/06/2026, outside T1–T25):** inbound document entry via **WhatsApp Cloud API** (Meta webhook) and **generic IMAP** (poll cron), plus **atendimento** (support tickets + AI assistant), were implemented as a vertical feature on top of the base and validated live against the cloud. They are no longer backlog. See `AULA-CODEBASE.md` §17, `HARDENING.md` §2/§2.1, and `ADAPTERS.md` §3/§4.

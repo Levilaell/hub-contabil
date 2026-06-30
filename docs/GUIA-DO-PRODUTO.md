@@ -392,11 +392,12 @@ Esta parte é só para você responder perguntas mais técnicas. Em linguagem si
   (RLS). Mesmo o robô é obrigado a filtrar. Tradução: vazamento entre clientes é barrado
   por desenho, não por confiança.
 - **“Tudo cresce por encaixe, sem reescrever o núcleo” (adapters).** Integrações externas
-  (captura automática de XML, WhatsApp, certidões automáticas, conexão direta com o ERP) são
-  **plugues** que entram quando o cliente precisar — sem mexer no miolo do produto. Hoje os
-  plugues são manuais (upload, e-mail, exportação em pacote); amanhã, os automáticos entram no
-  mesmo encaixe. Isso significa **evoluir sem quebrar** e **personalizar por cliente sem
-  bagunçar o produto-base**.
+  (captura automática de XML, certidões automáticas, conexão direta com o ERP) são
+  **plugues** que entram quando o cliente precisar — sem mexer no miolo do produto. Os plugues
+  manuais (upload, e-mail, exportação em pacote) já **convivem com automáticos**: **WhatsApp
+  (Meta Cloud API)** e **e-mail por IMAP** entram pelo mesmo encaixe e alimentam a triagem, e o
+  **atendimento por IA** roda no mesmo modelo. Isso significa **evoluir sem quebrar** e
+  **personalizar por cliente sem bagunçar o produto-base**.
 - **Personalização sem “gambiarra”.** Regras de negócio que mudam por escritório (prazos,
   vocabulário de status, taxonomia de documentos, limites de confiança da IA) ficam em
   **configuração**, não no código. Cada cliente ajusta o seu sem virar um sistema diferente.
@@ -534,8 +535,10 @@ existente hoje:
   do `GO-LIVE.md` (Supabase prod, web na Vercel, worker no Railway, domínio, segredos).
 - **IA não validada em documentos reais** — precisão e custo por documento ainda não foram
   medidos com notas/guias reais; é o maior risco de produto antes de prometer números.
-- **Integrações externas automáticas** (captura de XML via SIEG/PlugStorage, WhatsApp, CNDs
+- **Integrações externas automáticas** (captura de XML via SIEG/PlugStorage, CNDs
   automáticas, conexão direta com o ERP) — roadmap por encaixe (adapter); ver `ADAPTERS.md`.
+  **Já construídos e validados ao vivo:** entrada por **WhatsApp (Meta Cloud API)** + **IMAP**
+  e **atendimento por IA** (tickets) — ver `AULA-CODEBASE.md` §17.
 
 **Recomendação prática de venda:** o produto-base inteiro (incluindo IA, CFOP e exportação)
 já é demonstrável em DEV — lidere pela promessa central (visibilidade + nunca perca prazo +
@@ -604,7 +607,7 @@ não foi provisionada** — alinhe o cronograma de go-live antes de assinar.
 | Enriquecimento de CNPJ (BrasilAPI/ReceitaWS) | **R$ 0** (APIs públicas gratuitas) | 🟢 |
 | E-mail transacional (Resend) | **Grátis** até ~3 mil/mês; ~US$ 20/mês até 50 mil | 🟢 |
 | IA de triagem (Claude) | **~dezenas a poucas centenas de R$/mês** por escritório | 🟢 (custo a validar em docs reais) |
-| WhatsApp (Meta Cloud API oficial) | **~R$ 0,034/msg** de utilidade; entrada do cliente **grátis** | 🚧 |
+| WhatsApp (Meta Cloud API oficial) | **~R$ 0,034/msg** de utilidade; entrada do cliente **grátis** | 🟢 (implementado; falta credencial WABA do escritório) |
 | Infraestrutura (Supabase + Railway), por escritório | **custo fixo recorrente** — define o piso de preço (ver 10.6) | 🟢 |
 
 **Leitura de negócio:** os custos variáveis (IA, e-mail, WhatsApp) são **pequenos** perto do
@@ -655,7 +658,7 @@ o modelo certo é o **mais barato (Claude Haiku)**. Por documento (1 página com
 > **Argumento de venda:** a IA é barata **de propósito** — o desenho manda as notas (o grosso) por
 > um leitor gratuito e só usa o modelo pago no que sobra, com o modelo mais econômico.
 
-## 10.5 Custo do WhatsApp (Meta Cloud API) 🚧
+## 10.5 Custo do WhatsApp (Meta Cloud API) 🟢 (implementado; validado ao vivo)
 
 **“Centenas de mensagens/dia — todas são cobradas?” → Não:**
 - **Mensagem que o cliente envia (entrada) = grátis.**

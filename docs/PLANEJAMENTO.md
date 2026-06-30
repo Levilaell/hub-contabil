@@ -98,9 +98,10 @@ Confidence threshold in config (default 0.85). Every decision logged in `classif
 
 - `ErpAdapter` (v1: `manual-export` — builds .zip batch + manifest)
 - `XmlSourceAdapter` (v1: `manual-upload`)
-- `MessagingAdapter` (v1: `resend-email` + `copyable-link`; future: whatsapp-cloud-api)
+- `MessagingAdapter` (v1: `resend-email` + `copyable-link`)
 - `CnpjEnrichmentAdapter` (v1: BrasilAPI with throttling, ReceitaWS fallback)
 - `CndProviderAdapter` (v1: `noop` — interface only)
+- **Post-base (§10):** `WhatsappAdapter` (`MetaWhatsappAdapter` Cloud API / no-op), `ImapInboundAdapter` (`ImapFlowInboundAdapter` / no-op), `SupportAssistantAdapter` (`AnthropicSupportAssistant` / heuristic no-op) — all factory-selected by env, no-op when unset
 
 ## 9. Recorded decisions
 
@@ -114,4 +115,6 @@ Confidence threshold in config (default 0.85). Every decision logged in `classif
 
 ## 10. Out of scope (v1)
 
-AlterData connector (API/RPA), SIEG/PlugStorage, WhatsApp Cloud API, inbound e-mail monitoring, automatic CNDs, Integra Contador, city systems, A1 certificate vault, tax-calculation validation, full client portal, BI, consolidated multi-tenant.
+AlterData connector (API/RPA), SIEG/PlugStorage, automatic CNDs, Integra Contador, city systems, A1 certificate vault, tax-calculation validation, full client portal, BI, consolidated multi-tenant.
+
+> **Implemented post-base (29/06/2026), beyond the original v1 scope:** inbound document entry via **WhatsApp Cloud API** (Meta webhook) + **generic IMAP** (poll cron) feeding the existing AI triage, and **atendimento** (support tickets + AI assistant: answers trivial questions with the company's context or escalates). New tables `inbound_messages`, `support_tickets`, `support_messages`; new pgmq queues `inbound`, `support`; new adapters `whatsapp`, `inbound-imap`, `support-assistant`; new screen `/atendimento` and webhook `/api/webhooks/whatsapp` (`Configurações` moved to the topbar gear to keep the sidebar ≤ 7). New config blocks `firms.config.inbound` and `firms.config.support`. Full walkthrough in `AULA-CODEBASE.md` §17.

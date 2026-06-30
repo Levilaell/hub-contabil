@@ -12,7 +12,9 @@ per firm. Written for Demo; **§11 parametrizes it for client #2**.
 ## 0. Prerequisites
 
 - Accounts: **Supabase** (Cloud), **Railway**, the firm's **domain** registrar, **Anthropic**
-  (AI triage), **Resend** (transactional e-mail). Optional: **Langfuse** (AI tracing).
+  (AI triage + atendimento), **Resend** (transactional e-mail). Optional: **Meta** (WhatsApp
+  Cloud API, for inbound documents + atendimento), an **IMAP** mailbox (inbound e-mail),
+  **Langfuse** (AI tracing).
 - Local tools: Node ≥ 20, `pnpm` 10.x (`corepack enable`), **Supabase CLI**, `git`.
 - `pnpm install` succeeds and `pnpm typecheck && pnpm lint && pnpm test` are green.
 
@@ -84,6 +86,17 @@ defaults in `packages/config`.
 - **Resend** (e-mail, T17): create an API key → `RESEND_API_KEY`; verify the firm's sender
   domain and set `RESEND_FROM` (e.g. `Escritório Demo <no-reply@demo.example>`).
   Without these the MessagingAdapter is a no-op (links still work via copy-paste).
+- **WhatsApp Cloud API** (inbound + atendimento, optional): from Meta for Developers,
+  obtain `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`,
+  `WHATSAPP_VERIFY_TOKEN`. Set the **same four in both web and worker** (web verifies the
+  webhook signature; worker downloads media + sends). The temporary token from API Setup
+  lasts 24h — use a permanent **System User** token for prod. Then point the Meta webhook
+  at `https://<app-url>/api/webhooks/whatsapp`, verify token = `WHATSAPP_VERIFY_TOKEN`,
+  and subscribe the `messages` field. Without these, WhatsApp is a no-op.
+- **IMAP** (inbound e-mail, optional): set `IMAP_HOST`, `IMAP_USER`, `IMAP_PASSWORD`
+  (`IMAP_PORT` default 993, `IMAP_SECURE` default true) on the **worker**. Use a dedicated
+  mailbox + an app password (Gmail/M365 block basic IMAP). Without these the poll cron is
+  not scheduled. (Atendimento auto-reply also needs `support.autoReply` on in `firms.config`.)
 - **Langfuse** (optional): not wired yet; leave unset until the observability seam is enabled.
 
 ---
@@ -107,6 +120,9 @@ Two deployables, both pointing at the **prod** Supabase project:
   | --- | --- |
   | `NEXT_PUBLIC_SUPABASE_URL` | prod Project URL |
   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | prod anon key |
+  | `SUPABASE_SERVICE_ROLE_KEY` | prod service_role (**secret**) — used by `/s/` Storage + the WhatsApp webhook |
+  | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` | from §4 (optional; needed to verify the webhook) |
+  | `FIRM_ID` | this firm's UUID (optional — webhook firm resolution; falls back to the single firms row) |
 
 **Service `worker`** (Node consumers + crons — persistent host, e.g. Railway):
 - Build: `pnpm install` *(the worker runs via tsx — no compile step)*
@@ -121,6 +137,8 @@ Two deployables, both pointing at the **prod** Supabase project:
   | `CRON_ACCELERATED` | `false` (production cadence: deadlines 06:00, recurrences day 1, alerts hourly) |
   | `ANTHROPIC_API_KEY` | from §4 (optional) |
   | `RESEND_API_KEY`, `RESEND_FROM` | from §4 (optional) |
+  | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` | from §4 (optional; media download + send) |
+  | `IMAP_HOST`, `IMAP_PORT`, `IMAP_USER`, `IMAP_PASSWORD`, `IMAP_SECURE` | from §4 (optional; inbound e-mail poll) |
   | `ENRICHMENT_THROTTLE_MS` | optional (default 1000) |
 
 > The worker uses the service role and **must** filter every query by `firm_id` (golden
@@ -147,8 +165,10 @@ Log in as a firm user and walk the critical flows (these mirror the E2E specs in
 4. **Triagem (IA)**: "Triagem por IA" upload a sample NF-e XML + a PDF → XML files deterministically; the PDF classifies (or lands in Exceções); use **Corrigir** on one.
 5. **Prazos**: add a monitored doc with a near/past due date → traffic light + alert/task on the daily cron.
 6. **Exportação**: build a batch → it turns *Pronto*; download the `.zip` (renamed files + `manifest.json`/`manifest.csv`); pending-CFOP files are excluded.
+7. **Entrada por WhatsApp** (if configured): from a registered test number, send a document and a text question to the firm's WhatsApp → the document flows through triage into the repository; the question opens a ticket in **Atendimento**.
+8. **Atendimento**: open `/atendimento`, reply to the ticket → the reply is delivered over WhatsApp; with `support.autoReply` on + Anthropic set, trivial questions get an AI answer, the rest escalate.
 
-Confirm the worker logs show `connected to Supabase Cloud`, queues polling, and crons scheduled.
+Confirm the worker logs show `connected to Supabase Cloud`, queues polling (incl. `inbound`/`support`), and crons scheduled.
 
 ---
 
@@ -167,6 +187,8 @@ Confirm the worker logs show `connected to Supabase Cloud`, queues polling, and 
 - **Migrations**: add versioned SQL in `packages/db/supabase/migrations`, then `db:push` to prod during a maintenance window; `db:types` after.
 - **Backups**: PITR + daily; test a restore before go-live.
 - **Force a deadline pass** (outside the 06:00 cron): on the worker host, `node --env-file=.env --import tsx ops-deadline-sweep.mjs` — recomputes statuses, emits alerts, creates overdue renewal tasks. Idempotent.
+- **WhatsApp webhook health**: Meta re-sends a GET verification on config changes; the endpoint echoes the challenge when `WHATSAPP_VERIFY_TOKEN` matches. Inbound failures dead-letter from the `inbound`/`support` queues → **Exceções**. The access token expires (24h for temp tokens) — rotate to a System User token.
+- **IMAP poll**: the `inbound-imap` cron only runs when `IMAP_*` is set; check worker logs for `[cron] inbound-imap`. Messages are marked `\Seen` after routing; `inbound_messages` (unique uid) prevents double-processing.
 
 ---
 

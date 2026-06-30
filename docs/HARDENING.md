@@ -29,6 +29,9 @@ goes through SECURITY DEFINER RPCs or the service role (worker).
 | `mapping_rules` | select, insert, update, delete | — |
 | `export_batches` | **select only** | created via `create_export_batch`; built by worker (service) |
 | `export_batch_documents` | **select only** | written by worker (service) |
+| `inbound_messages` | **select only** | written by service / `record_inbound_message` RPC (webhook) |
+| `support_tickets` | **select only** | opened by worker (service); replies/status via `reply_support_ticket` / `set_support_status` RPCs |
+| `support_messages` | **select only** | written by worker (service) or via `reply_support_ticket` RPC |
 | `storage.objects` (documents bucket) | select, insert, delete **scoped to `firm/{firm_id}/…`** | path prefix enforced by storage RLS |
 
 **Automated proof:** cross-tenant isolation is asserted in `packages/db` integration
@@ -41,13 +44,35 @@ server-side, granted to `authenticated`, revoked from `public`/`anon`):
 `log_audit`, `resolve_exception`, `queue_rules_exception`, `apply_cfop_metadata`,
 `request_enrichment`, `create_export_batch`, `mark_export_downloaded`,
 `mark_notification_read`, `handoff_task`, `cancel_document_request`,
-`rotate_request_token`, and the token-only set (`get_request_by_token`,
+`rotate_request_token`, `record_inbound_message` (granted to **service_role only**,
+revoked from anon/authenticated), `reply_support_ticket`, `set_support_status`,
+and the token-only set (`get_request_by_token`,
 `get_request_owner`, `log_request_view`, `record_request_upload`,
 `record_request_download`, `hash_request_token`).
 
-## 2. Public route `/s/[token]` ✅
+## 2. Public surfaces (no session): `/s/[token]` + `/api/webhooks/whatsapp` ✅
 
-The only unauthenticated surface. Defenses:
+The middleware (`apps/web/src/lib/supabase/middleware.ts`) protects everything by
+default; the only unauthenticated surfaces are the client page `/s/[token]` and the
+machine webhook `/api/webhooks/*`. Each authenticates itself, not by a user session.
+
+### 2.a WhatsApp webhook `/api/webhooks/whatsapp`
+
+- **Signature-authenticated, no session.** Every `POST` is verified against the
+  `X-Hub-Signature-256` header — HMAC-SHA256 of the **raw** body keyed by the app
+  secret, **constant-time** compared (`verifyWhatsappSignature`). Missing/invalid
+  signature → **401**; the no-op adapter (no secret configured) rejects everything.
+- **GET verification** answers Meta's handshake only when `hub.verify_token` matches
+  `WHATSAPP_VERIFY_TOKEN`; mismatch → **403**.
+- **Service role, minimal.** After the signature passes, the route calls the
+  SECURITY DEFINER RPC `record_inbound_message` (granted to **service_role only**)
+  for a durable, idempotent capture + enqueue. It does not read/write domain tables
+  directly. The firm is resolved server-side (`FIRM_ID` env or the single firms row),
+  never from the payload.
+
+### 2.b Client page `/s/[token]`
+
+The unauthenticated document surface. Defenses:
 
 - **Token-keyed, no session.** Only the token's **hash** is stored; every decision
   goes through SECURITY DEFINER RPCs that resolve the token server-side.
@@ -63,6 +88,20 @@ The only unauthenticated surface. Defenses:
   (a pg table or Redis).
 - Invalid/expired tokens render a friendly expiry page (the page resolves the request
   before showing actions).
+
+## 2.1 New secrets — environment-only ✅
+
+The inbound/atendimento feature adds secrets that must live in env vars and **never**
+be committed (the factory falls back to a no-op when they're absent, so the app runs
+without them):
+
+- `WHATSAPP_APP_SECRET` — used to verify `X-Hub-Signature-256` on every webhook POST.
+- `WHATSAPP_ACCESS_TOKEN` — Meta Cloud API bearer (download media + send).
+- `IMAP_PASSWORD` — inbound mailbox credential.
+
+`WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_VERIFY_TOKEN` complete the set (not secret).
+The web webhook also needs `SUPABASE_SERVICE_ROLE_KEY` (already required by `/s/`).
+`.env*` is git-ignored except `*.env.example` — verify before committing.
 
 ## 3. Worker `firm_id` scope sweep ✅
 
@@ -96,6 +135,7 @@ running. This is a step in the T25 deployment runbook (`clients/demo/RUNBOOK.md`
 | RLS enabled + firm-scoped on every table | ✅ |
 | Cross-tenant isolation tests | ✅ (cloud dev) |
 | Public route: validation + rate limit + token-only | ✅ |
+| WhatsApp webhook: HMAC signature auth + service-role RPC | ✅ |
 | Worker firm_id sweep (CI test) | ✅ |
 | Error / not-found / global-error pages | ✅ |
 | Backups / PITR on prod | ⚠️ enable on prod (T25) |

@@ -70,6 +70,9 @@ As _factories_ em `packages/adapters` olham o `env` e escolhem a implementação
 | **Triagem por IA** | `ClassificationAdapter` | `ANTHROPIC_API_KEY` | `HeuristicClassificationAdapter` — manda o que não é determinístico pra fila de exceções |
 | **Extração de NF** | `XmlSourceAdapter` | (v1) — | `manual-upload` — upload na UI (única implementação hoje) |
 | **Ponte com ERP** | `ErpAdapter` | (v1) — | `manual-export` — lote `.zip` + manifesto |
+| **Entrada por WhatsApp** | `WhatsappAdapter` | `WHATSAPP_ACCESS_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` + `WHATSAPP_APP_SECRET` (+ `WHATSAPP_VERIFY_TOKEN`) | `NoopWhatsappAdapter` — entrada de docs só por upload/solicitação |
+| **Entrada por e-mail (IMAP)** | `ImapInboundAdapter` | `IMAP_HOST` + `IMAP_USER` + `IMAP_PASSWORD` | `NoopImapInboundAdapter` — cron de polling não é agendado |
+| **Atendimento por IA** | `SupportAssistantAdapter` | `ANTHROPIC_API_KEY` (+ `support.autoReply` na config) | `HeuristicSupportAssistant` — escala toda dúvida para humano |
 
 Trecho real do mecanismo (mesma forma para todas):
 
@@ -138,7 +141,8 @@ Sequência conceitual (o passo-a-passo com comandos está no RUNBOOK §1–§7; 
 2. APLICAR SCHEMA      →  migrations (idempotentes) → bucket `documents` + RLS criados junto
 3. SEMEAR A FIRMA      →  seed: 1 firma (FIRM_ID novo) + usuários por papel  →  trocar p/ e-mails reais
 4. CONFIG DE NEGÓCIO   →  aplicar clients/<firma>/config.json em firms.config (resto = defaults)
-5. LIGAR INTEGRAÇÕES   →  setar env vars (Knob 2): Resend, Anthropic, e (fase 2) SIEG/PlugStorage…
+5. LIGAR INTEGRAÇÕES   →  setar env vars (Knob 2): Resend, Anthropic, WhatsApp Cloud, IMAP, e (fase 2) SIEG/PlugStorage…
+   (WhatsApp também exige apontar o webhook do Meta → §6)
 6. DOMÍNIO & DNS       →  apontar app.<firma> → web (Vercel); setar APP_BASE_URL no worker
 7. SMOKE TEST          →  rodar os fluxos críticos ponta a ponta (espelham os E2E)
 8. GO-LIVE             →  checklist de segurança (HARDENING.md) + trocar segredos placeholder
@@ -184,11 +188,14 @@ Por escritório existem dois deployáveis, mas **só a web tem domínio público
 | --- | --- | --- | --- |
 | **Resend** | `MessagingAdapter` | fallback Noop; **Resend pronto** | env `RESEND_API_KEY` + `RESEND_FROM` (verificar domínio remetente) |
 | **Extração de NF** | `XmlSourceAdapter` | só `manual-upload` | implementar `sieg`/`plugstorage` — **exige cofre de certificados A1** e contrato; ver ADAPTERS §1 |
-| **Recebimento de documentos** | já é **core** (document requests + upload) | **pronto** | só precisa do `MessagingAdapter` ligado para _entregar_ o link por e-mail; o recebimento em si já funciona |
+| **Recebimento de documentos** | core + canais de entrada | **pronto** | upload/solicitação sempre funciona; **WhatsApp** e **IMAP** ligam por env (Knob 2) e caem na mesma triagem |
+| **Atendimento (dúvidas)** | `SupportAssistantAdapter` + tela `/atendimento` | **pronto** | IA responde o trivial (com `ANTHROPIC_API_KEY` + `support.autoReply`) ou escala para humano |
 
-Note a assimetria: **"recebimento de documentos" não é um adapter** — é funcionalidade do core (solicitação → link `/s/{token}` → upload do cliente → cai no repositório). O que um adapter agrega é o _canal de entrega_ do link (e-mail via Resend hoje; WhatsApp Cloud no futuro). Já **"extração de NF"** é genuinamente uma porta com implementações externas pesadas (SIEG, PlugStorage), todas condicionadas a um cofre A1 que ainda não existe na v1.
+Note a assimetria: o **recebimento** acontece por três caminhos hoje — (1) solicitação → link `/s/{token}` → upload do cliente, (2) **entrada por WhatsApp** (`WhatsappAdapter`), (3) **entrada por IMAP** (`ImapInboundAdapter`). Os dois últimos são adapters de _canal_ que normalizam a mensagem e a jogam na **mesma triagem** do upload. Já **"extração de NF"** é genuinamente uma porta com implementações externas pesadas (SIEG, PlugStorage), todas condicionadas a um cofre A1 que ainda não existe na v1.
 
-Para esforço/custo/pré-requisito de cada implementação futura (SIEG × PlugStorage, WhatsApp Cloud, Infosimples para CND, Integra Contador, Alterdata), o catálogo é o **`docs/ADAPTERS.md`** — não vou duplicar os números aqui.
+> **Webhook do WhatsApp (se ativado).** Com as `WHATSAPP_*` setadas na **web**, o endpoint `/api/webhooks/whatsapp` fica ativo. No painel do Meta (WhatsApp → Configuração): callback URL = `https://app.<firma>/api/webhooks/whatsapp`, verify token = `WHATSAPP_VERIFY_TOKEN`, e **assine o campo `messages`**. O endpoint valida a assinatura `X-Hub-Signature-256` (HMAC com o app secret) — sem isso, nenhuma mensagem entra. A URL precisa ser pública (deploy ou túnel).
+
+Para esforço/custo/pré-requisito de cada implementação futura (SIEG × PlugStorage, Infosimples para CND, Integra Contador, Alterdata), o catálogo é o **`docs/ADAPTERS.md`** — não vou duplicar os números aqui. WhatsApp Cloud e IMAP já estão implementados (ADAPTERS §3/§4).
 
 ---
 

@@ -2,6 +2,8 @@
 
 **Versão 1.0 · Junho/2026.** Catálogo oficial de adapters do produto. Cada adapter implementa uma interface do `packages/adapters`. Esforços estimados em dias úteis de desenvolvimento com Claude Code (inclui testes e tela de config quando aplicável). Preços marcados **[cotar]** dependem de proposta comercial; valores ~ são estimativas a substituir.
 
+> **Atualização 29/06/2026 — saíram do roadmap, agora implementados e validados ao vivo:** `whatsapp-cloud` (§3, webhook de **entrada** + download de mídia + envio), `imap-generic` (§4, cron de polling) e o **atendimento por IA** (`SupportAssistantAdapter` — tickets; a IA responde o trivial com contexto da empresa ou escala para humano). Entrada e atendimento alimentam a mesma triagem. Detalhes em `AULA-CODEBASE.md` §17. As estimativas de esforço abaixo eram a previsão; o trabalho já foi pago.
+
 ---
 
 ## 1. `XmlSourceAdapter` — captura de documentos fiscais
