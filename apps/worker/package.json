@@ -18,11 +18,11 @@
     "@supabase/supabase-js": "^2.108.1",
     "croner": "^8.1.0",
     "postgres": "^3.4.7",
+    "tsx": "^4.20.3",
     "zod": "^3.25.0"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "vitest": "^3.2.3"
   }
