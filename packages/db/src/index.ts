@@ -1,7 +1,15 @@
 // Public surface of @hub/db: data-access use cases and generated types. The
 // migrations, seed and integration tests are not exported.
 
-export { saveFirmConfig, type FirmConfigEdits, type SaveFirmConfigResult } from './firm-config';
+export {
+  saveFirmConfig,
+  saveAdvancedConfig,
+  type FirmConfigEdits,
+  type AdvancedConfigEdits,
+  type SaveFirmConfigResult,
+} from './firm-config';
+export { listFirmUsers, isUserRole, type FirmUser, type UserRole } from './users';
+export { listAuditEvents, type AuditEvent, type AuditFilter } from './audit-log';
 export {
   listCompanies,
   getCompany,
@@ -83,10 +91,12 @@ export {
 export {
   firmToday,
   listMonitoredDocuments,
+  listFirmDeadlines,
   createMonitoredDocument,
   updateMonitoredDocument,
   deleteMonitoredDocument,
   type MonitoredDoc,
+  type FirmDeadline,
   type MonitoredInput,
   type MonitoredMutationResult,
 } from './monitored-documents';

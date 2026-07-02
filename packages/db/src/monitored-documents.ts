@@ -81,6 +81,43 @@ export async function listMonitoredDocuments(
   return (data as MonitoredRow[]).map((r) => mapMonitored(r, today));
 }
 
+// Firm-wide deadline view (all companies) for the global Prazos screen. Joins the
+// company for its display name; status recomputed on read, same as listMonitoredDocuments.
+export interface FirmDeadline {
+  id: string;
+  companyId: string;
+  companyName: string;
+  docKind: string;
+  dueDate: string | null;
+  status: MonitoredStatus;
+}
+
+interface DeadlineRow extends MonitoredRow {
+  companies: { legal_name: string; trade_name: string | null } | { legal_name: string; trade_name: string | null }[] | null;
+}
+
+export async function listFirmDeadlines(supabase: SupabaseClient): Promise<FirmDeadline[]> {
+  const { data, error } = await supabase
+    .from('monitored_documents')
+    .select(`${SELECT}, companies(legal_name, trade_name)`)
+    .order('due_date', { ascending: true, nullsFirst: false });
+  if (error || !data) return [];
+  const today = firmToday();
+  return (data as DeadlineRow[]).map((row) => {
+    const mapped = mapMonitored(row, today);
+    const c = Array.isArray(row.companies) ? row.companies[0] : row.companies;
+    const companyName = (c?.trade_name || c?.legal_name) ?? '—';
+    return {
+      id: mapped.id,
+      companyId: mapped.companyId,
+      companyName,
+      docKind: mapped.docKind,
+      dueDate: mapped.dueDate,
+      status: mapped.status,
+    };
+  });
+}
+
 function validate(
   input: MonitoredInput,
   config: ReturnType<typeof parseFirmConfig>,

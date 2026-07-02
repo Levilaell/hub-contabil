@@ -5,6 +5,11 @@ import { defineConfig } from '@playwright/test';
 // auth.setup.ts (saved storageState) and reused by the authenticated specs. Some
 // flows depend on the worker (triage/export/deadline crons) — run `pnpm --filter
 // @hub/worker dev` alongside, or those specs will time out waiting for async results.
+//
+// WEB_ORIGIN overrides the target (default :3000) — handy when another app already
+// holds port 3000 and Next started this app on :3001.
+const WEB_ORIGIN = process.env.WEB_ORIGIN ?? 'http://localhost:3000';
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
@@ -13,7 +18,7 @@ export default defineConfig({
   workers: 1,
   reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: WEB_ORIGIN,
     headless: true,
     trace: 'on-first-retry',
   },
@@ -30,7 +35,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'pnpm dev',
-    url: 'http://localhost:3000/login',
+    url: `${WEB_ORIGIN}/login`,
     reuseExistingServer: true,
     timeout: 180_000,
     stdout: 'pipe',

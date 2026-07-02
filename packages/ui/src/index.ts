@@ -17,4 +17,9 @@ export { Skeleton, SkeletonList } from './components/skeleton';
 export { DataList, DataListRow, type DataListRowProps } from './components/data-list';
 export { DetailDrawer, type DetailDrawerProps } from './components/detail-drawer';
 export { PageHeader, type PageHeaderProps } from './components/page-header';
-export { AppShell, type AppShellProps, type NavItem } from './components/app-shell';
+export {
+  AppShell,
+  type AppShellProps,
+  type NavItem,
+  type NavSection,
+} from './components/app-shell';

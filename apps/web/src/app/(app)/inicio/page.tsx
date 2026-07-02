@@ -84,6 +84,7 @@ export default async function InicioPage() {
       value: attention,
       icon: CalendarClock,
       tone: attention > 0 ? 'warning' : 'muted',
+      href: '/prazos',
       hint: attention > 0 ? copy.hints.deadlines : copy.hints.allClear,
       hintTone: attention > 0 ? 'warning' : 'success',
     },

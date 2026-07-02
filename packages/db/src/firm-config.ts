@@ -68,3 +68,66 @@ export async function saveFirmConfig(
 
   return { ok: true };
 }
+
+// Advanced vocabularies: departments, document taxonomy, and the type→department
+// routing map. Same chain (validate → persist → audit). The routing map is cleaned to
+// only reference known types/departments so it can never drift out of the vocabularies.
+export interface AdvancedConfigEdits {
+  departments: { key: string; label: string }[];
+  taxonomy: string[];
+  routingMap: Record<string, string>;
+}
+
+export async function saveAdvancedConfig(
+  supabase: SupabaseClient,
+  edits: AdvancedConfigEdits,
+): Promise<SaveFirmConfigResult> {
+  const { data: firm, error: readError } = await supabase
+    .from('firms')
+    .select('id, config')
+    .limit(1)
+    .single();
+  if (readError || !firm) {
+    return { ok: false, message: 'Não foi possível carregar a configuração.' };
+  }
+
+  const current = parseFirmConfig(firm.config);
+  const departments = edits.departments
+    .map((d) => ({ key: d.key.trim(), label: d.label.trim() }))
+    .filter((d) => d.key && d.label);
+  const taxonomy = [...new Set(edits.taxonomy.map((t) => t.trim()).filter(Boolean))];
+
+  const deptKeys = new Set(departments.map((d) => d.key));
+  const routingMap: Record<string, string> = {};
+  for (const [type, dept] of Object.entries(edits.routingMap)) {
+    if (taxonomy.includes(type) && deptKeys.has(dept)) routingMap[type] = dept;
+  }
+
+  const candidate = { ...current, departments, taxonomy, routingMap };
+  const validation = validateFirmConfig(candidate);
+  if (!validation.success) {
+    return { ok: false, message: validation.message };
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from('firms')
+    .update({ config: validation.data })
+    .eq('id', firm.id)
+    .select('id');
+  if (updateError || !updated || updated.length === 0) {
+    return { ok: false, message: 'Não foi possível salvar — verifique suas permissões.' };
+  }
+
+  await supabase.rpc('log_audit', {
+    p_action: 'firm.config.updated',
+    p_entity: 'firm',
+    p_entity_id: firm.id,
+    p_context: {
+      departments: departments.length,
+      taxonomy: taxonomy.length,
+      routes: Object.keys(routingMap).length,
+    },
+  });
+
+  return { ok: true };
+}

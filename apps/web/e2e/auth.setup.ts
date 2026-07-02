@@ -8,7 +8,8 @@ setup('authenticate as owner', async ({ page }) => {
   await page.goto('/login');
   await page.locator('input#email').fill('owner@demo.test');
   await page.locator('input#password').fill(process.env.SEED_PASSWORD ?? 'hub-dev-2026!');
-  await page.getByRole('button').click();
+  // Target the submit button specifically — Next's dev overlay adds its own button.
+  await page.locator('button[type="submit"]').click();
   await page.waitForURL('**/inicio', { timeout: 30_000 });
   await page.context().storageState({ path: AUTH_FILE });
 });

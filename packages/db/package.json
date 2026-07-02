@@ -10,6 +10,7 @@
     "db:new": "supabase migration new",
     "db:types": "supabase gen types typescript --linked --schema public > src/database.types.ts",
     "seed": "node --env-file=.env --import tsx src/seed.ts",
+    "seed:demo": "node --env-file=.env --import tsx src/seed-demo.ts",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
