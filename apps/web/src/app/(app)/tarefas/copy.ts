@@ -6,6 +6,15 @@ export const copy = {
   recurring: 'Recorrentes',
   viewMine: 'Minhas tarefas de hoje',
   viewAll: 'Todas as visíveis',
+  period: {
+    prev: 'Mês anterior',
+    next: 'Próximo mês',
+    all: 'Todos os meses',
+    backToCurrent: 'Voltar ao mês atual',
+  },
+  departmentFilter: {
+    all: 'Todos os departamentos',
+  },
   columns: {
     pending: 'Pendentes',
     in_progress: 'Em andamento',
