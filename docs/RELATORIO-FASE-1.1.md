@@ -261,7 +261,7 @@ tela e (2) definir estado a estado o ciclo por departamento (inclusive "Protocol
 
 | # | O quê | Quem | Status |
 |---|-------|------|--------|
-| 1 | Token permanente do WhatsApp (passo a passo no §4) + atualizar Railway e Vercel | **Levi** | 🔴 bloqueia o WhatsApp |
+| 1 | ~~Token do WhatsApp~~ **Atualização 06/07:** o Levi enviou um token do painel (temporário, 1h30 de validade); foi **trocado por um token de longa duração, válido até 04/09/2026**, instalado no Railway + Vercel e testado de ponta a ponta (documento preso de 02/07 reprocessado com sucesso). O WhatsApp está funcional. Fica só a troca definitiva: gerar o token de **System User** (não expira — passo a passo no §4) antes de 04/09 | Levi | 🟡 funcional até 04/09 |
 | 2 | `CRON_ACCELERATED=true` está ligado em produção (worker roda TODAS as rotinas a cada 10s — inofensivo, mas gasta recurso e polui log). Recomendo desligar quando o período de teste do Paulo acabar | Levi | 🟡 recomendação |
 | 3 | Chave do Resend segue pendente → e-mails de solicitação/lembrete ainda em no-op (não são enviados; o link copiado funciona) | Levi | 🟡 já era conhecido |
 | 4 | Rotas padrão: boleto/comprovante/planilha → **Contábil**. Confirmar destino | Paulo | 🟢 configurável |
@@ -280,9 +280,11 @@ tela e (2) definir estado a estado o ciclo por departamento (inclusive "Protocol
 - As 11 empresas com enriquecimento travado foram reprocessadas em produção com sucesso
   (21 empresas enriquecidas no total, 19 sócios importados do QSA automaticamente) e as
   11 exceções antigas de enriquecimento foram fechadas.
-- Sobra 1 documento de WhatsApp preso de 02/07 (download falhou com o token vencido):
-  depois de atualizar o token, é só o Paulo reenviar o arquivo — ou me pedir para
-  reprocessar a mensagem presa.
+- ~~Sobra 1 documento de WhatsApp preso de 02/07~~ **Reprocessado em 06/07** com o token
+  novo: era uma declaração PGDAS-D que **já existia no repositório** (mesmo arquivo,
+  enviado por outro caminho). O reprocesso expôs um caso-limite — a triagem quebrava ao
+  arquivar uma cópia idêntica de documento já arquivado — corrigido: agora a cópia
+  redundante é descartada como duplicata (com auditoria), mantendo o documento original.
 
 ## Como testar (roteiro rápido para o Paulo)
 
