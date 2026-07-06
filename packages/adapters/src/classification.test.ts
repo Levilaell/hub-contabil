@@ -13,7 +13,7 @@ describe('HeuristicClassificationAdapter', () => {
       fileName: 'x.pdf',
       model: 'claude-opus-4-8',
     });
-    expect(result).toEqual({ docType: 'other', confidence: 0, cnpj: null });
+    expect(result).toEqual({ docType: 'other', confidence: 0, cnpj: null, department: null });
   });
 });
 

@@ -20,12 +20,17 @@ export interface ClassificationInput {
   text?: string;
   /** Recent human corrections (few-shot): what the firm decided for similar files. */
   examples?: { fileName: string | null; docType: string }[];
+  /** Firm department keys — when set, the model also suggests the department the
+   *  document's CONTENT belongs to (types without a fixed route, Fase 1.1). */
+  departments?: readonly string[];
 }
 
 export interface ClassificationResult {
   docType: string;
   confidence: number; // clamped 0..1
   cnpj: string | null; // 14-digit, or null
+  /** Content-based department suggestion (validated against input.departments). */
+  department: string | null;
 }
 
 export interface ClassificationAdapter {
@@ -33,7 +38,7 @@ export interface ClassificationAdapter {
 }
 
 const SYSTEM =
-  'Você classifica documentos contábeis/fiscais brasileiros. Escolha o ÚNICO tipo que melhor descreve o documento, a partir da taxonomia fornecida. Extraia o CNPJ principal (14 dígitos, só números) se houver, senão null. Dê uma confiança de 0 a 1 (quão certo você está). Responda apenas pela ferramenta.';
+  'Você classifica documentos contábeis/fiscais brasileiros. Escolha o ÚNICO tipo que melhor descreve o documento, a partir da taxonomia fornecida. Extraia o CNPJ principal (14 dígitos, só números) se houver, senão null. Quando uma lista de departamentos for fornecida, indique também a qual departamento o CONTEÚDO do documento pertence (ex.: um comprovante de pagamento de folha é do departamento pessoal; um boleto de imposto é do fiscal), senão null. Dê uma confiança de 0 a 1 (quão certo você está). Responda apenas pela ferramenta.';
 
 function clampConfidence(value: unknown): number {
   const n = typeof value === 'number' ? value : Number(value);
@@ -52,7 +57,7 @@ function cleanCnpj(value: unknown): string | null {
 export class HeuristicClassificationAdapter implements ClassificationAdapter {
   classify(input: ClassificationInput): Promise<ClassificationResult> {
     const fallback = input.taxonomy.includes('other') ? 'other' : (input.taxonomy[0] ?? 'other');
-    return Promise.resolve({ docType: fallback, confidence: 0, cnpj: null });
+    return Promise.resolve({ docType: fallback, confidence: 0, cnpj: null, department: null });
   }
 }
 
@@ -105,9 +110,13 @@ export class AnthropicClassificationAdapter implements ClassificationAdapter {
         text: `Classificações anteriores confirmadas por humanos neste escritório (referência):\n${lines}`,
       });
     }
+    const departments = input.departments ?? [];
     content.push({
       type: 'text',
-      text: `Arquivo: ${input.fileName}\nTaxonomia: ${input.taxonomy.join(', ')}\nClassifique este documento.`,
+      text:
+        `Arquivo: ${input.fileName}\nTaxonomia: ${input.taxonomy.join(', ')}` +
+        (departments.length > 0 ? `\nDepartamentos: ${departments.join(', ')}` : '') +
+        '\nClassifique este documento.',
     });
 
     const response = await this.client.messages.create({
@@ -125,8 +134,13 @@ export class AnthropicClassificationAdapter implements ClassificationAdapter {
               docType: { type: 'string', enum: [...input.taxonomy] },
               confidence: { type: 'number', description: 'Confiança de 0 a 1.' },
               cnpj: { type: ['string', 'null'], description: 'CNPJ de 14 dígitos ou null.' },
+              department: {
+                type: ['string', 'null'],
+                description:
+                  'Departamento responsável pelo CONTEÚDO do documento (um dos fornecidos) ou null.',
+              },
             },
-            required: ['docType', 'confidence', 'cnpj'],
+            required: ['docType', 'confidence', 'cnpj', 'department'],
             additionalProperties: false,
           },
         },
@@ -136,7 +150,7 @@ export class AnthropicClassificationAdapter implements ClassificationAdapter {
 
     // A safety refusal (HTTP 200, stop_reason refusal) → defer to a human.
     if (response.stop_reason === 'refusal') {
-      return { docType: fallbackType, confidence: 0, cnpj: null };
+      return { docType: fallbackType, confidence: 0, cnpj: null, department: null };
     }
 
     const toolUse = response.content.find((b) => b.type === 'tool_use');
@@ -149,6 +163,10 @@ export class AnthropicClassificationAdapter implements ClassificationAdapter {
       docType,
       confidence: clampConfidence(raw.confidence),
       cnpj: cleanCnpj(raw.cnpj),
+      department:
+        typeof raw.department === 'string' && departments.includes(raw.department)
+          ? raw.department
+          : null,
     };
   }
 }

@@ -74,9 +74,11 @@ export function createTriageHandler(
     const fewShot = examples.map((e) => ({ fileName: e.file_name, docType: e.doc_type }));
 
     // --- extract_text + classify ---
+    const departmentKeys = config.departments.map((d) => d.key);
     let docType = 'other';
     let confidence = 0;
     let cnpj: string | null = null;
+    let aiDepartment: string | null = null;
 
     if (doc.file_name.toLowerCase().endsWith('.xml')) {
       // NF-e: deterministic parser, NO LLM.
@@ -97,10 +99,12 @@ export function createTriageHandler(
           model: config.aiModel,
           text: xmlText,
           examples: fewShot,
+          departments: departmentKeys,
         });
         docType = result.docType;
         confidence = result.confidence;
         cnpj = result.cnpj;
+        aiDepartment = result.department;
       }
     } else {
       const mediaType = mediaTypeFor(doc.file_name);
@@ -114,10 +118,12 @@ export function createTriageHandler(
           model: config.aiModel,
           media: { mediaType, base64 },
           examples: fewShot,
+          departments: departmentKeys,
         });
         docType = result.docType;
         confidence = result.confidence;
         cnpj = result.cnpj;
+        aiDepartment = result.department;
       }
       // unsupported type for auto-triage stays other/0 → human
     }
@@ -136,7 +142,11 @@ export function createTriageHandler(
     }
 
     // --- route + decide ---
-    const department = routeDepartment(config.routingMap, docType);
+    // Deterministic firm rule first (routingMap); for content-dependent types
+    // (boleto, comprovante, planilha — partner decision, Fase 1.1) fall back to
+    // the department the classifier read from the document itself. The global
+    // confidence threshold still gates the whole decision (golden rule #5).
+    const department = routeDepartment(config.routingMap, docType) ?? aiDepartment;
     const outcome = decideTriage({
       confidence,
       threshold: config.aiThreshold,

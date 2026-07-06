@@ -74,18 +74,14 @@ export const DEFAULT_ROUTING_MAP: Record<string, string> = {
   payslip: 'dp',
   bank_statement: 'contabil',
   card_statement: 'contabil',
-  // Fase 1.1 §3 — these three used to be unmapped, so even a HIGH-confidence
-  // classification fell to the exception queue (no_route). Contábil is the
-  // default owner (spec example: "comprovante → Contábil"); adjust per firm.
-  boleto: 'contabil',
-  payment_receipt: 'contabil',
-  spreadsheet: 'contabil',
   certificate: 'compliance',
   license: 'compliance',
   articles_of_incorporation: 'compliance',
   power_of_attorney: 'compliance',
-  // 'other' stays unmapped on purpose: an unrecognized document should always
-  // pass through a human.
+  // boleto / payment_receipt / spreadsheet / other are unmapped ON PURPOSE
+  // (partner decision, Fase 1.1): their department depends on the document's
+  // CONTENT, so the classifier suggests one and the routing map is only the
+  // deterministic override for firms that want a fixed rule.
 };
 
 // Allowed statuses per domain — mirrors the state machines (PLANEJAMENTO §5). Minimal; no UI in v1.
@@ -207,6 +203,27 @@ export const firmConfigSchema = z
             }),
           )
           .default([]),
+        // Reception menu (URA): a new conversation is greeted with a numbered
+        // department menu; the pick tags the ticket. Deterministic automation,
+        // not AI — the assistant only runs after (or instead of) the menu.
+        reception: z
+          .object({
+            enabled: z.boolean().default(false),
+            greeting: z
+              .string()
+              .min(1)
+              .default('Por favor, escolha uma das opções abaixo para começar:'),
+            // label = what the client sees; department = firm-config department key.
+            options: z
+              .array(
+                z.object({
+                  label: z.string().min(1, { message: 'Informe o rótulo da opção.' }),
+                  department: z.string().min(1, { message: 'Informe o departamento.' }),
+                }),
+              )
+              .default([]),
+          })
+          .default({}),
       })
       .default({}),
     taxonomy: z
