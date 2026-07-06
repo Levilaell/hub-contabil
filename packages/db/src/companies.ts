@@ -23,7 +23,27 @@ export interface CompanyEnrichmentView {
   addressLine: string | null;
 }
 
-export interface Company {
+/** Optional cadastral detail fields (Fase 1.1 §1.1) — none required to save. */
+export interface CompanyDetails {
+  legalNature: string | null; // natureza jurídica
+  companySize: string | null; // enquadramento/porte
+  stateRegistration: string | null; // inscrição estadual
+  municipalRegistration: string | null; // inscrição municipal
+  nire: string | null;
+  nireIssuedOn: string | null; // YYYY-MM-DD
+  activitiesStartedOn: string | null; // data de início das atividades
+  serviceStartedOn: string | null; // início da prestação de serviço
+  addressStreet: string | null;
+  addressNumber: string | null;
+  addressComplement: string | null;
+  addressDistrict: string | null;
+  addressZip: string | null;
+  shareCapital: number | null; // capital social
+  cnaeCode: string | null;
+  cnaeDescription: string | null;
+}
+
+export interface Company extends CompanyDetails {
   id: string;
   cnpj: string;
   legalName: string;
@@ -36,7 +56,7 @@ export interface Company {
   createdAt: string;
 }
 
-export interface CompanyInput {
+export interface CompanyInput extends Partial<CompanyDetails> {
   cnpj: string;
   legalName: string;
   tradeName?: string | null;
@@ -61,6 +81,23 @@ interface CompanyRow {
   status: string;
   created_at: string;
   enrichment_data?: unknown; // only selected by getCompany
+  // detail columns — only selected by getCompany
+  legal_nature?: string | null;
+  company_size?: string | null;
+  state_registration?: string | null;
+  municipal_registration?: string | null;
+  nire?: string | null;
+  nire_issued_on?: string | null;
+  activities_started_on?: string | null;
+  service_started_on?: string | null;
+  address_street?: string | null;
+  address_number?: string | null;
+  address_complement?: string | null;
+  address_district?: string | null;
+  address_zip?: string | null;
+  share_capital?: number | string | null;
+  cnae_code?: string | null;
+  cnae_description?: string | null;
 }
 
 function fail(message: string): { ok: false; message: string } {
@@ -131,6 +168,13 @@ function normalizeState(value: unknown): { ok: true; value: string | null } | { 
   return /^[A-Z]{2}$/.test(upper) ? { ok: true, value: upper } : { ok: false };
 }
 
+function numeric(value: number | string | null | undefined): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function mapCompany(row: CompanyRow): Company {
   return {
     id: row.id,
@@ -143,7 +187,30 @@ function mapCompany(row: CompanyRow): Company {
     status: row.status === 'archived' ? 'archived' : 'active',
     enrichment: parseEnrichment(row.enrichment_data),
     createdAt: row.created_at,
+    legalNature: row.legal_nature ?? null,
+    companySize: row.company_size ?? null,
+    stateRegistration: row.state_registration ?? null,
+    municipalRegistration: row.municipal_registration ?? null,
+    nire: row.nire ?? null,
+    nireIssuedOn: row.nire_issued_on ?? null,
+    activitiesStartedOn: row.activities_started_on ?? null,
+    serviceStartedOn: row.service_started_on ?? null,
+    addressStreet: row.address_street ?? null,
+    addressNumber: row.address_number ?? null,
+    addressComplement: row.address_complement ?? null,
+    addressDistrict: row.address_district ?? null,
+    addressZip: row.address_zip ?? null,
+    shareCapital: numeric(row.share_capital),
+    cnaeCode: row.cnae_code ?? null,
+    cnaeDescription: row.cnae_description ?? null,
   };
+}
+
+// Date input (YYYY-MM-DD from <input type=date>): null when blank, error when malformed.
+function normalizeDate(value: unknown): { ok: true; value: string | null } | { ok: false } {
+  const text = cleanText(value);
+  if (!text) return { ok: true, value: null };
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? { ok: true, value: text } : { ok: false };
 }
 
 // Shared field validation for create/edit. Returns the persistable (snake_case)
@@ -151,7 +218,7 @@ function mapCompany(row: CompanyRow): Company {
 function validateEditable(
   edits: CompanyEdits,
   config: ReturnType<typeof parseFirmConfig>,
-): { ok: true; columns: Record<string, string | null> } | { ok: false; message: string } {
+): { ok: true; columns: Record<string, string | number | null> } | { ok: false; message: string } {
   const legalName = cleanText(edits.legalName);
   if (!legalName) return fail('Informe a razão social.');
 
@@ -163,6 +230,18 @@ function validateEditable(
   const state = normalizeState(edits.state);
   if (!state.ok) return fail('UF deve ter 2 letras (ex.: SP).');
 
+  const nireIssuedOn = normalizeDate(edits.nireIssuedOn);
+  const activitiesStartedOn = normalizeDate(edits.activitiesStartedOn);
+  const serviceStartedOn = normalizeDate(edits.serviceStartedOn);
+  if (!nireIssuedOn.ok || !activitiesStartedOn.ok || !serviceStartedOn.ok) {
+    return fail('Data inválida — use o formato AAAA-MM-DD.');
+  }
+
+  const shareCapital = edits.shareCapital ?? null;
+  if (shareCapital !== null && (!Number.isFinite(shareCapital) || shareCapital < 0)) {
+    return fail('Capital social inválido.');
+  }
+
   return {
     ok: true,
     columns: {
@@ -171,6 +250,22 @@ function validateEditable(
       tax_regime: taxRegime,
       city: cleanText(edits.city),
       state: state.value,
+      legal_nature: cleanText(edits.legalNature),
+      company_size: cleanText(edits.companySize),
+      state_registration: cleanText(edits.stateRegistration),
+      municipal_registration: cleanText(edits.municipalRegistration),
+      nire: cleanText(edits.nire),
+      nire_issued_on: nireIssuedOn.value,
+      activities_started_on: activitiesStartedOn.value,
+      service_started_on: serviceStartedOn.value,
+      address_street: cleanText(edits.addressStreet),
+      address_number: cleanText(edits.addressNumber),
+      address_complement: cleanText(edits.addressComplement),
+      address_district: cleanText(edits.addressDistrict),
+      address_zip: cleanText(edits.addressZip),
+      share_capital: shareCapital,
+      cnae_code: cleanText(edits.cnaeCode),
+      cnae_description: cleanText(edits.cnaeDescription),
     },
   };
 }
@@ -202,7 +297,7 @@ export async function getCompany(supabase: SupabaseClient, id: string): Promise<
   const { data, error } = await supabase
     .from('companies')
     .select(
-      'id, cnpj, legal_name, trade_name, tax_regime, city, state, status, created_at, enrichment_data',
+      'id, cnpj, legal_name, trade_name, tax_regime, city, state, status, created_at, enrichment_data, legal_nature, company_size, state_registration, municipal_registration, nire, nire_issued_on, activities_started_on, service_started_on, address_street, address_number, address_complement, address_district, address_zip, share_capital, cnae_code, cnae_description',
     )
     .eq('id', id)
     .maybeSingle();

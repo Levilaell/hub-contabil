@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
       audit_events: {
@@ -161,42 +166,90 @@ export type Database = {
       }
       companies: {
         Row: {
+          activities_started_on: string | null
+          address_complement: string | null
+          address_district: string | null
+          address_number: string | null
+          address_street: string | null
+          address_zip: string | null
           city: string | null
+          cnae_code: string | null
+          cnae_description: string | null
           cnpj: string
+          company_size: string | null
           created_at: string
           enrichment_data: Json
           firm_id: string
           id: string
           legal_name: string
+          legal_nature: string | null
+          municipal_registration: string | null
+          nire: string | null
+          nire_issued_on: string | null
+          service_started_on: string | null
+          share_capital: number | null
           state: string | null
+          state_registration: string | null
           status: string
           tax_regime: string | null
           trade_name: string | null
           updated_at: string
         }
         Insert: {
+          activities_started_on?: string | null
+          address_complement?: string | null
+          address_district?: string | null
+          address_number?: string | null
+          address_street?: string | null
+          address_zip?: string | null
           city?: string | null
+          cnae_code?: string | null
+          cnae_description?: string | null
           cnpj: string
+          company_size?: string | null
           created_at?: string
           enrichment_data?: Json
           firm_id: string
           id?: string
           legal_name: string
+          legal_nature?: string | null
+          municipal_registration?: string | null
+          nire?: string | null
+          nire_issued_on?: string | null
+          service_started_on?: string | null
+          share_capital?: number | null
           state?: string | null
+          state_registration?: string | null
           status?: string
           tax_regime?: string | null
           trade_name?: string | null
           updated_at?: string
         }
         Update: {
+          activities_started_on?: string | null
+          address_complement?: string | null
+          address_district?: string | null
+          address_number?: string | null
+          address_street?: string | null
+          address_zip?: string | null
           city?: string | null
+          cnae_code?: string | null
+          cnae_description?: string | null
           cnpj?: string
+          company_size?: string | null
           created_at?: string
           enrichment_data?: Json
           firm_id?: string
           id?: string
           legal_name?: string
+          legal_nature?: string | null
+          municipal_registration?: string | null
+          nire?: string | null
+          nire_issued_on?: string | null
+          service_started_on?: string | null
+          share_capital?: number | null
           state?: string | null
+          state_registration?: string | null
           status?: string
           tax_regime?: string | null
           trade_name?: string | null
@@ -212,10 +265,65 @@ export type Database = {
           },
         ]
       }
+      company_partners: {
+        Row: {
+          company_id: string
+          cpf_cnpj: string | null
+          created_at: string
+          firm_id: string
+          id: string
+          joined_on: string | null
+          name: string
+          ownership_percent: number | null
+          qualification: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          cpf_cnpj?: string | null
+          created_at?: string
+          firm_id: string
+          id?: string
+          joined_on?: string | null
+          name: string
+          ownership_percent?: number | null
+          qualification?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          cpf_cnpj?: string | null
+          created_at?: string
+          firm_id?: string
+          id?: string
+          joined_on?: string | null
+          name?: string
+          ownership_percent?: number | null
+          qualification?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_partners_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_partners_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           company_id: string
           created_at: string
+          departments: string[]
           email: string | null
           firm_id: string
           id: string
@@ -228,6 +336,7 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
+          departments?: string[]
           email?: string | null
           firm_id: string
           id?: string
@@ -240,6 +349,7 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
+          departments?: string[]
           email?: string | null
           firm_id?: string
           id?: string
@@ -1207,6 +1317,16 @@ export type Database = {
         Args: { p_document_id: string; p_entries: Json }
         Returns: undefined
       }
+      apply_triage_suggestion: {
+        Args: {
+          p_company_id?: string
+          p_department?: string
+          p_doc_type: string
+          p_exception_id: string
+          p_note?: string
+        }
+        Returns: undefined
+      }
       auth_user_departments: { Args: never; Returns: string[] }
       cancel_document_request: { Args: { p_id: string }; Returns: undefined }
       correct_classification: {
@@ -1216,6 +1336,10 @@ export type Database = {
       create_export_batch: { Args: { p_filters: Json }; Returns: string }
       current_firm_id: { Args: never; Returns: string }
       enqueue_triage: { Args: { p_document_id: string }; Returns: undefined }
+      generate_recurring_tasks_for_company: {
+        Args: { p_company_id: string }
+        Returns: number
+      }
       get_request_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -1439,4 +1563,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

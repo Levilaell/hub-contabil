@@ -37,6 +37,22 @@ export default async function EditarEmpresaPage({ params }: { params: Promise<{ 
             taxRegime: company.taxRegime,
             city: company.city,
             state: company.state,
+            legalNature: company.legalNature,
+            companySize: company.companySize,
+            stateRegistration: company.stateRegistration,
+            municipalRegistration: company.municipalRegistration,
+            nire: company.nire,
+            nireIssuedOn: company.nireIssuedOn,
+            activitiesStartedOn: company.activitiesStartedOn,
+            serviceStartedOn: company.serviceStartedOn,
+            addressStreet: company.addressStreet,
+            addressNumber: company.addressNumber,
+            addressComplement: company.addressComplement,
+            addressDistrict: company.addressDistrict,
+            addressZip: company.addressZip,
+            shareCapital: company.shareCapital,
+            cnaeCode: company.cnaeCode,
+            cnaeDescription: company.cnaeDescription,
           }}
           cancelHref={`/empresas/${id}`}
         />

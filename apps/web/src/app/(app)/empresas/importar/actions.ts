@@ -6,6 +6,7 @@ import {
   bulkCreateCompanies,
   listExistingCnpjs,
   requestEnrichment,
+  generateRecurringTasksForCompany,
   type BulkCreateInput,
 } from '@hub/db';
 import { revalidatePath } from 'next/cache';
@@ -109,10 +110,12 @@ export async function confirmImport(rows: ConfirmRow[]): Promise<ConfirmResult> 
   const result = await bulkCreateCompanies(supabase, valid);
   if (!result.ok) return { ok: false, message: result.message };
 
-  // Best-effort enrichment enqueue — a failure must not undo an import that
-  // already wrote rows (requestEnrichment returns a result, never throws).
+  // Best-effort enrichment enqueue + current-month recurring tasks (Fase 1.1 §2) —
+  // a failure must not undo an import that already wrote rows (both helpers
+  // return a result, never throw).
   for (const company of result.created) {
     await requestEnrichment(supabase, company.id);
+    await generateRecurringTasksForCompany(supabase, company.id);
   }
 
   revalidatePath('/empresas');

@@ -7,6 +7,7 @@ import {
   listDocuments,
   listDocumentRequests,
   listMonitoredDocuments,
+  listPartners,
   listTasks,
   type Classification,
   type Task,
@@ -29,6 +30,7 @@ import { copy, primaryButtonClass, secondaryButtonClass } from '../copy';
 import { ArchiveButton } from './archive-button';
 import { ContactsSection } from './contacts-section';
 import { EnrichButton } from './enrich-button';
+import { PartnersSection } from './partners-section';
 import { PrazosSection } from './prazos-section';
 import { SolicitacoesSection } from './solicitacoes-section';
 // The Tarefas and Documentos tabs consume the existing task (T10) and document
@@ -49,6 +51,12 @@ const TABS = [
 
 function resolveTab(raw: string | undefined): string {
   return TABS.some((tab) => tab.enabled && tab.key === raw) ? (raw as string) : 'dados';
+}
+
+// YYYY-MM-DD → DD/MM/YYYY (calendar date; no timezone math on purpose).
+function formatDateBr(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return y && m && d ? `${d}/${m}/${y}` : iso;
 }
 
 function DataRow({ label, value }: { label: string; value: string | null }) {
@@ -75,8 +83,9 @@ export default async function EmpresaDetailPage({
   const company = await getCompany(supabase, id);
   if (!company) notFound();
 
-  const [contacts, prazos, companyDocs, requests, { data: firm }] = await Promise.all([
+  const [contacts, partners, prazos, companyDocs, requests, { data: firm }] = await Promise.all([
     listContacts(supabase, id),
+    listPartners(supabase, id),
     listMonitoredDocuments(supabase, { companyId: id }),
     listDocuments(supabase, { companyId: id }),
     listDocumentRequests(supabase, { companyId: id }),
@@ -88,6 +97,15 @@ export default async function EmpresaDetailPage({
     ? (config.taxRegimes.find((r) => r.key === company.taxRegime)?.label ?? company.taxRegime)
     : null;
   const location = [company.city, company.state].filter(Boolean).join(' / ') || null;
+  const addressLine =
+    [
+      [company.addressStreet, company.addressNumber].filter(Boolean).join(', '),
+      company.addressComplement,
+      company.addressDistrict,
+      company.addressZip,
+    ]
+      .filter(Boolean)
+      .join(' · ') || null;
   const archived = company.status === 'archived';
   const companyName = company.tradeName || company.legalName;
   const departmentLabels = Object.fromEntries(config.departments.map((d) => [d.key, d.label]));
@@ -201,6 +219,63 @@ export default async function EmpresaDetailPage({
             <DataRow label={copy.detail.fields.location} value={location} />
           </dl>
 
+          {/* Fase 1.1 §1.1 — optional cadastral detail, one click away (UX rule 2). */}
+          <details className="bg-card rounded-xl border px-5 py-3">
+            <summary className="cursor-pointer text-sm font-semibold">
+              {copy.detail.moreData}
+            </summary>
+            <dl className="divide-border mt-1 divide-y">
+              <DataRow label={copy.detail.fields.legalNature} value={company.legalNature} />
+              <DataRow label={copy.detail.fields.companySize} value={company.companySize} />
+              <DataRow
+                label={copy.detail.fields.stateRegistration}
+                value={company.stateRegistration}
+              />
+              <DataRow
+                label={copy.detail.fields.municipalRegistration}
+                value={company.municipalRegistration}
+              />
+              <DataRow
+                label={copy.detail.fields.nire}
+                value={
+                  company.nire
+                    ? [company.nire, company.nireIssuedOn ? formatDateBr(company.nireIssuedOn) : null]
+                        .filter(Boolean)
+                        .join(' — ')
+                    : null
+                }
+              />
+              <DataRow
+                label={copy.detail.fields.activitiesStartedOn}
+                value={company.activitiesStartedOn ? formatDateBr(company.activitiesStartedOn) : null}
+              />
+              <DataRow
+                label={copy.detail.fields.serviceStartedOn}
+                value={company.serviceStartedOn ? formatDateBr(company.serviceStartedOn) : null}
+              />
+              <DataRow label={copy.detail.fields.address} value={addressLine} />
+              <DataRow
+                label={copy.detail.fields.shareCapital}
+                value={
+                  company.shareCapital != null
+                    ? company.shareCapital.toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      })
+                    : null
+                }
+              />
+              <DataRow
+                label={copy.detail.fields.cnae}
+                value={
+                  [company.cnaeCode, company.cnaeDescription].filter(Boolean).join(' — ') || null
+                }
+              />
+            </dl>
+          </details>
+
+          <PartnersSection companyId={id} partners={partners} />
+
           <section className="bg-card space-y-3 rounded-xl border p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold">{copy.enrichment.title}</h2>
@@ -232,7 +307,13 @@ export default async function EmpresaDetailPage({
         </div>
       ) : null}
 
-      {tab === 'contatos' ? <ContactsSection companyId={id} contacts={contacts} /> : null}
+      {tab === 'contatos' ? (
+        <ContactsSection
+          companyId={id}
+          contacts={contacts}
+          departments={config.departments.map((d) => ({ key: d.key, label: d.label }))}
+        />
+      ) : null}
 
       {tab === 'tarefas' ? (
         <div className="space-y-4">

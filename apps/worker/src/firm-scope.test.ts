@@ -38,7 +38,9 @@ describe('worker firm_id scope guard (golden rule #1)', () => {
         if (FIRM_AGNOSTIC.has(table)) continue;
         const start = match.index ?? 0;
         // firm_id should appear in the same statement (columns or where clause).
-        if (!/firm_id/i.test(text.slice(start, start + 800))) {
+        // Window sized for the largest single statement (the enrichment backfill
+        // UPDATE sets ~16 columns before its firm_id WHERE).
+        if (!/firm_id/i.test(text.slice(start, start + 2000))) {
           violations.push(`${relative(SRC, file)}: "${match[0]}" without firm_id`);
         }
       }

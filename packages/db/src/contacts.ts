@@ -1,3 +1,4 @@
+import { parseFirmConfig } from '@hub/config';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { loadFirm } from './firm';
@@ -5,6 +6,8 @@ import type { MutationResult } from './companies';
 
 // Contact use cases (T6). Same pattern as companies: validate → persist (RLS) →
 // audit. firm_id is stamped from the caller's own firm.
+// Fase 1.1 §1.3: each contact carries the firm-config department keys it serves;
+// an EMPTY list means "Todos" (serves any department).
 
 export type PreferredChannel = 'email' | 'phone' | 'whatsapp';
 const CHANNELS: PreferredChannel[] = ['email', 'phone', 'whatsapp'];
@@ -17,6 +20,8 @@ export interface Contact {
   phone: string | null;
   preferredChannel: PreferredChannel;
   isPrimary: boolean;
+  /** Firm-config department keys; empty = all departments ("Todos"). */
+  departments: string[];
 }
 
 export interface ContactInput {
@@ -26,6 +31,7 @@ export interface ContactInput {
   phone?: string | null;
   preferredChannel?: PreferredChannel;
   isPrimary?: boolean;
+  departments?: string[];
 }
 
 export type ContactEdits = Omit<ContactInput, 'companyId'>;
@@ -38,6 +44,7 @@ interface ContactRow {
   phone: string | null;
   preferred_channel: string;
   is_primary: boolean;
+  departments: string[] | null;
 }
 
 function fail(message: string): { ok: false; message: string } {
@@ -61,11 +68,13 @@ function mapContact(row: ContactRow): Contact {
       ? (row.preferred_channel as PreferredChannel)
       : 'email',
     isPrimary: row.is_primary,
+    departments: Array.isArray(row.departments) ? row.departments : [],
   };
 }
 
 function validateContact(
   edits: ContactEdits,
+  departmentKeys: string[],
 ): { ok: true; columns: Record<string, unknown> } | { ok: false; message: string } {
   const name = cleanText(edits.name);
   if (!name) return fail('Informe o nome do contato.');
@@ -78,6 +87,11 @@ function validateContact(
   const channel = edits.preferredChannel ?? 'email';
   if (!CHANNELS.includes(channel)) return fail('Canal de contato inválido.');
 
+  const departments = Array.isArray(edits.departments) ? edits.departments : [];
+  if (departments.some((d) => !departmentKeys.includes(d))) {
+    return fail('Departamento inválido.');
+  }
+
   return {
     ok: true,
     columns: {
@@ -86,6 +100,7 @@ function validateContact(
       phone: cleanText(edits.phone),
       preferred_channel: channel,
       is_primary: Boolean(edits.isPrimary),
+      departments,
     },
   };
 }
@@ -96,7 +111,7 @@ export async function listContacts(
 ): Promise<Contact[]> {
   const { data, error } = await supabase
     .from('contacts')
-    .select('id, company_id, name, email, phone, preferred_channel, is_primary')
+    .select('id, company_id, name, email, phone, preferred_channel, is_primary, departments')
     .eq('company_id', companyId)
     .order('is_primary', { ascending: false })
     .order('name');
@@ -114,7 +129,8 @@ export async function createContact(
   const companyId = cleanText(input.companyId);
   if (!companyId) return fail('Empresa não informada.');
 
-  const validated = validateContact(input);
+  const departmentKeys = parseFirmConfig(firm.config).departments.map((d) => d.key);
+  const validated = validateContact(input, departmentKeys);
   if (!validated.ok) return validated;
 
   const { data, error } = await supabase
@@ -140,7 +156,11 @@ export async function updateContact(
   id: string,
   edits: ContactEdits,
 ): Promise<MutationResult> {
-  const validated = validateContact(edits);
+  const firm = await loadFirm(supabase);
+  if (!firm) return fail('Não foi possível identificar o escritório.');
+
+  const departmentKeys = parseFirmConfig(firm.config).departments.map((d) => d.key);
+  const validated = validateContact(edits, departmentKeys);
   if (!validated.ok) return validated;
 
   const { data, error } = await supabase

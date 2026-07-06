@@ -74,16 +74,46 @@ function mapTask(row: TaskRow): Task {
 
 export async function listTasks(
   supabase: SupabaseClient,
-  opts?: { status?: TaskStatus; department?: string; companyId?: string; assigneeId?: string },
+  opts?: {
+    status?: TaskStatus;
+    department?: string;
+    companyId?: string;
+    assigneeId?: string;
+    /** Competência filter (YYYY-MM). */
+    period?: string;
+    /** With `period`: also include tasks without a competência (ad-hoc). */
+    includeNoPeriod?: boolean;
+  },
 ): Promise<Task[]> {
   let query = supabase.from('tasks').select(SELECT);
   if (opts?.status) query = query.eq('status', opts.status);
   if (opts?.department) query = query.eq('department', opts.department);
   if (opts?.companyId) query = query.eq('company_id', opts.companyId);
   if (opts?.assigneeId) query = query.eq('assignee_id', opts.assigneeId);
+  if (opts?.period && /^\d{4}-\d{2}$/.test(opts.period)) {
+    query = opts.includeNoPeriod
+      ? query.or(`period.eq.${opts.period},period.is.null`)
+      : query.eq('period', opts.period);
+  }
   const { data, error } = await query.order('created_at', { ascending: false });
   if (error || !data) return [];
   return (data as TaskRow[]).map(mapTask);
+}
+
+/**
+ * Generate the current-month recurring tasks for a just-registered company via
+ * the generate_recurring_tasks_for_company RPC (Fase 1.1 §2). Best-effort:
+ * callers treat failure as non-fatal so registration never breaks.
+ */
+export async function generateRecurringTasksForCompany(
+  supabase: SupabaseClient,
+  companyId: string,
+): Promise<{ ok: boolean; created: number }> {
+  const { data, error } = await supabase.rpc('generate_recurring_tasks_for_company', {
+    p_company_id: companyId,
+  });
+  if (error) return { ok: false, created: 0 };
+  return { ok: true, created: typeof data === 'number' ? data : 0 };
 }
 
 /** Count of tasks the caller can see that are still open (dashboard, T13). */

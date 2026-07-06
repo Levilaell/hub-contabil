@@ -20,6 +20,7 @@ export {
   listExistingCnpjs,
   bulkCreateCompanies,
   type Company,
+  type CompanyDetails,
   type CompanyInput,
   type CompanyEdits,
   type CompanyStatus,
@@ -39,9 +40,19 @@ export {
   type PreferredChannel,
 } from './contacts';
 export {
+  listPartners,
+  createPartner,
+  updatePartner,
+  deletePartner,
+  type CompanyPartner,
+  type PartnerInput,
+  type PartnerEdits,
+} from './partners';
+export {
   listExceptions,
   countOpenExceptions,
   resolveException,
+  applyTriageSuggestion,
   type ExceptionItem,
   type ExceptionStatus,
   type ResolveResult,
@@ -52,6 +63,7 @@ export {
   createTask,
   updateTaskStatus,
   handoffTask,
+  generateRecurringTasksForCompany,
   type Task,
   type TaskInput,
   type TaskMutationResult,
@@ -109,6 +121,7 @@ export {
   cancelDocumentRequest,
   rotateRequestToken,
   getCompanyPrimaryEmail,
+  getSuggestedRecipientEmail,
   getRequestByToken,
   getRequestOwner,
   logRequestView,

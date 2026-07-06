@@ -22,10 +22,15 @@ const OK_OUTCOME: EnrichmentOutcome = {
   data: {
     legalName: 'NOME OFICIAL LTDA',
     tradeName: 'Oficial',
+    legalNature: '206-2 - Sociedade Empresária Limitada',
+    companySize: 'ME',
+    shareCapital: 50000,
+    activitiesStartedOn: '2019-03-15',
     cnaePrimaryCode: '6201501',
     cnaePrimaryDescription: 'Desenvolvimento de software',
     registrationStatus: 'ATIVA',
     simplesOptant: true,
+    meiOptant: false,
     email: 'contato@oficial.test',
     phone: '1133334444',
     address: {
@@ -37,6 +42,10 @@ const OK_OUTCOME: EnrichmentOutcome = {
       state: 'SP',
       zip: '11000000',
     },
+    partners: [
+      { name: 'MARIA DA SILVA', qualification: 'Sócio-Administrador', cpfCnpj: null },
+      { name: 'JOSE DA SILVA', qualification: 'Sócio', cpfCnpj: null },
+    ],
   },
 };
 
@@ -101,6 +110,42 @@ describe.skipIf(!hasEnv)('enrichment consumer (cloud dev)', () => {
     expect(row?.city).toBe('Santos');
     expect(row?.state).toBe('SP');
 
+    const [details] = await sql<
+      {
+        legal_nature: string | null;
+        company_size: string | null;
+        share_capital: string | null;
+        activities_started_on: string | null;
+        cnae_code: string | null;
+        address_street: string | null;
+        tax_regime: string | null;
+      }[]
+    >`
+      select legal_nature, company_size, share_capital, activities_started_on,
+             cnae_code, address_street, tax_regime
+      from public.companies where id = ${id}
+    `;
+    expect(details?.legal_nature).toBe('206-2 - Sociedade Empresária Limitada');
+    expect(details?.company_size).toBe('ME');
+    expect(Number(details?.share_capital)).toBe(50000);
+    expect(details?.cnae_code).toBe('6201501');
+    expect(details?.address_street).toBe('Rua X');
+    expect(details?.tax_regime).toBe('simples_nacional'); // filled from the simples flag
+
+    const partners = await sql<{ name: string }[]>`
+      select name from public.company_partners
+      where firm_id = ${FIRM} and company_id = ${id} order by name
+    `;
+    expect(partners.map((p) => p.name)).toEqual(['JOSE DA SILVA', 'MARIA DA SILVA']);
+
+    // Re-run: partners are seeded only once (non-destructive).
+    await createEnrichmentHandler(sql, fakeAdapter(OK_OUTCOME))({ firm_id: FIRM, company_id: id });
+    const again = await sql<{ count: string }[]>`
+      select count(*) as count from public.company_partners
+      where firm_id = ${FIRM} and company_id = ${id}
+    `;
+    expect(Number(again[0]?.count)).toBe(2);
+
     const data = (
       typeof row?.enrichment_data === 'string'
         ? JSON.parse(row.enrichment_data)
@@ -113,7 +158,7 @@ describe.skipIf(!hasEnv)('enrichment consumer (cloud dev)', () => {
       select 1 from public.audit_events
       where entity_id = ${id} and action = 'company.enriched'
     `;
-    expect(audit.length).toBe(1);
+    expect(audit.length).toBe(2); // handler ran twice above (idempotency re-run)
   });
 
   it('does not overwrite an already-populated column', async () => {

@@ -15,13 +15,20 @@ import { copy, inputClass, primaryButtonClass, secondaryButtonClass } from '../c
 
 const CHANNELS: PreferredChannel[] = ['email', 'phone', 'whatsapp'];
 
+interface Department {
+  key: string;
+  label: string;
+}
+
 function ContactForm({
   action,
   defaults,
+  departments,
   onDone,
 }: {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   defaults?: Contact;
+  departments: Department[];
   onDone: () => void;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
@@ -94,6 +101,24 @@ function ContactForm({
           />
           {copy.contacts.markPrimary}
         </label>
+        <fieldset className="space-y-1.5 sm:col-span-2">
+          <legend className="text-xs font-medium">{copy.contacts.departments}</legend>
+          <p className="text-muted-foreground text-xs">{copy.contacts.departmentsHint}</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1">
+            {departments.map((dept) => (
+              <label key={dept.key} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="departments"
+                  value={dept.key}
+                  defaultChecked={defaults?.departments.includes(dept.key) ?? false}
+                  className="size-4 rounded border"
+                />
+                {dept.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
       </div>
 
       {state && !state.ok ? <p className="text-danger-text text-sm">{state.message}</p> : null}
@@ -113,14 +138,23 @@ function ContactForm({
 function ContactRow({
   companyId,
   contact,
+  departmentLabels,
   onEdit,
 }: {
   companyId: string;
   contact: Contact;
+  departmentLabels: Record<string, string>;
   onEdit: () => void;
 }) {
   const [removing, startRemove] = useTransition();
-  const detail = contact.email || contact.phone || copy.contacts.channels[contact.preferredChannel];
+  const deptText =
+    contact.departments.length === 0
+      ? copy.contacts.departmentsAll
+      : contact.departments.map((d) => departmentLabels[d] ?? d).join(', ');
+  const detail = [
+    contact.email || contact.phone || copy.contacts.channels[contact.preferredChannel],
+    deptText,
+  ].join(' · ');
 
   function handleRemove() {
     if (!window.confirm(copy.contacts.removeConfirm)) return;
@@ -160,13 +194,16 @@ function ContactRow({
 export function ContactsSection({
   companyId,
   contacts,
+  departments,
 }: {
   companyId: string;
   contacts: Contact[];
+  departments: Department[];
 }) {
   // null = list; 'new' = add form; otherwise the id being edited.
   const [open, setOpen] = useState<null | 'new' | string>(null);
   const close = () => setOpen(null);
+  const departmentLabels = Object.fromEntries(departments.map((d) => [d.key, d.label]));
 
   return (
     <div className="space-y-4">
@@ -180,7 +217,11 @@ export function ContactsSection({
       </div>
 
       {open === 'new' ? (
-        <ContactForm action={createContactAction.bind(null, companyId)} onDone={close} />
+        <ContactForm
+          action={createContactAction.bind(null, companyId)}
+          departments={departments}
+          onDone={close}
+        />
       ) : null}
 
       {contacts.length === 0 && open !== 'new' ? (
@@ -196,6 +237,7 @@ export function ContactsSection({
                 <ContactForm
                   action={updateContactAction.bind(null, contact.id, companyId)}
                   defaults={contact}
+                  departments={departments}
                   onDone={close}
                 />
               </li>
@@ -204,6 +246,7 @@ export function ContactsSection({
                 key={contact.id}
                 companyId={companyId}
                 contact={contact}
+                departmentLabels={departmentLabels}
                 onEdit={() => setOpen(contact.id)}
               />
             ),
