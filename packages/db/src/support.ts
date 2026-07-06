@@ -15,6 +15,8 @@ export interface SupportTicket {
   contactName: string | null;
   subject: string;
   status: SupportStatus;
+  /** Firm-config department key picked via the reception menu (or by a human). */
+  department: string | null;
   aiHandled: boolean;
   lastMessageAt: string;
   lastInboundAt: string | null;
@@ -38,6 +40,7 @@ interface TicketRow {
   contact_name: string | null;
   subject: string;
   status: string;
+  department: string | null;
   ai_handled: boolean;
   last_message_at: string;
   last_inbound_at: string | null;
@@ -54,7 +57,7 @@ interface MessageRow {
 }
 
 const TICKET_SELECT =
-  'id, company_id, channel, contact_identifier, contact_name, subject, status, ai_handled, last_message_at, last_inbound_at, created_at';
+  'id, company_id, channel, contact_identifier, contact_name, subject, status, department, ai_handled, last_message_at, last_inbound_at, created_at';
 
 function asStatus(value: string): SupportStatus {
   return value === 'pending' || value === 'escalated' || value === 'resolved'
@@ -71,6 +74,7 @@ function mapTicket(row: TicketRow): SupportTicket {
     contactName: row.contact_name,
     subject: row.subject,
     status: asStatus(row.status),
+    department: row.department,
     aiHandled: row.ai_handled,
     lastMessageAt: row.last_message_at,
     lastInboundAt: row.last_inbound_at,
@@ -80,12 +84,13 @@ function mapTicket(row: TicketRow): SupportTicket {
 
 export async function listSupportTickets(
   supabase: SupabaseClient,
-  opts?: { status?: SupportStatus | 'open_all' | 'all' },
+  opts?: { status?: SupportStatus | 'open_all' | 'all'; department?: string },
 ): Promise<SupportTicket[]> {
   let query = supabase.from('support_tickets').select(TICKET_SELECT);
   const status = opts?.status ?? 'open_all';
   if (status === 'open_all') query = query.in('status', ['open', 'escalated']);
   else if (status !== 'all') query = query.eq('status', status);
+  if (opts?.department) query = query.eq('department', opts.department);
   const { data, error } = await query.order('last_message_at', { ascending: false });
   if (error || !data) return [];
   return (data as TicketRow[]).map(mapTicket);

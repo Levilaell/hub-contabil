@@ -1,16 +1,25 @@
 import type { SupportAssistantAdapter, WhatsappAdapter } from '@hub/adapters';
 import { parseFirmConfig } from '@hub/config';
-import { decideSupportResponse, isWithin24hWindow } from '@hub/core';
+import {
+  RECEPTION_GOODBYE,
+  buildReceptionConfirmation,
+  buildReceptionMenu,
+  decideReception,
+  decideSupportResponse,
+  isWithin24hWindow,
+} from '@hub/core';
 import type { Sql } from 'postgres';
 
 import type { SupportPayload } from '../queue/payloads.js';
 
 // Support job (atendimento). Two kinds of work:
-//  - 'inbound': a new client message → draft an answer with the firm's own context,
-//    then let core decide (decideSupportResponse) whether to send it or escalate to
-//    a human. The AI never decides alone (#5): auto-reply off, out of scope, or low
-//    confidence all escalate. On escalation we send a short pt-BR acknowledgement IF
-//    we're still inside WhatsApp's free 24h window (no paid template).
+//  - 'inbound': a new client message → FIRST the reception menu (deterministic
+//    URA, Fase 1.1 §4: greets an unrouted conversation with a numbered department
+//    menu and tags the ticket on a pick); messages the menu passes through go to
+//    the assistant → core decides (decideSupportResponse) whether to send or
+//    escalate to a human. The AI never decides alone (#5). On escalation we send
+//    a short pt-BR acknowledgement IF we're still inside WhatsApp's free 24h
+//    window (no paid template).
 //  - 'deliver': push a queued outbound message (a human's reply from /atendimento)
 //    over the channel and flip its delivery status.
 // Service role → every query carries firm_id (#1).
@@ -24,6 +33,7 @@ interface TicketRow {
   contact_identifier: string;
   status: string;
   last_inbound_at: string | null;
+  department: string | null;
 }
 
 /** A compact pt-BR snapshot the assistant may use — only facts the hub owns. */
@@ -72,10 +82,25 @@ export function createSupportHandler(
 
   async function loadTicket(firmId: string, ticketId: string): Promise<TicketRow | null> {
     const [row] = await sql<TicketRow[]>`
-      select id, company_id, channel, contact_identifier, status, last_inbound_at
+      select id, company_id, channel, contact_identifier, status, last_inbound_at, department
       from public.support_tickets where id = ${ticketId} and firm_id = ${firmId}
     `;
     return row ?? null;
+  }
+
+  /** Record + send a menu/system message from the reception (author 'ai'). */
+  async function sendReceptionMessage(
+    firmId: string,
+    ticket: TicketRow,
+    body: string,
+  ): Promise<void> {
+    const res = await send(ticket.channel, ticket.contact_identifier, body);
+    await sql`
+      insert into public.support_messages
+        (firm_id, ticket_id, direction, author, body, external_id, delivery, delivered_at)
+      values (${firmId}, ${ticket.id}, 'outbound', 'ai', ${body},
+              ${res.ok ? (res.id ?? null) : null}, ${res.ok ? 'delivered' : 'failed'}, now())
+    `;
   }
 
   async function send(channel: string, to: string, body: string) {
@@ -135,6 +160,44 @@ export function createSupportHandler(
       select body from public.support_messages where id = ${message_id} and firm_id = ${firm_id}
     `;
     const question = last?.body ?? '';
+
+    // --- reception menu (deterministic URA) runs BEFORE any AI ---
+    const reception = decideReception({
+      config: config.support.reception,
+      ticketDepartment: ticket.department,
+      text: question,
+    });
+    if (reception.kind === 'send_menu') {
+      await sendReceptionMessage(firm_id, ticket, buildReceptionMenu(config.support.reception));
+      return;
+    }
+    if (reception.kind === 'select') {
+      await sql`
+        update public.support_tickets
+        set department = ${reception.option.department}, last_message_at = now()
+        where id = ${ticket_id} and firm_id = ${firm_id}
+      `;
+      await sql`
+        insert into public.audit_events (firm_id, action, entity, entity_id, context)
+        values (${firm_id}, 'support.department_selected', 'support_ticket', ${ticket_id},
+                ${json({ department: reception.option.department, label: reception.option.label })})
+      `;
+      await sendReceptionMessage(firm_id, ticket, buildReceptionConfirmation(reception.option));
+      return;
+    }
+    if (reception.kind === 'close') {
+      await sql`
+        update public.support_tickets set status = 'resolved', last_message_at = now()
+        where id = ${ticket_id} and firm_id = ${firm_id}
+      `;
+      await sql`
+        insert into public.audit_events (firm_id, action, entity, entity_id, context)
+        values (${firm_id}, 'support.closed_by_client', 'support_ticket', ${ticket_id}, '{}'::jsonb)
+      `;
+      await sendReceptionMessage(firm_id, ticket, RECEPTION_GOODBYE);
+      return;
+    }
+
     const context = await buildCompanyContext(sql, firm_id, ticket.company_id);
 
     const answer = await assistant.answer({

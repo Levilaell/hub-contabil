@@ -13,6 +13,9 @@ export interface FirmConfigEdits {
   supportAutoReply?: boolean;
   supportAiThreshold?: number;
   supportFaq?: { q: string; a: string }[];
+  receptionEnabled?: boolean;
+  receptionGreeting?: string;
+  receptionOptions?: { label: string; department: string }[];
 }
 
 export type SaveFirmConfigResult = { ok: true } | { ok: false; message: string };
@@ -32,6 +35,9 @@ export async function saveFirmConfig(
   }
 
   const current = parseFirmConfig(firm.config);
+  // Reception options only reference known departments (same stance as routingMap).
+  const departmentKeys = new Set(current.departments.map((d) => d.key));
+  const receptionOptions = edits.receptionOptions?.filter((o) => departmentKeys.has(o.department));
   const candidate = {
     ...current,
     deadlineTriggers: { ...current.deadlineTriggers, defaultDays: edits.deadlineDefaultDays },
@@ -41,6 +47,14 @@ export async function saveFirmConfig(
       ...(edits.supportAutoReply !== undefined ? { autoReply: edits.supportAutoReply } : {}),
       ...(edits.supportAiThreshold !== undefined ? { aiThreshold: edits.supportAiThreshold } : {}),
       ...(edits.supportFaq !== undefined ? { faq: edits.supportFaq } : {}),
+      reception: {
+        ...current.support.reception,
+        ...(edits.receptionEnabled !== undefined ? { enabled: edits.receptionEnabled } : {}),
+        ...(edits.receptionGreeting !== undefined && edits.receptionGreeting.trim()
+          ? { greeting: edits.receptionGreeting.trim() }
+          : {}),
+        ...(receptionOptions !== undefined ? { options: receptionOptions } : {}),
+      },
     },
   };
 

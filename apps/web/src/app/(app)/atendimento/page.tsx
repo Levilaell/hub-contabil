@@ -1,3 +1,4 @@
+import { parseFirmConfig } from '@hub/config';
 import { listSupportTickets, type SupportStatus } from '@hub/db';
 import { EmptyState, PageHeader } from '@hub/ui';
 import { CheckCircle2, MessageCircle } from 'lucide-react';
@@ -23,14 +24,22 @@ function resolveStatus(raw: string | undefined): StatusFilter {
 export default async function AtendimentoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; department?: string }>;
 }) {
   const sp = await searchParams;
   const status = resolveStatus(sp.status);
-  const filtered = status !== 'open_all';
 
   const supabase = await createClient();
-  const tickets = await listSupportTickets(supabase, { status });
+  const { data: firm } = await supabase.from('firms').select('config').limit(1).single();
+  const departments = parseFirmConfig(firm?.config).departments.map((d) => ({
+    key: d.key,
+    label: d.label,
+  }));
+  const department = departments.some((d) => d.key === sp.department) ? sp.department : undefined;
+  const filtered = status !== 'open_all' || Boolean(department);
+
+  const tickets = await listSupportTickets(supabase, { status, department });
+  const departmentLabels = Object.fromEntries(departments.map((d) => [d.key, d.label]));
 
   return (
     <div className="space-y-6">
@@ -52,6 +61,24 @@ export default async function AtendimentoPage({
               <option value="all">{copy.statusAll}</option>
             </select>
           </div>
+          <div className="space-y-1.5">
+            <label htmlFor="department" className="text-xs font-medium">
+              {copy.departmentLabel}
+            </label>
+            <select
+              id="department"
+              name="department"
+              defaultValue={department ?? ''}
+              className={inputClass}
+            >
+              <option value="">{copy.departmentAll}</option>
+              {departments.map((d) => (
+                <option key={d.key} value={d.key}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <button type="submit" className={secondaryButtonClass}>
             {copy.apply}
           </button>
@@ -65,7 +92,7 @@ export default async function AtendimentoPage({
           description={filtered ? copy.empty.filteredDescription : copy.empty.description}
         />
       ) : (
-        <TicketsList tickets={tickets} />
+        <TicketsList tickets={tickets} departmentLabels={departmentLabels} />
       )}
     </div>
   );

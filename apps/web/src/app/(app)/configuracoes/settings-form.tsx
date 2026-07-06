@@ -15,6 +15,9 @@ interface SettingsFormProps {
   supportAutoReply: boolean;
   supportAiThreshold: number;
   supportFaq: { q: string; a: string }[];
+  receptionEnabled: boolean;
+  receptionGreeting: string;
+  receptionOptions: { label: string; department: string }[];
   departments: { key: string; label: string }[];
   taxonomy: string[];
   routingMap: Record<string, string>;
@@ -28,6 +31,9 @@ export function SettingsForm(props: SettingsFormProps) {
     supportAutoReply,
     supportAiThreshold,
     supportFaq,
+    receptionEnabled,
+    receptionGreeting,
+    receptionOptions,
     departments,
     taxonomy,
     routingMap,
@@ -128,6 +134,54 @@ export function SettingsForm(props: SettingsFormProps) {
               className={inputClass}
             />
             <p className="text-muted-foreground text-xs">{copy.supportFaqHint}</p>
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t pt-5">
+          <p className="text-sm font-semibold">{copy.receptionTitle}</p>
+          <label className="flex items-start gap-2.5">
+            <input
+              type="checkbox"
+              name="receptionEnabled"
+              disabled={!canEdit}
+              defaultChecked={receptionEnabled}
+              className="mt-0.5 size-4"
+            />
+            <span>
+              <span className="block text-sm font-medium">{copy.receptionEnabledLabel}</span>
+              <span className="text-muted-foreground block text-xs">
+                {copy.receptionEnabledHint}
+              </span>
+            </span>
+          </label>
+          <div className="space-y-1.5">
+            <label htmlFor="receptionGreeting" className="text-sm font-medium">
+              {copy.receptionGreetingLabel}
+            </label>
+            <input
+              id="receptionGreeting"
+              name="receptionGreeting"
+              disabled={!canEdit}
+              defaultValue={receptionGreeting}
+              className={inputClass}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="receptionOptions" className="text-sm font-medium">
+              {copy.receptionOptionsLabel}
+            </label>
+            <textarea
+              id="receptionOptions"
+              name="receptionOptions"
+              rows={5}
+              disabled={!canEdit}
+              defaultValue={receptionOptions.map((o) => `${o.label} | ${o.department}`).join('\n')}
+              placeholder={copy.receptionOptionsPlaceholder}
+              className={inputClass}
+            />
+            <p className="text-muted-foreground text-xs">
+              {copy.receptionOptionsHint(departments.map((d) => d.key).join(', '))}
+            </p>
           </div>
         </div>
 

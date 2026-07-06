@@ -18,6 +18,15 @@ export const copy = {
   supportFaqPlaceholder: 'Qual o horário de atendimento? | De segunda a sexta, das 8h às 18h.',
   supportFaqHint:
     'Uma por linha, no formato "Pergunta | Resposta". A IA usa somente estas respostas e o contexto da empresa — nunca inventa políticas do escritório.',
+  receptionTitle: 'Menu de recepção (WhatsApp)',
+  receptionEnabledLabel: 'Receber novas conversas com o menu de departamentos',
+  receptionEnabledHint:
+    'O cliente escolhe um número e a conversa fica marcada com o departamento. "voltar" reabre o menu; "fim" encerra o atendimento.',
+  receptionGreetingLabel: 'Mensagem de boas-vindas',
+  receptionOptionsLabel: 'Opções do menu',
+  receptionOptionsPlaceholder: '📊 Contabilidade | contabil\n👥 Departamento Pessoal | dp',
+  receptionOptionsHint: (keys: string) =>
+    `Uma opção por linha, no formato "Rótulo | departamento". Departamentos válidos: ${keys}.`,
   save: 'Salvar',
   saving: 'Salvando…',
   saved: 'Configurações salvas.',

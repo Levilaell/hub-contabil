@@ -79,6 +79,16 @@ export { parseNfe, CFOP_DOMAIN, type ParsedNfe, type NfeItem } from './nfe';
 export { suggestContactForDepartment, type RoutableContact } from './contact-routing';
 
 export {
+  buildReceptionMenu,
+  buildReceptionConfirmation,
+  decideReception,
+  RECEPTION_GOODBYE,
+  type ReceptionAction,
+  type ReceptionConfig,
+  type ReceptionOption,
+} from './support-menu';
+
+export {
   routeDepartment,
   decideTriage,
   type TriageDecision,

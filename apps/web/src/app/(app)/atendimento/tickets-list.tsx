@@ -32,7 +32,13 @@ function timeAgo(iso: string): string {
   return `há ${Math.floor(h / 24)} d`;
 }
 
-export function TicketsList({ tickets }: { tickets: SupportTicket[] }) {
+export function TicketsList({
+  tickets,
+  departmentLabels,
+}: {
+  tickets: SupportTicket[];
+  departmentLabels: Record<string, string>;
+}) {
   const [selected, setSelected] = useState<SupportTicket | null>(null);
   const [messages, setMessages] = useState<SupportMessage[] | null>(null);
   const [reply, setReply] = useState('');
@@ -95,9 +101,10 @@ export function TicketsList({ tickets }: { tickets: SupportTicket[] }) {
             title={ticket.contactName || ticket.contactIdentifier}
             facts={[
               channelLabel(ticket.channel),
+              ticket.department ? (departmentLabels[ticket.department] ?? ticket.department) : null,
               ticket.subject || '—',
               timeAgo(ticket.lastMessageAt),
-            ].filter(Boolean)}
+            ].filter(Boolean) as string[]}
             trailing={
               <StatusBadge
                 tone={STATUS[ticket.status]?.tone ?? 'neutral'}

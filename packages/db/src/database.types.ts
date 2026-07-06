@@ -1077,6 +1077,7 @@ export type Database = {
           contact_identifier: string
           contact_name: string | null
           created_at: string
+          department: string | null
           firm_id: string
           id: string
           last_inbound_at: string | null
@@ -1093,6 +1094,7 @@ export type Database = {
           contact_identifier: string
           contact_name?: string | null
           created_at?: string
+          department?: string | null
           firm_id: string
           id?: string
           last_inbound_at?: string | null
@@ -1109,6 +1111,7 @@ export type Database = {
           contact_identifier?: string
           contact_name?: string | null
           created_at?: string
+          department?: string | null
           firm_id?: string
           id?: string
           last_inbound_at?: string | null

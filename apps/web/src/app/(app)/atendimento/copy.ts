@@ -19,6 +19,8 @@ export const copy = {
   statusPending: 'Aguardando cliente',
   statusResolved: 'Resolvidos',
   statusAll: 'Todos',
+  departmentLabel: 'Departamento',
+  departmentAll: 'Todos',
   apply: 'Aplicar',
   channels: { whatsapp: 'WhatsApp', imap: 'E-mail' } as Record<string, string>,
   badge: {
