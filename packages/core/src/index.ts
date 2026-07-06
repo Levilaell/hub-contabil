@@ -76,6 +76,8 @@ export {
 
 export { parseNfe, CFOP_DOMAIN, type ParsedNfe, type NfeItem } from './nfe';
 
+export { suggestContactForDepartment, type RoutableContact } from './contact-routing';
+
 export {
   routeDepartment,
   decideTriage,

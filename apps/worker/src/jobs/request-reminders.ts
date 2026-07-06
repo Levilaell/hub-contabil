@@ -1,6 +1,11 @@
 import type { MessagingAdapter } from '@hub/adapters';
 import { parseFirmConfig } from '@hub/config';
-import { buildRequestEmail, type RequestKind } from '@hub/core';
+import {
+  buildRequestEmail,
+  routeDepartment,
+  suggestContactForDepartment,
+  type RequestKind,
+} from '@hub/core';
 import { createHash, randomBytes } from 'node:crypto';
 import type { Sql } from 'postgres';
 
@@ -26,9 +31,45 @@ interface ReminderRow {
   kind: string;
   title: string;
   description: string;
+  requested_doc_type: string | null;
   legal_name: string;
   trade_name: string | null;
   recipient: string | null;
+}
+
+interface ContactRow {
+  email: string;
+  is_primary: boolean;
+  departments: string[] | null;
+}
+
+// Department-aware recipient (Fase 1.1 §1.3): the request's expected doc type
+// routes to a department; the contact tagged for it beats a "Todos" contact.
+// Falls back to the SQL primary-first pick when nothing routes.
+async function resolveRecipient(
+  sql: Sql,
+  firmId: string,
+  row: ReminderRow,
+  routingMap: Record<string, string>,
+): Promise<string | null> {
+  const department = row.requested_doc_type
+    ? routeDepartment(routingMap, row.requested_doc_type)
+    : null;
+  if (!department) return row.recipient;
+
+  const contacts = await sql<ContactRow[]>`
+    select email, is_primary, departments from public.contacts
+    where firm_id = ${firmId} and company_id = ${row.company_id} and email is not null
+  `;
+  const pick = suggestContactForDepartment(
+    contacts.map((c) => ({
+      email: c.email,
+      isPrimary: c.is_primary,
+      departments: c.departments ?? [],
+    })),
+    department,
+  );
+  return pick?.email ?? row.recipient;
 }
 
 function newToken(): { token: string; hash: string } {
@@ -52,7 +93,7 @@ export async function runRequestReminderSweep(
     const expiresAt = new Date(now.getTime() + config.requestTokenExpiryDays * 86_400_000);
 
     const rows = await sql<ReminderRow[]>`
-      select r.id, r.company_id, r.kind, r.title, r.description,
+      select r.id, r.company_id, r.kind, r.title, r.description, r.requested_doc_type,
              c.legal_name, c.trade_name,
              (select ct.email from public.contacts ct
                 where ct.company_id = r.company_id and ct.email is not null
@@ -69,10 +110,11 @@ export async function runRequestReminderSweep(
 
     for (const row of rows) {
       const companyName = row.trade_name || row.legal_name;
+      const recipient = await resolveRecipient(sql, firm.id, row, config.routingMap);
 
       // Stamp last_reminded_at in every branch so a given request is touched at most
       // once per window — reminder OR exception, never an hourly repeat.
-      if (!row.recipient) {
+      if (!recipient) {
         await sql`
           update public.document_requests set last_reminded_at = ${now}
           where id = ${row.id} and firm_id = ${firm.id}
@@ -107,7 +149,7 @@ export async function runRequestReminderSweep(
         kind: row.kind as RequestKind,
         reminder: true,
       });
-      const sent = await deps.messaging.sendEmail({ to: row.recipient, ...email });
+      const sent = await deps.messaging.sendEmail({ to: recipient, ...email });
 
       if (!sent.ok) {
         await sql`
@@ -122,11 +164,11 @@ export async function runRequestReminderSweep(
 
       await sql`
         insert into public.document_request_events (firm_id, request_id, event_type, context)
-        values (${firm.id}, ${row.id}, 'reminded', ${sql.json({ to: row.recipient })})
+        values (${firm.id}, ${row.id}, 'reminded', ${sql.json({ to: recipient })})
       `;
       await sql`
         insert into public.audit_events (firm_id, action, entity, entity_id, context)
-        values (${firm.id}, 'request.reminded', 'document_request', ${row.id}, ${sql.json({ to: row.recipient })})
+        values (${firm.id}, 'request.reminded', 'document_request', ${row.id}, ${sql.json({ to: recipient })})
       `;
       result.reminded += 1;
     }

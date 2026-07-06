@@ -1,4 +1,5 @@
 import { parseFirmConfig } from '@hub/config';
+import { routeDepartment, suggestContactForDepartment } from '@hub/core';
 import type { RequestKind, RequestStatus } from '@hub/core';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -220,6 +221,43 @@ export async function getCompanyPrimaryEmail(
     .order('is_primary', { ascending: false });
   const first = (data ?? [])[0];
   return (first?.email as string | null) ?? null;
+}
+
+/**
+ * Department-aware recipient (Fase 1.1 §1.3): the request's expected doc type
+ * routes to a department (firm routingMap), and the contact tagged for that
+ * department wins over a "Todos" contact (deterministic rule in @hub/core).
+ * A SUGGESTION — the sender can always override with any e-mail.
+ */
+export async function getSuggestedRecipientEmail(
+  supabase: SupabaseClient,
+  requestId: string,
+  companyId: string,
+): Promise<string | null> {
+  const [{ data: request }, firm, { data: contactRows }] = await Promise.all([
+    supabase
+      .from('document_requests')
+      .select('requested_doc_type')
+      .eq('id', requestId)
+      .maybeSingle(),
+    loadFirm(supabase),
+    supabase
+      .from('contacts')
+      .select('email, is_primary, departments')
+      .eq('company_id', companyId)
+      .not('email', 'is', null),
+  ]);
+
+  const docType = (request?.requested_doc_type as string | null) ?? null;
+  const department =
+    docType && firm ? routeDepartment(parseFirmConfig(firm.config).routingMap, docType) : null;
+
+  const contacts = (contactRows ?? []).map((row) => ({
+    email: row.email as string,
+    isPrimary: Boolean(row.is_primary),
+    departments: Array.isArray(row.departments) ? (row.departments as string[]) : [],
+  }));
+  return suggestContactForDepartment(contacts, department)?.email ?? null;
 }
 
 /** Rotate the access token (resend / new copy-link). Returns the fresh raw token

@@ -20,7 +20,7 @@ export const copy = {
     sending: 'Enviando…',
     sent: 'E-mail enviado ✅',
     emailLabel: 'E-mail do cliente',
-    emailHint: 'Deixe em branco para usar o contato principal da empresa.',
+    emailHint: 'Em branco = contato do departamento responsável (ou o principal).',
     noRecipient: 'Sem e-mail: informe um endereço ou cadastre um contato principal.',
     copy: 'Gerar e copiar novo link',
     copying: 'Gerando…',

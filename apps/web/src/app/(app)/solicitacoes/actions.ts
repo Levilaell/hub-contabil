@@ -3,8 +3,8 @@
 import { buildRequestEmail } from '@hub/core';
 import {
   cancelDocumentRequest,
-  getCompanyPrimaryEmail,
   getRequestByToken,
+  getSuggestedRecipientEmail,
   listRequestEvents,
   rotateRequestToken,
   type RequestEvent,
@@ -35,7 +35,10 @@ export async function sendRequestEmailAction(
   toOverride?: string,
 ): Promise<SendResult> {
   const supabase = await createClient();
-  const to = (toOverride?.trim() || (await getCompanyPrimaryEmail(supabase, companyId))) ?? '';
+  // Fase 1.1 §1.3 — recipient suggested by the request's department; override wins.
+  const to =
+    (toOverride?.trim() || (await getSuggestedRecipientEmail(supabase, requestId, companyId))) ??
+    '';
   if (!to) return { ok: false, message: 'Sem e-mail de destino.' };
 
   const rotated = await rotateRequestToken(supabase, requestId);
