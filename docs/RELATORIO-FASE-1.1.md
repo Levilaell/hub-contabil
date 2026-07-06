@@ -2,6 +2,27 @@
 
 *06/07/2026 · referente a `hub-contabil-fase-1.2.docx` ("Especificação de melhorias — Fase 1.1")*
 
+> **Adendo (06/07, após as respostas do Paulo):**
+>
+> 1. **Departamento de boleto/comprovante/planilha depende do conteúdo** — implementado:
+>    esses tipos não têm mais rota fixa; a IA lê o documento e sugere o departamento
+>    pelo conteúdo (ex.: comprovante de folha → DP, boleto de imposto → Fiscal). O mapa
+>    de roteamento continua valendo como regra fixa para quem quiser, e a trava de
+>    confiança continua mandando os casos duvidosos para um humano.
+> 2. **"Busca de arquivo pelo chat"** — o item veio do documento do Paulo ("busca de
+>    arquivo no servidor pelo próprio chat"); o que entendemos: o cliente pede um
+>    documento na conversa (ex.: "me manda o DAS de junho") e o robô localiza no
+>    repositório e envia. Aguardando o Paulo confirmar se era isso — e vale a ressalva
+>    de segurança: só faz sentido depois de consolidar o vínculo telefone↔empresa.
+> 3. **Menu de recepção (URA) — implementado**: novas conversas no WhatsApp são
+>    recebidas com o menu numerado de departamentos (boas-vindas, opções e rótulos
+>    configuráveis em Configurações → Menu de recepção; "voltar" reabre o menu, "fim"
+>    encerra). A escolha marca a conversa com o departamento, e o Atendimento agora
+>    mostra e filtra por departamento. Vem **desligado por padrão** — é ligar e
+>    cadastrar as opções (formato "Rótulo | departamento").
+> 4. **Kanban deixar de ser padrão** — ok do Paulo registrado; entra na proposta da
+>    tela "Obrigações do mês" (Etapa A), que ainda depende do workshop de estados.
+
 ## Resumo executivo
 
 Todos os itens dos blocos **1 (Cadastro)**, **3 (Documentos)** e **4 (Atendimento)** foram
