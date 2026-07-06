@@ -28,10 +28,11 @@ function mediaTypeFor(fileName: string): string | null {
 
 interface DocRow {
   id: string;
-  company_id: string;
+  company_id: string | null;
   file_name: string;
   doc_type: string;
   storage_path: string;
+  hash: string;
   period: string | null;
   department: string | null;
 }
@@ -47,7 +48,7 @@ export function createTriageHandler(
     const { firm_id, document_id } = payload;
 
     const [doc] = await sql<DocRow[]>`
-      select id, company_id, file_name, doc_type, storage_path, period, department
+      select id, company_id, file_name, doc_type, storage_path, hash, period, department
       from public.documents
       where id = ${document_id} and firm_id = ${firm_id}
     `;
@@ -168,6 +169,32 @@ export function createTriageHandler(
     `;
 
     if (outcome.decision === 'file') {
+      // Filing an inbox/inbound copy under its company can collide with an
+      // IDENTICAL document already filed there — unique (firm, company, hash) is
+      // the dedup boundary (e.g. the client WhatsApps a file someone had already
+      // uploaded). That's a duplicate, not an error: discard the redundant copy
+      // instead of dead-lettering the job.
+      if (doc.company_id === null && resolvedCompanyId) {
+        const [existing] = await sql<{ id: string }[]>`
+          select id from public.documents
+          where firm_id = ${firm_id} and company_id = ${resolvedCompanyId}
+            and hash = ${doc.hash} and id <> ${document_id}
+        `;
+        if (existing) {
+          await storage.storage.from(BUCKET).remove([doc.storage_path]);
+          await sql`
+            delete from public.documents where id = ${document_id} and firm_id = ${firm_id}
+          `;
+          await sql`
+            insert into public.audit_events (firm_id, action, entity, entity_id, context)
+            values (${firm_id}, 'document.duplicate_discarded', 'document', ${existing.id},
+                    ${json({ fileName: doc.file_name, discardedId: document_id, docType })})
+          `;
+          console.log(`[triage] ${document_id} duplicate of ${existing.id} — discarded`);
+          return;
+        }
+      }
+
       // Inbox docs arrive with company_id null; set the resolved company (keep an
       // existing one for normal uploads). coalesce: never overwrite a real company.
       await sql`
