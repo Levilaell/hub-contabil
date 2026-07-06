@@ -94,3 +94,31 @@ export async function resolveException(
     return { ok: false, message: 'Não foi possível atualizar — verifique e tente de novo.' };
   return { ok: true };
 }
+
+/**
+ * Resolve a TRIAGE exception by applying the (reviewed) suggestion to the
+ * document (Fase 1.1 §3): sets type/company/department, flips the classification
+ * to human-decided, stores a few-shot example, and closes the exception —
+ * all in one RPC (apply_triage_suggestion).
+ */
+export async function applyTriageSuggestion(
+  supabase: SupabaseClient,
+  input: {
+    exceptionId: string;
+    docType: string;
+    companyId?: string | null;
+    department?: string | null;
+    note?: string | null;
+  },
+): Promise<ResolveResult> {
+  const { error } = await supabase.rpc('apply_triage_suggestion', {
+    p_exception_id: input.exceptionId,
+    p_doc_type: input.docType,
+    p_company_id: input.companyId ?? null,
+    p_department: input.department ?? null,
+    p_note: input.note ?? null,
+  });
+  if (error)
+    return { ok: false, message: 'Não foi possível aplicar — verifique e tente de novo.' };
+  return { ok: true };
+}

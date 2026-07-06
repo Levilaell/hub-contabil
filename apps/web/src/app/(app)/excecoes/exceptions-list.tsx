@@ -5,8 +5,19 @@ import { DataList, DataListRow, DetailDrawer, StatusBadge, type StatusTone } fro
 import { AlertTriangle } from 'lucide-react';
 import { useState, useTransition } from 'react';
 
-import { resolveExceptionAction, saveRuleFromExceptionAction } from './actions';
+import {
+  applyTriageSuggestionAction,
+  resolveExceptionAction,
+  saveRuleFromExceptionAction,
+} from './actions';
 import { copy, inputClass, primaryButtonClass, secondaryButtonClass } from './copy';
+
+export interface TriageApplyOptions {
+  taxonomy: string[];
+  departments: { key: string; label: string }[];
+  companies: { id: string; name: string; cnpj: string }[];
+  routingMap: Record<string, string>;
+}
 
 const STATUS: Record<string, { tone: StatusTone; label: string }> = {
   open: { tone: 'warning', label: copy.badge.open },
@@ -40,7 +51,13 @@ function timeAgo(iso: string): string {
   return `há ${Math.floor(h / 24)} d`;
 }
 
-export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) {
+export function ExceptionsList({
+  exceptions,
+  triageOptions,
+}: {
+  exceptions: ExceptionItem[];
+  triageOptions: TriageApplyOptions;
+}) {
   const [selected, setSelected] = useState<ExceptionItem | null>(null);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -52,16 +69,24 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
   const [included, setIncluded] = useState<Set<string>>(new Set());
   const [values, setValues] = useState<Record<string, string>>({});
 
+  // Apply-triage mode (Fase 1.1 §3): file the document from the exception.
+  const [applyMode, setApplyMode] = useState(false);
+  const [applyDocType, setApplyDocType] = useState('');
+  const [applyCompanyId, setApplyCompanyId] = useState('');
+  const [applyDepartment, setApplyDepartment] = useState('');
+
   function open(item: ExceptionItem) {
     setSelected(item);
     setNote('');
     setError(null);
     setRuleMode(false);
+    setApplyMode(false);
   }
 
   function close() {
     setSelected(null);
     setRuleMode(false);
+    setApplyMode(false);
   }
 
   function resolve(status: 'resolved' | 'ignored') {
@@ -69,6 +94,38 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
     setError(null);
     startTransition(async () => {
       const res = await resolveExceptionAction(selected.id, status, note);
+      if (res && !res.ok) setError(res.message);
+      else close();
+    });
+  }
+
+  function startApply() {
+    if (!selected) return;
+    setError(null);
+    const suggested = ctxValue(selected.suggestion, 'docType') ?? '';
+    setApplyDocType(triageOptions.taxonomy.includes(suggested) ? suggested : '');
+    // Pre-select the company by the CNPJ the AI extracted, when it exists now.
+    const cnpj = ctxValue(selected.context, 'cnpj');
+    const match = cnpj ? triageOptions.companies.find((c) => c.cnpj === cnpj) : undefined;
+    setApplyCompanyId(match?.id ?? '');
+    setApplyDepartment(''); // '' = automatic by type (routingMap)
+    setApplyMode(true);
+  }
+
+  function submitApply() {
+    if (!selected || !applyDocType) {
+      setError(copy.triage.needType);
+      return;
+    }
+    setError(null);
+    const department = applyDepartment || triageOptions.routingMap[applyDocType] || null;
+    startTransition(async () => {
+      const res = await applyTriageSuggestionAction(selected.id, {
+        docType: applyDocType,
+        companyId: applyCompanyId || null,
+        department,
+        note,
+      });
       if (res && !res.ok) setError(res.message);
       else close();
     });
@@ -119,6 +176,28 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
   const hasSuggestion = selected ? Object.keys(selected.suggestion).length > 0 : false;
   const resolvedBy = selected ? ctxValue(selected.resolution, 'resolvedBy') : null;
 
+  // A 'triage' pending with a document can be resolved by FILING the document.
+  const canApplyTriage =
+    selected?.source === 'triage' &&
+    selected.status === 'open' &&
+    Boolean(ctxValue(selected.context, 'documentId'));
+  const triageReason = selected ? ctxValue(selected.context, 'reason') : null;
+  const triageReasonLabel = triageReason
+    ? (copy.triage.reasons[triageReason] ?? triageReason)
+    : null;
+  const triageConfidence = selected ? ctxValue(selected.context, 'confidence') : null;
+  const suggestionText = selected
+    ? [
+        ctxValue(selected.suggestion, 'docType'),
+        triageConfidence !== null
+          ? copy.triage.confidence(Math.round(Number(triageConfidence) * 100))
+          : null,
+        ctxValue(selected.suggestion, 'cnpj') ? `CNPJ ${ctxValue(selected.suggestion, 'cnpj')}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
+
   // A 'rules' pending carries { domain, key } in its context — the raw material for
   // a mapping rule (T18). Only then do we offer "save as rule".
   const ruleDomain = selected ? (ctxValue(selected.context, 'domain') ?? '') : '';
@@ -141,8 +220,21 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
                 <AlertTriangle className="size-4" aria-hidden />
               </span>
             }
-            title={ctxValue(item.context, 'error') ?? sourceLabel(item.source)}
-            facts={[sourceLabel(item.source), timeAgo(item.createdAt)]}
+            title={
+              ctxValue(item.context, 'fileName') ??
+              ctxValue(item.context, 'error') ??
+              sourceLabel(item.source)
+            }
+            facts={
+              [
+                sourceLabel(item.source),
+                ctxValue(item.context, 'reason')
+                  ? (copy.triage.reasons[ctxValue(item.context, 'reason') ?? ''] ??
+                    ctxValue(item.context, 'reason'))
+                  : null,
+                timeAgo(item.createdAt),
+              ].filter(Boolean) as string[]
+            }
             trailing={
               <StatusBadge tone={STATUS[item.status].tone} label={STATUS[item.status].label} />
             }
@@ -182,6 +274,37 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
                   </button>
                 </div>
               </div>
+            ) : applyMode ? (
+              <div className="space-y-3">
+                {error ? <p className="text-danger-text text-sm">{error}</p> : null}
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder={copy.drawer.notePlaceholder}
+                  rows={2}
+                  className={inputClass}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={submitApply}
+                    disabled={pending}
+                    className={primaryButtonClass}
+                  >
+                    {pending ? copy.triage.submitting : copy.triage.submit}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setApplyMode(false);
+                      setError(null);
+                    }}
+                    className={secondaryButtonClass}
+                  >
+                    {copy.rule.cancel}
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="space-y-3">
                 {error ? <p className="text-danger-text text-sm">{error}</p> : null}
@@ -193,6 +316,16 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
                   className={inputClass}
                 />
                 <div className="flex flex-wrap gap-2">
+                  {canApplyTriage ? (
+                    <button
+                      type="button"
+                      onClick={startApply}
+                      disabled={pending}
+                      className={primaryButtonClass}
+                    >
+                      {copy.triage.apply}
+                    </button>
+                  ) : null}
                   {canMakeRule ? (
                     <button
                       type="button"
@@ -207,7 +340,9 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
                     type="button"
                     onClick={() => resolve('resolved')}
                     disabled={pending}
-                    className={canMakeRule ? secondaryButtonClass : primaryButtonClass}
+                    className={
+                      canMakeRule || canApplyTriage ? secondaryButtonClass : primaryButtonClass
+                    }
                   >
                     {pending ? copy.drawer.working : copy.drawer.resolve}
                   </button>
@@ -226,7 +361,88 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
         }
       >
         {selected ? (
-          ruleMode ? (
+          applyMode ? (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium">{copy.triage.title}</p>
+                <p className="text-muted-foreground text-xs">{copy.triage.subtitle}</p>
+              </div>
+
+              <dl className="space-y-1 text-sm">
+                <div>
+                  <dt className="text-muted-foreground text-xs">{copy.triage.file}</dt>
+                  <dd className="mt-0.5 font-medium">
+                    {ctxValue(selected.context, 'fileName') ?? '—'}
+                  </dd>
+                </div>
+                {suggestionText ? (
+                  <div>
+                    <dt className="text-muted-foreground text-xs">
+                      {copy.triage.suggestionSummary}
+                    </dt>
+                    <dd className="mt-0.5">{suggestionText}</dd>
+                  </div>
+                ) : null}
+              </dl>
+
+              <div className="space-y-1.5">
+                <label htmlFor="apply-doctype" className="text-xs font-medium">
+                  {copy.triage.docType}
+                </label>
+                <select
+                  id="apply-doctype"
+                  value={applyDocType}
+                  onChange={(e) => setApplyDocType(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">—</option>
+                  {triageOptions.taxonomy.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="apply-company" className="text-xs font-medium">
+                  {copy.triage.company}
+                </label>
+                <select
+                  id="apply-company"
+                  value={applyCompanyId}
+                  onChange={(e) => setApplyCompanyId(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">{copy.triage.companyKeep}</option>
+                  {triageOptions.companies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="apply-department" className="text-xs font-medium">
+                  {copy.triage.department}
+                </label>
+                <select
+                  id="apply-department"
+                  value={applyDepartment}
+                  onChange={(e) => setApplyDepartment(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">{copy.triage.departmentAuto}</option>
+                  {triageOptions.departments.map((d) => (
+                    <option key={d.key} value={d.key}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ) : ruleMode ? (
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium">{copy.rule.title}</p>
@@ -298,8 +514,16 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
             <dl className="space-y-3 text-sm">
               <div>
                 <dt className="text-muted-foreground text-xs">{copy.drawer.error}</dt>
-                <dd className="mt-0.5 font-medium">{errorText ?? copy.noError}</dd>
+                <dd className="mt-0.5 font-medium">
+                  {triageReasonLabel ?? errorText ?? copy.noError}
+                </dd>
               </div>
+              {ctxValue(selected.context, 'fileName') ? (
+                <div>
+                  <dt className="text-muted-foreground text-xs">{copy.triage.file}</dt>
+                  <dd className="mt-0.5">{ctxValue(selected.context, 'fileName')}</dd>
+                </div>
+              ) : null}
               <div className="flex gap-6">
                 <div>
                   <dt className="text-muted-foreground text-xs">{copy.drawer.origin}</dt>
@@ -316,7 +540,11 @@ export function ExceptionsList({ exceptions }: { exceptions: ExceptionItem[] }) 
               {hasSuggestion ? (
                 <div>
                   <dt className="text-muted-foreground text-xs">{copy.drawer.suggestion}</dt>
-                  <dd className="mt-0.5">{JSON.stringify(selected.suggestion)}</dd>
+                  <dd className="mt-0.5">
+                    {selected.source === 'triage' && suggestionText
+                      ? suggestionText
+                      : JSON.stringify(selected.suggestion)}
+                  </dd>
                 </div>
               ) : null}
 

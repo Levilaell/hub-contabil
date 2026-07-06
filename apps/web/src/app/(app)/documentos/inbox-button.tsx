@@ -134,6 +134,7 @@ export function InboxButton({ firmId }: { firmId: string }) {
           <input
             ref={fileRef}
             type="file"
+            accept=".pdf,.xml,.png,.jpg,.jpeg,.gif,.webp"
             multiple
             hidden
             onChange={(e) => void handleFiles(e.target.files)}

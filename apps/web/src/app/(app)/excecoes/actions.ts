@@ -1,7 +1,7 @@
 'use server';
 
 import { type MappingRuleLevel } from '@hub/core';
-import { resolveException, saveResolutionAsRule } from '@hub/db';
+import { applyTriageSuggestion, resolveException, saveResolutionAsRule } from '@hub/db';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
@@ -18,6 +18,27 @@ export async function resolveExceptionAction(
   if (!result.ok) return { ok: false, message: result.message };
   // 'layout' scope so the sidebar open-count badge refreshes too, not just the list.
   revalidatePath('/excecoes', 'layout');
+  return { ok: true, message: '' };
+}
+
+// Resolve a 'triage' pending by APPLYING the reviewed suggestion to the document
+// (Fase 1.1 §3): type/company/department + few-shot example + resolve, one RPC.
+export async function applyTriageSuggestionAction(
+  exceptionId: string,
+  payload: { docType: string; companyId: string | null; department: string | null; note: string },
+): Promise<ResolveActionState> {
+  if (!payload.docType) return { ok: false, message: 'Escolha o tipo do documento.' };
+  const supabase = await createClient();
+  const result = await applyTriageSuggestion(supabase, {
+    exceptionId,
+    docType: payload.docType,
+    companyId: payload.companyId,
+    department: payload.department,
+    note: payload.note || undefined,
+  });
+  if (!result.ok) return { ok: false, message: result.message };
+  revalidatePath('/excecoes', 'layout');
+  revalidatePath('/documentos');
   return { ok: true, message: '' };
 }
 

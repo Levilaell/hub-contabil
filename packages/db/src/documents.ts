@@ -107,6 +107,8 @@ export async function listDocuments(
   supabase: SupabaseClient,
   opts?: {
     companyId?: string;
+    /** Only documents not yet filed under a company (inbox/triage pending). */
+    unassigned?: boolean;
     period?: string;
     department?: string;
     docType?: string;
@@ -115,6 +117,7 @@ export async function listDocuments(
 ): Promise<DocumentItem[]> {
   let query = supabase.from('documents').select(SELECT);
   if (opts?.companyId) query = query.eq('company_id', opts.companyId);
+  if (opts?.unassigned) query = query.is('company_id', null);
   if (opts?.period) query = query.eq('period', opts.period);
   if (opts?.department) query = query.eq('department', opts.department);
   if (opts?.docType) query = query.eq('doc_type', opts.docType);

@@ -99,6 +99,7 @@ export function UploadForm({ token, bucket }: { token: string; bucket: string })
       <input
         ref={fileRef}
         type="file"
+        accept=".pdf,.xml,.png,.jpg,.jpeg,.gif,.webp"
         hidden
         onChange={(e) => void handleFile(e.target.files?.[0])}
       />

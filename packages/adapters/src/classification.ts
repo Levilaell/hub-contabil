@@ -16,8 +16,10 @@ export interface ClassificationInput {
   model: string;
   /** PDF/image bytes for vision. media XOR text. */
   media?: { mediaType: string; base64: string };
-  /** Already-extracted text (rare; most non-XML docs go through media). */
+  /** Already-extracted text (non-NF-e XML fallback and plain-text docs). */
   text?: string;
+  /** Recent human corrections (few-shot): what the firm decided for similar files. */
+  examples?: { fileName: string | null; docType: string }[];
 }
 
 export interface ClassificationResult {
@@ -90,6 +92,19 @@ export class AnthropicClassificationAdapter implements ClassificationAdapter {
       }
     }
     if (input.text) content.push({ type: 'text', text: input.text.slice(0, 20_000) });
+    // Few-shot from human corrections: the firm's own decisions steer borderline
+    // cases (golden rule #5 — resolutions feed back examples).
+    const examples = (input.examples ?? []).filter((e) => e.docType);
+    if (examples.length > 0) {
+      const lines = examples
+        .slice(0, 12)
+        .map((e) => `- ${e.fileName ? `arquivo "${e.fileName}"` : 'documento'} → ${e.docType}`)
+        .join('\n');
+      content.push({
+        type: 'text',
+        text: `Classificações anteriores confirmadas por humanos neste escritório (referência):\n${lines}`,
+      });
+    }
     content.push({
       type: 'text',
       text: `Arquivo: ${input.fileName}\nTaxonomia: ${input.taxonomy.join(', ')}\nClassifique este documento.`,

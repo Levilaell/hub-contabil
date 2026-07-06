@@ -61,6 +61,18 @@ export function createTriageHandler(
     `;
     const config = parseFirmConfig(firm?.config);
 
+    // Few-shot: the firm's own confirmed corrections steer borderline cases
+    // (golden rule #5 — human resolutions feed back examples).
+    const examples = await sql<{ doc_type: string; file_name: string | null }[]>`
+      select e.doc_type, coalesce(d.file_name, e.context->>'fileName') as file_name
+      from public.classification_examples e
+      left join public.documents d on d.id = e.document_id and d.firm_id = e.firm_id
+      where e.firm_id = ${firm_id}
+      order by e.created_at desc
+      limit 12
+    `;
+    const fewShot = examples.map((e) => ({ fileName: e.file_name, docType: e.doc_type }));
+
     // --- extract_text + classify ---
     let docType = 'other';
     let confidence = 0;
@@ -70,13 +82,26 @@ export function createTriageHandler(
       // NF-e: deterministic parser, NO LLM.
       const { data, error } = await storage.storage.from(BUCKET).download(doc.storage_path);
       if (error || !data) throw new Error(`download failed for ${doc.storage_path}`);
-      const parsed = parseNfe(await data.text());
+      const xmlText = await data.text();
+      const parsed = parseNfe(xmlText);
       if (parsed.isNfe) {
         docType = 'nfe';
         confidence = 1;
         cnpj = parsed.issuerCnpj;
+      } else {
+        // Non-NF-e XML (NFS-e, CT-e…): fall back to the LLM over the XML text
+        // instead of dumping straight to a human as "other".
+        const result = await classifier.classify({
+          taxonomy: config.taxonomy,
+          fileName: doc.file_name,
+          model: config.aiModel,
+          text: xmlText,
+          examples: fewShot,
+        });
+        docType = result.docType;
+        confidence = result.confidence;
+        cnpj = result.cnpj;
       }
-      // non-NF-e XML stays other/0 → falls to a human
     } else {
       const mediaType = mediaTypeFor(doc.file_name);
       if (mediaType) {
@@ -88,6 +113,7 @@ export function createTriageHandler(
           fileName: doc.file_name,
           model: config.aiModel,
           media: { mediaType, base64 },
+          examples: fewShot,
         });
         docType = result.docType;
         confidence = result.confidence;

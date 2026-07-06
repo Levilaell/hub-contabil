@@ -36,11 +36,14 @@ export function DocumentList({
   departmentLabels,
   classifications,
   docTypes,
+  companyNames,
 }: {
   documents: DocumentItem[];
   departmentLabels: Record<string, string>;
   classifications: Record<string, Classification>;
   docTypes: string[];
+  /** When set (firm-wide search), each row also shows its company. */
+  companyNames?: Record<string, string>;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -88,6 +91,7 @@ export function DocumentList({
           const place = [doc.period, departmentLabels[doc.department ?? ''] ?? doc.department]
             .filter(Boolean)
             .join(' · ');
+          const companyName = companyNames?.[doc.companyId ?? ''];
           const isAi = classifications[doc.id]?.decidedBy === 'ai';
           return (
             <DataListRow
@@ -99,7 +103,7 @@ export function DocumentList({
                 </span>
               }
               title={doc.fileName}
-              facts={[doc.docType, place].filter(Boolean) as string[]}
+              facts={[companyName, doc.docType, place].filter(Boolean) as string[]}
               trailing={
                 <span className="flex items-center gap-1.5">
                   {isAi ? (

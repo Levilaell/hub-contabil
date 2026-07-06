@@ -1,4 +1,5 @@
-import { listExceptions, type ExceptionStatus } from '@hub/db';
+import { parseFirmConfig } from '@hub/config';
+import { listCompanies, listExceptions, type ExceptionStatus } from '@hub/db';
 import { EmptyState, PageHeader } from '@hub/ui';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 
@@ -31,8 +32,23 @@ export default async function ExcecoesPage({
   const source = sp.source && SOURCES.includes(sp.source) ? sp.source : undefined;
 
   const supabase = await createClient();
-  const exceptions = await listExceptions(supabase, { status, source });
+  const [exceptions, companies, { data: firm }] = await Promise.all([
+    listExceptions(supabase, { status, source }),
+    listCompanies(supabase, { status: 'active' }),
+    supabase.from('firms').select('config').limit(1).single(),
+  ]);
+  const config = parseFirmConfig(firm?.config);
   const filtered = status !== 'open' || Boolean(source);
+  const triageOptions = {
+    taxonomy: [...config.taxonomy],
+    departments: config.departments.map((d) => ({ key: d.key, label: d.label })),
+    companies: companies.map((c) => ({
+      id: c.id,
+      name: c.tradeName || c.legalName,
+      cnpj: c.cnpj,
+    })),
+    routingMap: config.routingMap,
+  };
 
   return (
     <div className="space-y-6">
@@ -78,7 +94,7 @@ export default async function ExcecoesPage({
           description={filtered ? copy.empty.filteredDescription : copy.empty.description}
         />
       ) : (
-        <ExceptionsList exceptions={exceptions} />
+        <ExceptionsList exceptions={exceptions} triageOptions={triageOptions} />
       )}
     </div>
   );

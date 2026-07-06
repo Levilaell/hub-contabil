@@ -74,10 +74,18 @@ export const DEFAULT_ROUTING_MAP: Record<string, string> = {
   payslip: 'dp',
   bank_statement: 'contabil',
   card_statement: 'contabil',
+  // Fase 1.1 §3 — these three used to be unmapped, so even a HIGH-confidence
+  // classification fell to the exception queue (no_route). Contábil is the
+  // default owner (spec example: "comprovante → Contábil"); adjust per firm.
+  boleto: 'contabil',
+  payment_receipt: 'contabil',
+  spreadsheet: 'contabil',
   certificate: 'compliance',
   license: 'compliance',
   articles_of_incorporation: 'compliance',
   power_of_attorney: 'compliance',
+  // 'other' stays unmapped on purpose: an unrecognized document should always
+  // pass through a human.
 };
 
 // Allowed statuses per domain — mirrors the state machines (PLANEJAMENTO §5). Minimal; no UI in v1.
@@ -189,6 +197,16 @@ export const firmConfigSchema = z
           .string()
           .min(1)
           .default('Recebemos sua mensagem e um de nossos contadores vai te responder em breve.'),
+        // Firm-curated Q&A the assistant may answer from (Fase 1.1 §4). The
+        // assistant only uses the context + this FAQ — never invents firm policy.
+        faq: z
+          .array(
+            z.object({
+              q: z.string().min(1, { message: 'Informe a pergunta.' }),
+              a: z.string().min(1, { message: 'Informe a resposta.' }),
+            }),
+          )
+          .default([]),
       })
       .default({}),
     taxonomy: z
