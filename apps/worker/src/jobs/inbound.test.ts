@@ -94,7 +94,9 @@ describe.skipIf(!hasEnv)('inbound routing consumer (cloud dev)', () => {
   });
 
   it('files a document and pushes it into the SAME AI triage queue (inbound → triage)', async () => {
-    const inboundId = await insertInbound('whatsapp', 'document', '5513999990000', {
+    // Sender distinct from the question test below — a document now ALSO notes
+    // itself on the sender's conversation (Fase 1.1 §4).
+    const inboundId = await insertInbound('whatsapp', 'document', '5513988880000', {
       mediaId: 'MEDIA-1',
       fileName: 'nota.pdf',
     });
@@ -114,6 +116,16 @@ describe.skipIf(!hasEnv)('inbound routing consumer (cloud dev)', () => {
       select status from public.inbound_messages where id = ${inboundId}
     `;
     expect(msg?.status).toBe('routed'); // guards against double-processing on retry
+
+    // The document is visible in the sender's conversation (record only — no
+    // support job is enqueued for an attachment).
+    const [note] = await sql<{ body: string }[]>`
+      select m.body from public.support_messages m
+      join public.support_tickets t on t.id = m.ticket_id and t.firm_id = m.firm_id
+      where m.firm_id = ${FIRM} and t.contact_identifier = '5513988880000'
+        and m.direction = 'inbound' and m.author = 'client'
+    `;
+    expect(note?.body).toContain('nota.pdf');
     // The triage enqueue is the adjacent fire-and-forget call; the durable document
     // row (source='inbound') is the worker-invariant proof the routing ran. We don't
     // assert on the shared 'triage' queue because a live worker may already have

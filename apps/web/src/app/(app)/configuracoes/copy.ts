@@ -14,6 +14,10 @@ export const copy = {
   supportThresholdLabel: 'Limite de confiança do atendimento por IA',
   supportThresholdHint:
     'Abaixo deste valor a IA não responde sozinha — encaminha para um humano. Entre 0 e 1.',
+  supportFaqLabel: 'Respostas prontas (FAQ do escritório)',
+  supportFaqPlaceholder: 'Qual o horário de atendimento? | De segunda a sexta, das 8h às 18h.',
+  supportFaqHint:
+    'Uma por linha, no formato "Pergunta | Resposta". A IA usa somente estas respostas e o contexto da empresa — nunca inventa políticas do escritório.',
   save: 'Salvar',
   saving: 'Salvando…',
   saved: 'Configurações salvas.',

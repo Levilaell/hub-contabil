@@ -14,6 +14,7 @@ interface SettingsFormProps {
   aiThreshold: number;
   supportAutoReply: boolean;
   supportAiThreshold: number;
+  supportFaq: { q: string; a: string }[];
   departments: { key: string; label: string }[];
   taxonomy: string[];
   routingMap: Record<string, string>;
@@ -26,6 +27,7 @@ export function SettingsForm(props: SettingsFormProps) {
     aiThreshold,
     supportAutoReply,
     supportAiThreshold,
+    supportFaq,
     departments,
     taxonomy,
     routingMap,
@@ -111,6 +113,21 @@ export function SettingsForm(props: SettingsFormProps) {
               className={`${inputClass} max-w-28`}
             />
             <p className="text-muted-foreground text-xs">{copy.supportThresholdHint}</p>
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="supportFaq" className="text-sm font-medium">
+              {copy.supportFaqLabel}
+            </label>
+            <textarea
+              id="supportFaq"
+              name="supportFaq"
+              rows={5}
+              disabled={!canEdit}
+              defaultValue={supportFaq.map((f) => `${f.q} | ${f.a}`).join('\n')}
+              placeholder={copy.supportFaqPlaceholder}
+              className={inputClass}
+            />
+            <p className="text-muted-foreground text-xs">{copy.supportFaqHint}</p>
           </div>
         </div>
 

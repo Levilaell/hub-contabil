@@ -98,7 +98,16 @@ export function createSupportHandler(
         where id = ${message_id} and firm_id = ${firm_id}
       `;
       if (!msg || msg.delivery !== 'queued') return; // already delivered / gone
-      const res = await send(ticket.channel, ticket.contact_identifier, msg.body);
+      // Meta only accepts free-form text within 24h of the client's last message;
+      // outside the window the send WOULD fail at the API — fail it here with a
+      // clear reason instead (a paid template flow is a future decision).
+      const withinWindow = ticket.last_inbound_at
+        ? isWithin24hWindow(ticket.last_inbound_at, new Date().toISOString())
+        : false;
+      const res =
+        ticket.channel === 'whatsapp' && !withinWindow
+          ? { ok: false as const, error: 'outside_24h_window' }
+          : await send(ticket.channel, ticket.contact_identifier, msg.body);
       await sql`
         update public.support_messages
         set delivery = ${res.ok ? 'delivered' : 'failed'}, delivered_at = now(),
@@ -131,7 +140,7 @@ export function createSupportHandler(
     const answer = await assistant.answer({
       question,
       context,
-      faq: [],
+      faq: config.support.faq,
       model: config.aiModel,
     });
     const decision = decideSupportResponse({

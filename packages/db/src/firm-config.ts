@@ -12,6 +12,7 @@ export interface FirmConfigEdits {
   // working unchanged; when present they patch the support block.
   supportAutoReply?: boolean;
   supportAiThreshold?: number;
+  supportFaq?: { q: string; a: string }[];
 }
 
 export type SaveFirmConfigResult = { ok: true } | { ok: false; message: string };
@@ -39,6 +40,7 @@ export async function saveFirmConfig(
       ...current.support,
       ...(edits.supportAutoReply !== undefined ? { autoReply: edits.supportAutoReply } : {}),
       ...(edits.supportAiThreshold !== undefined ? { aiThreshold: edits.supportAiThreshold } : {}),
+      ...(edits.supportFaq !== undefined ? { faq: edits.supportFaq } : {}),
     },
   };
 

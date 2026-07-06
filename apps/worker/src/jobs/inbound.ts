@@ -59,12 +59,54 @@ async function resolveSenderCompany(
   return row?.company_id ?? null;
 }
 
+/** Open or reopen the sender's ticket (shared by question + document paths).
+ *  Mirrors core statusAfterInbound in SQL: an escalated ticket stays escalated;
+ *  anything else resurfaces as 'open'. */
+async function upsertTicket(
+  sql: Sql,
+  args: {
+    firmId: string;
+    channel: string;
+    sender: string;
+    contactName: string | null;
+    subject: string;
+    companyId: string | null;
+  },
+): Promise<string> {
+  const [ticket] = await sql<{ id: string }[]>`
+    insert into public.support_tickets
+      (firm_id, company_id, channel, contact_identifier, contact_name, subject, status, last_message_at, last_inbound_at)
+    values (${args.firmId}, ${args.companyId}, ${args.channel}, ${args.sender}, ${args.contactName},
+            ${args.subject}, 'open', now(), now())
+    on conflict (firm_id, channel, contact_identifier) do update set
+      status = case when public.support_tickets.status = 'escalated' then 'escalated' else 'open' end,
+      company_id = coalesce(public.support_tickets.company_id, excluded.company_id),
+      contact_name = coalesce(excluded.contact_name, public.support_tickets.contact_name),
+      last_message_at = now(),
+      last_inbound_at = now()
+    returning id
+  `;
+  if (!ticket) throw new Error('support ticket upsert returned no row');
+  return ticket.id;
+}
+
 /** Store an inbound attachment and enqueue AI triage (company resolved by triage
- *  from the document's own CNPJ — same path as an inbox upload, T21). */
+ *  from the document's own CNPJ — same path as an inbox upload, T21). When the
+ *  sender is known, the document is ALSO noted in their support conversation
+ *  (Fase 1.1 §4 — before this, an attachment was invisible in /atendimento). */
 export async function ingestInboundDocument(
   sql: Sql,
   storage: SupabaseClient,
-  args: { firmId: string; fileName: string; bytes: Buffer; contentType: string; channel: string },
+  args: {
+    firmId: string;
+    fileName: string;
+    bytes: Buffer;
+    contentType: string;
+    channel: string;
+    sender?: string;
+    contactName?: string | null;
+    caption?: string | null;
+  },
 ): Promise<void> {
   const json = makeJson(sql);
   const hash = createHash('sha256').update(args.bytes).digest('hex');
@@ -90,6 +132,36 @@ export async function ingestInboundDocument(
             ${json({ source: 'inbound', channel: args.channel, fileName })})
   `;
   await sql`select pgmq.send('triage', ${json({ firm_id: args.firmId, document_id: doc.id })}::jsonb)`;
+
+  // Note the document in the sender's conversation so it is visible in
+  // /atendimento. Record only — the support assistant is NOT enqueued (there is
+  // no question to answer; triage handles the file).
+  if (args.sender) {
+    const companyId = await resolveSenderCompany(sql, args.firmId, args.channel, args.sender);
+    const caption = (args.caption ?? '').trim();
+    const body = caption
+      ? `📎 Documento recebido: ${fileName}\n${caption}`
+      : `📎 Documento recebido: ${fileName} — enviado para a triagem automática.`;
+    const ticketId = await upsertTicket(sql, {
+      firmId: args.firmId,
+      channel: args.channel,
+      sender: args.sender,
+      contactName: args.contactName ?? null,
+      subject: `Documento: ${fileName}`.slice(0, 200),
+      companyId,
+    });
+    const [msg] = await sql<{ id: string }[]>`
+      insert into public.support_messages
+        (firm_id, ticket_id, direction, author, body, delivery, delivered_at)
+      values (${args.firmId}, ${ticketId}, 'inbound', 'client', ${body}, 'delivered', now())
+      returning id
+    `;
+    await sql`
+      insert into public.audit_events (firm_id, action, entity, entity_id, context)
+      values (${args.firmId}, 'support.received', 'support_ticket', ${ticketId},
+              ${json({ channel: args.channel, messageId: msg?.id ?? null, documentId: doc.id, kind: 'document' })})
+    `;
+  }
 }
 
 /** Open or reopen a support ticket for the sender, record the inbound message, and
@@ -110,37 +182,31 @@ export async function ingestInboundQuestion(
   const companyId = await resolveSenderCompany(sql, args.firmId, args.channel, args.sender);
   const subject = (args.subject ?? '').slice(0, 200) || args.text.slice(0, 80);
 
-  const [ticket] = await sql<{ id: string }[]>`
-    insert into public.support_tickets
-      (firm_id, company_id, channel, contact_identifier, contact_name, subject, status, last_message_at, last_inbound_at)
-    values (${args.firmId}, ${companyId}, ${args.channel}, ${args.sender}, ${args.contactName},
-            ${subject}, 'open', now(), now())
-    on conflict (firm_id, channel, contact_identifier) do update set
-      status = case when public.support_tickets.status = 'escalated' then 'escalated' else 'open' end,
-      company_id = coalesce(public.support_tickets.company_id, excluded.company_id),
-      contact_name = coalesce(excluded.contact_name, public.support_tickets.contact_name),
-      last_message_at = now(),
-      last_inbound_at = now()
-    returning id
-  `;
-  if (!ticket) throw new Error('support ticket upsert returned no row');
+  const ticketId = await upsertTicket(sql, {
+    firmId: args.firmId,
+    channel: args.channel,
+    sender: args.sender,
+    contactName: args.contactName,
+    subject,
+    companyId,
+  });
 
   const [msg] = await sql<{ id: string }[]>`
     insert into public.support_messages
       (firm_id, ticket_id, direction, author, body, delivery, delivered_at)
-    values (${args.firmId}, ${ticket.id}, 'inbound', 'client', ${args.text}, 'delivered', now())
+    values (${args.firmId}, ${ticketId}, 'inbound', 'client', ${args.text}, 'delivered', now())
     returning id
   `;
   if (!msg) throw new Error('support message insert returned no row');
 
   await sql`
     insert into public.audit_events (firm_id, action, entity, entity_id, context)
-    values (${args.firmId}, 'support.received', 'support_ticket', ${ticket.id},
+    values (${args.firmId}, 'support.received', 'support_ticket', ${ticketId},
             ${json({ channel: args.channel, messageId: msg.id })})
   `;
   await sql`select pgmq.send('support', ${json({
     firm_id: args.firmId,
-    ticket_id: ticket.id,
+    ticket_id: ticketId,
     message_id: msg.id,
     kind: 'inbound',
   })}::jsonb)`;
@@ -225,6 +291,9 @@ export function createInboundHandler(sql: Sql, storage: SupabaseClient, whatsapp
         bytes: media.bytes,
         contentType: media.mimeType,
         channel: row.channel,
+        sender: row.sender,
+        contactName: str(raw.contactName),
+        caption: str(raw.text),
       });
     } else if (row.kind === 'question') {
       await ingestInboundQuestion(sql, {

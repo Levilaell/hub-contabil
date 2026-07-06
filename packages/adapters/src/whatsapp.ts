@@ -272,9 +272,12 @@ export class NoopWhatsappAdapter implements WhatsappAdapter {
   downloadMedia(): Promise<WhatsappMedia> {
     return Promise.reject(new Error('whatsapp not configured: cannot download media'));
   }
+  // Fails honestly (golden rule #6): pretending success would mark the message
+  // 'delivered' while the client never receives it — a silent failure. The
+  // caller records the failure + exception, making the missing config visible.
   sendText(to: string, body: string): Promise<SendTextResult> {
-    console.log(`[whatsapp:noop] would send to ${to}: ${body.slice(0, 80)}`);
-    return Promise.resolve({ ok: true });
+    console.log(`[whatsapp:noop] NOT sending to ${to} (not configured): ${body.slice(0, 80)}`);
+    return Promise.resolve({ ok: false, error: 'whatsapp not configured' });
   }
 }
 

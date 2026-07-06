@@ -84,7 +84,8 @@ describe.skipIf(!hasEnv)('support assistant consumer (cloud dev)', () => {
   });
 
   it('delivers a queued human reply over WhatsApp and marks it delivered', async () => {
-    const ticketId = await newTicket('pending');
+    // Inside the free 24h service window (client wrote just now).
+    const ticketId = await newTicket('pending', { lastInboundAt: new Date().toISOString() });
     const messageId = await addMessage(ticketId, {
       direction: 'outbound',
       author: 'user',
@@ -105,8 +106,32 @@ describe.skipIf(!hasEnv)('support assistant consumer (cloud dev)', () => {
     expect(msg?.external_id).toBe('wamid.OUT1');
   });
 
-  it('records an exception when delivery fails — never dropped (golden rule #6)', async () => {
+  it('fails a WhatsApp reply outside the 24h window without calling Meta', async () => {
+    // last_inbound_at null = no recent client message → Meta would reject the
+    // free-form text; the handler fails it up front with a clear reason.
     const ticketId = await newTicket('pending');
+    const messageId = await addMessage(ticketId, {
+      direction: 'outbound',
+      author: 'user',
+      body: 'Resposta fora da janela.',
+      delivery: 'queued',
+    });
+
+    await createSupportHandler(sql, fakeWhatsapp({ ok: true, id: 'wamid.NEVER' }), fakeAssistant({
+      reply: '',
+      confidence: 0,
+      inScope: false,
+    }))({ firm_id: FIRM, ticket_id: ticketId, message_id: messageId, kind: 'deliver' });
+
+    const [msg] = await sql<{ delivery: string; external_id: string | null }[]>`
+      select delivery, external_id from public.support_messages where id = ${messageId}
+    `;
+    expect(msg?.delivery).toBe('failed');
+    expect(msg?.external_id).toBeNull();
+  });
+
+  it('records an exception when delivery fails — never dropped (golden rule #6)', async () => {
+    const ticketId = await newTicket('pending', { lastInboundAt: new Date().toISOString() });
     const messageId = await addMessage(ticketId, {
       direction: 'outbound',
       author: 'user',

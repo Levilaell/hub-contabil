@@ -28,6 +28,7 @@ export default async function ConfiguracoesPage() {
         aiThreshold={config.aiThreshold}
         supportAutoReply={config.support.autoReply}
         supportAiThreshold={config.support.aiThreshold}
+        supportFaq={config.support.faq}
         departments={config.departments}
         taxonomy={config.taxonomy}
         routingMap={config.routingMap}
