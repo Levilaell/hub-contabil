@@ -45,6 +45,8 @@ export const copy = {
     companyLinked: 'Vinculada a uma empresa cadastrada',
     noCompany: 'Contato ainda não vinculado a uma empresa',
     contact: 'Contato',
+    movedToPending:
+      'Resposta enviada. A conversa foi para "Aguardando cliente" — ela sai da fila padrão e volta quando o cliente responder (use o filtro Situação para encontrá-la).',
     replyPlaceholder: 'Escreva sua resposta ao cliente…',
     reply: 'Responder',
     sending: 'Enviando…',

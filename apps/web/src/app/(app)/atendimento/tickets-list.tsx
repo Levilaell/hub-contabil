@@ -43,6 +43,7 @@ export function TicketsList({
   const [messages, setMessages] = useState<SupportMessage[] | null>(null);
   const [reply, setReply] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function open(ticket: SupportTicket) {
@@ -50,11 +51,13 @@ export function TicketsList({
     setMessages(null);
     setReply('');
     setError(null);
+    setNotice(null);
     void loadSupportMessagesAction(ticket.id).then(setMessages);
   }
 
   function close() {
     setSelected(null);
+    setNotice(null);
   }
 
   function refresh(id: string) {
@@ -69,6 +72,9 @@ export function TicketsList({
       if (res && !res.ok) setError(res.message);
       else {
         setReply('');
+        // Replying moves the ticket to "Aguardando cliente" — it leaves the
+        // default queue view, so SAY it (a silent move reads as "sumiu").
+        setNotice(copy.drawer.movedToPending);
         refresh(selected.id);
       }
     });
@@ -125,6 +131,11 @@ export function TicketsList({
           selected ? (
             <div className="space-y-3">
               {error ? <p className="text-danger-text text-sm">{error}</p> : null}
+              {notice ? (
+                <p className="bg-success/10 text-success-text rounded-lg px-3 py-2 text-sm">
+                  {notice}
+                </p>
+              ) : null}
               {!isResolved ? (
                 <textarea
                   value={reply}
