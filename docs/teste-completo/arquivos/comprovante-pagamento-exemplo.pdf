@@ -1,0 +1,67 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 547 >>
+stream
+BT
+/F1 16 Tf
+50 780 Td
+(Comprovante de Pagamento - TED) Tj
+ET
+BT
+/F1 11 Tf
+50 745 Td
+16 TL
+() Tj
+T*
+(Banco Exemplo S.A.) Tj
+T*
+(Data da operacao: 05/07/2026 14:32) Tj
+T*
+(Autenticacao: 8F3A.22B1.90CD.4471) Tj
+T*
+() Tj
+T*
+(Pagador: EMPRESA TESTE HUB LTDA - CNPJ 45.723.174/0001-10) Tj
+T*
+(Agencia: 0001  Conta: 12345-6) Tj
+T*
+() Tj
+T*
+(Favorecido: DISTRIBUIDORA DE MATERIAIS ABC LTDA) Tj
+T*
+(Valor: R$ 1.234,56) Tj
+T*
+(Finalidade: pagamento de fornecedor - NF 4471) Tj
+T*
+() Tj
+T*
+(Documento gerado para TESTE do Hub Contabil - sem valor.) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000338 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+936
+%%EOF

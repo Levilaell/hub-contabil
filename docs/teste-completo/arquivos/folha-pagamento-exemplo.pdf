@@ -1,0 +1,71 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 686 >>
+stream
+BT
+/F1 16 Tf
+50 780 Td
+(Recibo de Pagamento de Salario - Julho/2026) Tj
+ET
+BT
+/F1 11 Tf
+50 745 Td
+16 TL
+() Tj
+T*
+(Empregador: EMPRESA TESTE HUB LTDA - CNPJ 45.723.174/0001-10) Tj
+T*
+(Funcionario: JOAO DA SILVA  |  Matricula: 0042) Tj
+T*
+(Cargo: Analista Administrativo  |  Admissao: 01/02/2024) Tj
+T*
+() Tj
+T*
+(Vencimentos:) Tj
+T*
+(  Salario base ................ R$ 3.500,00) Tj
+T*
+(  Horas extras \\(10h\\) .......... R$   238,64) Tj
+T*
+(Descontos:) Tj
+T*
+(  INSS ........................ R$   316,10) Tj
+T*
+(  IRRF ........................ R$    82,45) Tj
+T*
+() Tj
+T*
+(Liquido a receber: R$ 3.340,09) Tj
+T*
+() Tj
+T*
+(Documento gerado para TESTE do Hub Contabil - sem valor.) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000338 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1075
+%%EOF

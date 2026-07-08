@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+  <NFe>
+    <infNFe Id="NFe35260799887766000105550010001195972148820519" versao="4.00">
+      <ide>
+        <cUF>35</cUF>
+        <natOp>VENDA DE MERCADORIA</natOp>
+        <mod>55</mod>
+        <serie>1</serie>
+        <nNF>119597</nNF>
+        <dhEmi>2026-07-03T15:20:00-03:00</dhEmi>
+      </ide>
+      <emit>
+        <CNPJ>99887766000105</CNPJ>
+        <xNome>FORNECEDOR EXEMPLO COMERCIO LTDA</xNome>
+        <enderEmit><xMun>SAO PAULO</xMun><UF>SP</UF></enderEmit>
+      </emit>
+      <dest>
+        <CNPJ>45723174000110</CNPJ>
+        <xNome>EMPRESA TESTE HUB LTDA</xNome>
+      </dest>
+      <det nItem="1">
+        <prod>
+          <cProd>003</cProd>
+          <xProd>PRODUTO SUJEITO A SUBSTITUICAO TRIBUTARIA - LOTE 2</xProd>
+          <CFOP>5405</CFOP>
+          <vProd>720.00</vProd>
+        </prod>
+      </det>
+      <total><ICMSTot><vNF>720.00</vNF></ICMSTot></total>
+    </infNFe>
+  </NFe>
+</nfeProc>

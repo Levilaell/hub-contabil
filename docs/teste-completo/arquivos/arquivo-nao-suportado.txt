@@ -1,0 +1,2 @@
+Este arquivo .txt existe para testar o caminho de excecao da triagem:
+a IA nao processa .txt, entao ele deve cair na fila de Excecoes.

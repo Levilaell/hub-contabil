@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CompNfse xmlns="http://www.abrasf.org.br/nfse.xsd">
+  <Nfse>
+    <InfNfse>
+      <Numero>2026000123</Numero>
+      <DataEmissao>2026-07-02</DataEmissao>
+      <PrestadorServico>
+        <IdentificacaoPrestador>
+          <Cnpj>45723174000110</Cnpj>
+          <InscricaoMunicipal>123456</InscricaoMunicipal>
+        </IdentificacaoPrestador>
+        <RazaoSocial>EMPRESA TESTE HUB LTDA</RazaoSocial>
+      </PrestadorServico>
+      <Servico>
+        <Discriminacao>Servicos de consultoria em tecnologia da informacao prestados em julho de 2026</Discriminacao>
+        <Valores><ValorServicos>5000.00</ValorServicos><ValorIss>100.00</ValorIss></Valores>
+        <ItemListaServico>1.06</ItemListaServico>
+      </Servico>
+      <Tomador>
+        <RazaoSocial>CLIENTE EXEMPLO SA</RazaoSocial>
+      </Tomador>
+    </InfNfse>
+  </Nfse>
+</CompNfse>
