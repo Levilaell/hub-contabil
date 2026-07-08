@@ -47,6 +47,8 @@ export const copy = {
     contact: 'Contato',
     movedToPending:
       'Resposta enviada. A conversa foi para "Aguardando cliente" — ela sai da fila padrão e volta quando o cliente responder (use o filtro Situação para encontrá-la).',
+    outsideWindow:
+      '⏳ Janela de 24h do WhatsApp expirada — a resposta só será entregue depois que o cliente mandar uma nova mensagem.',
     replyPlaceholder: 'Escreva sua resposta ao cliente…',
     reply: 'Responder',
     sending: 'Enviando…',

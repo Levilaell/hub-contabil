@@ -23,6 +23,14 @@ function channelLabel(channel: string): string {
   return copy.channels[channel] ?? channel;
 }
 
+// Meta only delivers free-form text within 24h of the client's LAST message.
+// Warn BEFORE the send — a silent post-send failure reads as a system bug.
+function isOutside24hWindow(ticket: SupportTicket): boolean {
+  if (ticket.channel !== 'whatsapp') return false;
+  if (!ticket.lastInboundAt) return true;
+  return Date.now() - new Date(ticket.lastInboundAt).getTime() > 24 * 60 * 60 * 1000;
+}
+
 function timeAgo(iso: string): string {
   const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (min < 1) return 'agora';
@@ -91,6 +99,7 @@ export function TicketsList({
   }
 
   const isResolved = selected?.status === 'resolved';
+  const outsideWindow = selected !== null && isOutside24hWindow(selected);
 
   return (
     <>
@@ -134,6 +143,11 @@ export function TicketsList({
               {notice ? (
                 <p className="bg-success/10 text-success-text rounded-lg px-3 py-2 text-sm">
                   {notice}
+                </p>
+              ) : null}
+              {!isResolved && outsideWindow ? (
+                <p className="bg-warning/10 text-warning-text rounded-lg px-3 py-2 text-sm">
+                  {copy.drawer.outsideWindow}
                 </p>
               ) : null}
               {!isResolved ? (
