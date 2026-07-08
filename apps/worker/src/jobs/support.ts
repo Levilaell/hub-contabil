@@ -235,11 +235,13 @@ export function createSupportHandler(
     }
 
     // escalate: a human must take over. Acknowledge the client only inside the free
-    // 24h service window (outside it a paid template would be required — skip).
+    // 24h service window (outside it a paid template would be required — skip) and
+    // only on the TRANSITION into escalated — an already-escalated conversation
+    // would otherwise repeat the ack on every new client message (partner feedback).
     const within = ticket.last_inbound_at
       ? isWithin24hWindow(ticket.last_inbound_at, new Date().toISOString())
       : false;
-    if (within && config.support.escalationMessage) {
+    if (within && config.support.escalationMessage && ticket.status !== 'escalated') {
       const res = await send(ticket.channel, ticket.contact_identifier, config.support.escalationMessage);
       await sql`
         insert into public.support_messages

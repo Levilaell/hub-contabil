@@ -191,6 +191,29 @@ describe.skipIf(!hasEnv)('support assistant consumer (cloud dev)', () => {
     expect(audit.length).toBe(1);
   });
 
+  it('does NOT repeat the escalation ack on an already-escalated conversation', async () => {
+    await setSupportConfig({ autoReply: false });
+    const ticketId = await newTicket('escalated', { lastInboundAt: new Date().toISOString() });
+    const messageId = await addMessage(ticketId, {
+      direction: 'inbound',
+      author: 'client',
+      body: 'Alguém aí?',
+      delivery: 'delivered',
+    });
+
+    await createSupportHandler(sql, fakeWhatsapp({ ok: true }), fakeAssistant({
+      reply: '',
+      confidence: 0,
+      inScope: false,
+    }))({ firm_id: FIRM, ticket_id: ticketId, message_id: messageId, kind: 'inbound' });
+
+    const outbound = await sql<{ n: number }[]>`
+      select count(*)::int as n from public.support_messages
+      where firm_id = ${FIRM} and ticket_id = ${ticketId} and direction = 'outbound'
+    `;
+    expect(outbound[0]?.n).toBe(0); // no second "Recebemos sua mensagem…"
+  });
+
   it('lets the AI answer when auto-reply is ON, in-scope and confident', async () => {
     await setSupportConfig({ autoReply: true, aiThreshold: 0.5 });
     const ticketId = await newTicket('open', { lastInboundAt: new Date().toISOString() });
