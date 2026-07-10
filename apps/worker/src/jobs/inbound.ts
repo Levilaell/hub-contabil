@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import type { WhatsappAdapter } from '@hub/adapters';
-import { normalizeInboundPhone } from '@hub/core';
+import { brazilPhoneKey, brazilPhoneMatches, normalizeInboundPhone } from '@hub/core';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Sql } from 'postgres';
 
@@ -32,7 +32,12 @@ function safeFileName(name: string): string {
   return cleaned.length ? cleaned : 'arquivo';
 }
 
-/** Resolve which company a sender belongs to (phone/e-mail → contact → company). */
+/** Resolve which company a sender belongs to (phone/e-mail → contact → company).
+ *  Phones are matched format-tolerantly (brazilPhoneMatches): the wa_id always
+ *  carries the 55 country code and may LACK the mobile ninth digit, while the saved
+ *  contact is free text ("(13) 99999-0000"). SQL narrows candidates by the last 8
+ *  digits — the only part stable across every prefix variation — and the core
+ *  function confirms the DDD. */
 async function resolveSenderCompany(
   sql: Sql,
   firmId: string,
@@ -41,6 +46,19 @@ async function resolveSenderCompany(
 ): Promise<string | null> {
   if (!sender) return null;
   if (channel === 'whatsapp') {
+    const key = brazilPhoneKey(sender);
+    if (key) {
+      const rows = await sql<{ company_id: string; phone: string | null }[]>`
+        select company_id, phone from public.contacts
+        where firm_id = ${firmId}
+          and company_id is not null
+          and right(regexp_replace(coalesce(phone, ''), '\\D', '', 'g'), 8) = ${key.last8}
+        order by is_primary desc, created_at
+      `;
+      const match = rows.find((r) => r.phone && brazilPhoneMatches(sender, r.phone));
+      return match?.company_id ?? null;
+    }
+    // Sender not readable as a Brazilian number — exact digit equality as before.
     const digits = normalizeInboundPhone(sender);
     const [row] = await sql<{ company_id: string }[]>`
       select company_id from public.contacts

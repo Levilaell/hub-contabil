@@ -133,7 +133,9 @@ describe.skipIf(!hasEnv)('inbound routing consumer (cloud dev)', () => {
   });
 
   it('opens a support ticket for a text question and enqueues the assistant (inbound → support)', async () => {
-    // A contact lets the sender resolve to a known company.
+    // A contact lets the sender resolve to a known company. The phone is saved the
+    // way people actually type it — formatted, NO country code — while the wa_id
+    // arrives as 55 + digits; the match must tolerate the difference.
     const [company] = await sql<{ id: string }[]>`
       insert into public.companies
         ${sql({ firm_id: FIRM, cnpj: '11222333000181', legal_name: 'Cliente Vinculado LTDA' })}
@@ -141,7 +143,7 @@ describe.skipIf(!hasEnv)('inbound routing consumer (cloud dev)', () => {
     `;
     await sql`
       insert into public.contacts
-        ${sql({ firm_id: FIRM, company_id: company!.id, name: 'Contato', phone: '+55 (13) 99999-0000' })}
+        ${sql({ firm_id: FIRM, company_id: company!.id, name: 'Contato', phone: '(13) 99999-0000' })}
     `;
 
     const inboundId = await insertInbound(
@@ -180,6 +182,36 @@ describe.skipIf(!hasEnv)('inbound routing consumer (cloud dev)', () => {
       where firm_id = ${FIRM} and entity_id = ${ticket!.id} and action = 'support.received'
     `;
     expect(audit.length).toBe(1);
+  });
+
+  it('resolves the company when the wa_id lacks the mobile ninth digit', async () => {
+    // WhatsApp accounts created before the ninth-digit rollout still send a 12-digit
+    // wa_id (55 + DDD + 8), while the contact is saved with the 9.
+    const [company] = await sql<{ id: string }[]>`
+      insert into public.companies
+        ${sql({ firm_id: FIRM, cnpj: '11444777000161', legal_name: 'Cliente Nono Digito LTDA' })}
+      returning id
+    `;
+    await sql`
+      insert into public.contacts
+        ${sql({ firm_id: FIRM, company_id: company!.id, name: 'Contato Antigo', phone: '+55 (13) 98888-7777' })}
+    `;
+
+    await ingestInboundQuestion(sql, {
+      firmId: FIRM,
+      channel: 'whatsapp',
+      sender: '551388887777',
+      contactName: 'Cliente Antigo',
+      subject: null,
+      text: 'Consegue me enviar a guia?',
+    });
+    await drainQueue('support');
+
+    const [ticket] = await sql<{ company_id: string | null }[]>`
+      select company_id from public.support_tickets
+      where firm_id = ${FIRM} and contact_identifier = '551388887777'
+    `;
+    expect(ticket?.company_id).toBe(company!.id);
   });
 
   it('reopens a resolved ticket but keeps an escalated one escalated', async () => {

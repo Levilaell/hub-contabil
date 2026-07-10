@@ -59,6 +59,55 @@ export function normalizeInboundPhone(raw: string): string {
   return raw.replace(/\D/g, '');
 }
 
+export interface BrazilPhoneKey {
+  /** Area code (DDD), or null when the number was saved without one. */
+  ddd: string | null;
+  /** Last 8 subscriber digits — stable across every prefix variation. */
+  last8: string;
+}
+
+/**
+ * Canonical comparison key for a Brazilian phone number, tolerant to how people
+ * actually type them: formatting (+, parens, dashes, dots, spaces), the international
+ * dialing prefix (00), the country code (55), the carrier trunk zero before the DDD,
+ * and the mobile ninth digit — WhatsApp wa_ids of accounts created before the
+ * ninth-digit rollout still omit it. `last8` survives all of those because every
+ * variation is a PREFIX; the DDD is kept separately so numbers that only share the
+ * line don't match across area codes. Returns null when the digits can't be read as
+ * a Brazilian number (too short/long after stripping, or an impossible DDD) —
+ * callers should then fall back to exact digit equality.
+ */
+export function brazilPhoneKey(raw: string): BrazilPhoneKey | null {
+  let digits = raw.replace(/\D/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  // Country code only when enough digits remain for DDD + line; an 11-digit
+  // number starting with 55 is a DDD-55 (RS) mobile, not a country code.
+  if (digits.length >= 12 && digits.startsWith('55')) digits = digits.slice(2);
+  if ((digits.length === 11 || digits.length === 12) && digits.startsWith('0')) {
+    digits = digits.slice(1);
+  }
+  if (digits.length < 8 || digits.length > 11) return null;
+  const ddd = digits.length >= 10 ? digits.slice(0, 2) : null;
+  if (ddd && !/^[1-9][1-9]$/.test(ddd)) return null; // no Brazilian DDD contains 0
+  return { ddd, last8: digits.slice(-8) };
+}
+
+/**
+ * Whether two phone numbers refer to the same Brazilian line. A missing DDD on
+ * either side matches any DDD (a contact saved as "99999-0000" still resolves);
+ * when neither side parses as Brazilian, falls back to exact digit equality.
+ */
+export function brazilPhoneMatches(a: string, b: string): boolean {
+  const keyA = brazilPhoneKey(a);
+  const keyB = brazilPhoneKey(b);
+  if (!keyA || !keyB) {
+    const digitsA = normalizeInboundPhone(a);
+    return digitsA.length > 0 && digitsA === normalizeInboundPhone(b);
+  }
+  if (keyA.last8 !== keyB.last8) return false;
+  return !keyA.ddd || !keyB.ddd || keyA.ddd === keyB.ddd;
+}
+
 /**
  * E-mail identifier from a possibly display-name-wrapped From header
  * ("Fulano <f@x.com>" → "f@x.com"), lowercased and trimmed.
