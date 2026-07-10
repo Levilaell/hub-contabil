@@ -214,6 +214,63 @@ describe.skipIf(!hasEnv)('inbound routing consumer (cloud dev)', () => {
     expect(ticket?.company_id).toBe(company!.id);
   });
 
+  it('re-points the ticket when the contact moves to another company', async () => {
+    // Real case: a contact registered under two companies got his ticket stuck on
+    // the first resolution; after removing him from the wrong company the AI kept
+    // answering as that company. The ticket must follow the CURRENT registration.
+    const [wrongCo] = await sql<{ id: string }[]>`
+      insert into public.companies
+        ${sql({ firm_id: FIRM, cnpj: '11777888000155', legal_name: 'Empresa Errada LTDA' })}
+      returning id
+    `;
+    const [rightCo] = await sql<{ id: string }[]>`
+      insert into public.companies
+        ${sql({ firm_id: FIRM, cnpj: '11999000000144', legal_name: 'Empresa Certa LTDA' })}
+      returning id
+    `;
+    const [contact] = await sql<{ id: string }[]>`
+      insert into public.contacts
+        ${sql({ firm_id: FIRM, company_id: wrongCo!.id, name: 'Contato Móvel', phone: '(13) 97777-6666' })}
+      returning id
+    `;
+
+    await ingestInboundQuestion(sql, {
+      firmId: FIRM,
+      channel: 'whatsapp',
+      sender: '5513977776666',
+      contactName: 'Contato Móvel',
+      subject: null,
+      text: 'Oi, tudo bem?',
+    });
+    await drainQueue('support');
+
+    const [before] = await sql<{ company_id: string | null }[]>`
+      select company_id from public.support_tickets
+      where firm_id = ${FIRM} and contact_identifier = '5513977776666'
+    `;
+    expect(before?.company_id).toBe(wrongCo!.id);
+
+    // The firm fixes the registration (contact belongs to the OTHER company)…
+    await sql`update public.contacts set company_id = ${rightCo!.id} where id = ${contact!.id}`;
+
+    // …and the very next message re-points the ticket.
+    await ingestInboundQuestion(sql, {
+      firmId: FIRM,
+      channel: 'whatsapp',
+      sender: '5513977776666',
+      contactName: 'Contato Móvel',
+      subject: null,
+      text: 'Qual a situação da minha empresa?',
+    });
+    await drainQueue('support');
+
+    const [after] = await sql<{ company_id: string | null }[]>`
+      select company_id from public.support_tickets
+      where firm_id = ${FIRM} and contact_identifier = '5513977776666'
+    `;
+    expect(after?.company_id).toBe(rightCo!.id);
+  });
+
   it('reopens a resolved ticket but keeps an escalated one escalated', async () => {
     // First message opens it.
     await ingestInboundQuestion(sql, {

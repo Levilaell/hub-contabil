@@ -79,7 +79,10 @@ async function resolveSenderCompany(
 
 /** Open or reopen the sender's ticket (shared by question + document paths).
  *  Mirrors core statusAfterInbound in SQL: an escalated ticket stays escalated;
- *  anything else resurfaces as 'open'. */
+ *  anything else resurfaces as 'open'. The company follows the CURRENT contact
+ *  registration: a fresh resolution wins so moving/removing the contact re-points
+ *  the ticket on the next message (nothing else writes ticket.company_id — there
+ *  is no manual link in /atendimento); an unresolved sender keeps the last one. */
 async function upsertTicket(
   sql: Sql,
   args: {
@@ -98,7 +101,7 @@ async function upsertTicket(
             ${args.subject}, 'open', now(), now())
     on conflict (firm_id, channel, contact_identifier) do update set
       status = case when public.support_tickets.status = 'escalated' then 'escalated' else 'open' end,
-      company_id = coalesce(public.support_tickets.company_id, excluded.company_id),
+      company_id = coalesce(excluded.company_id, public.support_tickets.company_id),
       contact_name = coalesce(excluded.contact_name, public.support_tickets.contact_name),
       last_message_at = now(),
       last_inbound_at = now()
