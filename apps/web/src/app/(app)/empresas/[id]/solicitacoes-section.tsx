@@ -1,13 +1,20 @@
 'use client';
 
 import { docTypeLabel } from '@hub/config';
+import type { RequestKind } from '@hub/core';
 import type { DocumentRequest } from '@hub/db';
-import { ConfirmDialog, StatusBadge, toast, type StatusTone } from '@hub/ui';
-import { Check, Copy, Plus, X } from 'lucide-react';
+import { StatusBadge, type StatusTone } from '@hub/ui';
+import { Check, Copy, Plus } from 'lucide-react';
 import { useState, useTransition, type FormEvent, type ReactNode } from 'react';
 
+import { RequestDrawer } from '../../solicitacoes/request-drawer';
 import { copy, inputClass, primaryButtonClass, secondaryButtonClass } from '../copy';
-import { cancelRequestAction, createRequestAction } from './solicitacoes-actions';
+import { createRequestAction } from './solicitacoes-actions';
+
+// Company-page requests, split by kind into two tabs (T31, decision #4):
+// 'upload_request' lives in "Solicitações", 'document_offer' in "Envios" —
+// separate flows, separate lists, full control of each. Rows open the same
+// detail drawer as the global /solicitacoes screen (send/copy/cancel).
 
 interface DocOption {
   id: string;
@@ -90,6 +97,7 @@ function CreatedLink({ token, onReset }: { token: string; onReset: () => void })
 
 function RequestForm({
   companyId,
+  kind,
   companyDocs,
   docTypes,
   defaultExpiryDays,
@@ -97,13 +105,13 @@ function RequestForm({
   onCancel,
 }: {
   companyId: string;
+  kind: RequestKind;
   companyDocs: DocOption[];
   docTypes: string[];
   defaultExpiryDays: number;
   onCreated: (token: string) => void;
   onCancel: () => void;
 }) {
-  const [kind, setKind] = useState<'upload_request' | 'document_offer'>('upload_request');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -123,27 +131,19 @@ function RequestForm({
 
   return (
     <form onSubmit={handleSubmit} className="bg-background space-y-3 rounded-lg border p-4">
-      <Field label={copy.solicitacoes.kind} htmlFor="kind">
-        <select
-          id="kind"
-          name="kind"
-          value={kind}
-          onChange={(e) => setKind(e.target.value as typeof kind)}
-          className={inputClass}
-        >
-          <option value="upload_request">{copy.solicitacoes.kindUpload}</option>
-          <option value="document_offer" disabled={!canOffer}>
-            {copy.solicitacoes.kindOffer}
-          </option>
-        </select>
-      </Field>
+      {/* The tab decides the kind (T31) — no kind select inside the form. */}
+      <input type="hidden" name="kind" value={kind} />
 
       <Field label={copy.solicitacoes.title} htmlFor="title">
         <input
           id="title"
           name="title"
           required
-          placeholder={copy.solicitacoes.titlePlaceholder}
+          placeholder={
+            kind === 'upload_request'
+              ? copy.solicitacoes.titlePlaceholder
+              : copy.solicitacoes.titlePlaceholderOffer
+          }
           className={inputClass}
         />
       </Field>
@@ -208,7 +208,11 @@ function RequestForm({
       {error ? <p className="text-danger-text text-sm">{error}</p> : null}
 
       <div className="flex gap-2">
-        <button type="submit" disabled={pending} className={primaryButtonClass}>
+        <button
+          type="submit"
+          disabled={pending || (kind === 'document_offer' && !canOffer)}
+          className={primaryButtonClass}
+        >
           {pending ? copy.solicitacoes.creating : copy.solicitacoes.create}
         </button>
         <button type="button" onClick={onCancel} className={secondaryButtonClass}>
@@ -219,68 +223,49 @@ function RequestForm({
   );
 }
 
-function RequestRow({ companyId, request }: { companyId: string; request: DocumentRequest }) {
-  const [cancelling, startCancel] = useTransition();
-  const [confirmOpen, setConfirmOpen] = useState(false);
+function RequestRow({ request, onOpen }: { request: DocumentRequest; onOpen: () => void }) {
   const isOpen = OPEN_STATUSES.includes(request.status);
-
-  function handleCancel() {
-    startCancel(async () => {
-      await cancelRequestAction(request.id, companyId);
-      setConfirmOpen(false);
-      toast.success(copy.solicitacoes.cancelled);
-    });
-  }
+  const fact =
+    request.kind === 'upload_request'
+      ? request.requestedDocType
+        ? docTypeLabel(request.requestedDocType)
+        : copy.solicitacoes.docTypeAny
+      : null;
 
   return (
-    <li className="flex items-center gap-3 p-4">
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{request.title}</span>
-        <span className="text-muted-foreground mt-0.5 block truncate text-xs">
-          {request.kind === 'upload_request'
-            ? copy.solicitacoes.kindUpload
-            : copy.solicitacoes.kindOffer}
-          {isOpen ? ` · ${copy.solicitacoes.expiresIn(daysUntil(request.expiresAt))}` : ''}
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="hover:bg-accent flex w-full items-center gap-3 p-4 text-left transition-colors"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{request.title}</span>
+          <span className="text-muted-foreground mt-0.5 block truncate text-xs">
+            {[fact, isOpen ? copy.solicitacoes.expiresIn(daysUntil(request.expiresAt)) : null]
+              .filter(Boolean)
+              .join(' · ') || copy.solicitacoes.openDetail}
+          </span>
         </span>
-      </span>
-      <StatusBadge
-        tone={TONE[request.status] ?? 'muted'}
-        label={copy.solicitacoes.status[request.status] ?? request.status}
-      />
-      {isOpen ? (
-        <button
-          type="button"
-          onClick={() => setConfirmOpen(true)}
-          disabled={cancelling}
-          aria-label={copy.solicitacoes.cancelRequest}
-          className="text-muted-foreground hover:text-danger-text rounded-md p-1.5 disabled:opacity-60"
-        >
-          <X className="size-4" aria-hidden />
-        </button>
-      ) : null}
-      <ConfirmDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        title={copy.solicitacoes.cancelTitle}
-        description={copy.solicitacoes.cancelConfirm}
-        confirmLabel={copy.solicitacoes.cancelRequest}
-        cancelLabel={copy.dialogBack}
-        tone="danger"
-        pending={cancelling}
-        onConfirm={handleCancel}
-      />
+        <StatusBadge
+          tone={TONE[request.status] ?? 'muted'}
+          label={copy.solicitacoes.status[request.status] ?? request.status}
+        />
+      </button>
     </li>
   );
 }
 
 export function SolicitacoesSection({
   companyId,
+  kind,
   requests,
   companyDocs,
   docTypes,
   defaultExpiryDays,
 }: {
   companyId: string;
+  kind: RequestKind;
   requests: DocumentRequest[];
   companyDocs: DocOption[];
   docTypes: string[];
@@ -288,6 +273,10 @@ export function SolicitacoesSection({
 }) {
   const [mode, setMode] = useState<'list' | 'new'>('list');
   const [createdToken, setCreatedToken] = useState<string | null>(null);
+  const [selected, setSelected] = useState<DocumentRequest | null>(null);
+
+  const isUpload = kind === 'upload_request';
+  const items = requests.filter((r) => r.kind === kind);
 
   return (
     <div className="space-y-4">
@@ -296,7 +285,7 @@ export function SolicitacoesSection({
           {mode !== 'new' ? (
             <button type="button" onClick={() => setMode('new')} className={secondaryButtonClass}>
               <Plus className="size-4" aria-hidden />
-              {copy.solicitacoes.add}
+              {isUpload ? copy.solicitacoes.add : copy.solicitacoes.addOffer}
             </button>
           ) : null}
         </div>
@@ -313,6 +302,7 @@ export function SolicitacoesSection({
       ) : mode === 'new' ? (
         <RequestForm
           companyId={companyId}
+          kind={kind}
           companyDocs={companyDocs}
           docTypes={docTypes}
           defaultExpiryDays={defaultExpiryDays}
@@ -324,18 +314,24 @@ export function SolicitacoesSection({
         />
       ) : null}
 
-      {requests.length === 0 && mode !== 'new' && !createdToken ? (
+      {items.length === 0 && mode !== 'new' && !createdToken ? (
         <div className="rounded-xl border border-dashed px-6 py-10 text-center">
-          <p className="text-sm font-medium">{copy.solicitacoes.empty}</p>
-          <p className="text-muted-foreground mt-1 text-sm">{copy.solicitacoes.emptyHint}</p>
+          <p className="text-sm font-medium">
+            {isUpload ? copy.solicitacoes.empty : copy.solicitacoes.emptyOffer}
+          </p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {isUpload ? copy.solicitacoes.emptyHint : copy.solicitacoes.emptyOfferHint}
+          </p>
         </div>
-      ) : requests.length > 0 ? (
+      ) : items.length > 0 ? (
         <ul className="divide-border bg-card divide-y overflow-hidden rounded-xl border">
-          {requests.map((request) => (
-            <RequestRow key={request.id} companyId={companyId} request={request} />
+          {items.map((request) => (
+            <RequestRow key={request.id} request={request} onOpen={() => setSelected(request)} />
           ))}
         </ul>
       ) : null}
+
+      {selected ? <RequestDrawer request={selected} onClose={() => setSelected(null)} /> : null}
     </div>
   );
 }

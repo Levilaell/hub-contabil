@@ -159,7 +159,7 @@ Largest package — write a 1-page spec for approval before implementing: determ
 1. Atendimento by department: real access restriction (RLS, like tasks) or filter-only? (T33)
 2. Deactivating a recurring template: also cancel the period's still-open instances, or keep them? (post-T28 follow-up)
 3. List filters default-open vs. current UX rule #8 — or middle ground (search always visible, advanced collapsed, as Documents does today)?
-4. How to separate "solicitações de documentos" from "envios de documentos" in the UI (tabs? sections? separate lists)? (T31)
+4. ~~How to separate "solicitações de documentos" from "envios de documentos" in the UI?~~ **Decided 11/07: a separate tab** ("Envios") on the company page — full separation for control over each flow. Implemented in T31.
 
 ---
 

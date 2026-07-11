@@ -1,10 +1,13 @@
 'use server';
 
-import { buildRequestEmail } from '@hub/core';
+import { buildRequestEmail, isRequestKind } from '@hub/core';
 import {
   cancelDocumentRequest,
+  createDocumentRequest,
   getRequestByToken,
   getSuggestedRecipientEmail,
+  listContacts,
+  listDocuments,
   listRequestEvents,
   markRequestSent,
   rotateRequestToken,
@@ -106,4 +109,74 @@ export async function cancelRequestAction(requestId: string): Promise<void> {
 export async function loadRequestEventsAction(requestId: string): Promise<RequestEvent[]> {
   const supabase = await createClient();
   return listRequestEvents(supabase, requestId);
+}
+
+// ---- T31: contact picker + create from the global page --------------------
+
+export interface SendContext {
+  contacts: { name: string; email: string }[];
+  suggestedEmail: string | null;
+}
+
+/** The company's e-mail contacts + the department-routed suggestion, so the
+ *  send drawer offers a picker instead of a blind free-text field. */
+export async function loadSendContextAction(
+  requestId: string,
+  companyId: string,
+): Promise<SendContext> {
+  const supabase = await createClient();
+  const [contacts, suggestedEmail] = await Promise.all([
+    listContacts(supabase, companyId),
+    getSuggestedRecipientEmail(supabase, requestId, companyId),
+  ]);
+  return {
+    contacts: contacts
+      .filter((c) => Boolean(c.email))
+      .map((c) => ({ name: c.name, email: c.email as string })),
+    suggestedEmail,
+  };
+}
+
+/** The company's documents, for the "disponibilizar documento" select when
+ *  creating from the global page (company picked at runtime). */
+export async function loadCompanyDocsAction(
+  companyId: string,
+): Promise<{ id: string; fileName: string }[]> {
+  const supabase = await createClient();
+  const docs = await listDocuments(supabase, { companyId });
+  return docs.map((d) => ({ id: d.id, fileName: d.fileName }));
+}
+
+export type CreateResult = { ok: true; token: string } | { ok: false; message: string };
+
+export async function createRequestGlobalAction(
+  _prev: CreateResult | null,
+  formData: FormData,
+): Promise<CreateResult> {
+  const supabase = await createClient();
+  const field = (key: string) => {
+    const v = formData.get(key);
+    return typeof v === 'string' ? v.trim() : '';
+  };
+
+  const companyId = field('companyId');
+  if (!companyId) return { ok: false, message: 'Escolha a empresa.' };
+  const kind = field('kind');
+  if (!isRequestKind(kind)) return { ok: false, message: 'Tipo inválido.' };
+
+  // expiryDays omitted → createDocumentRequest falls back to the firm config default.
+  const expiry = Number(field('expiryDays'));
+  const result = await createDocumentRequest(supabase, {
+    companyId,
+    kind,
+    title: field('title'),
+    description: field('description') || undefined,
+    documentId: field('documentId') || null,
+    requestedDocType: field('requestedDocType') || null,
+    ...(Number.isFinite(expiry) && expiry > 0 ? { expiryDays: expiry } : {}),
+  });
+  if (!result.ok) return { ok: false, message: result.message };
+
+  revalidatePath('/solicitacoes');
+  return { ok: true, token: result.token };
 }

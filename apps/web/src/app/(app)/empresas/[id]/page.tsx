@@ -46,6 +46,9 @@ const TABS = [
   { key: 'documentos', label: copy.detail.tabs.documentos, enabled: true },
   { key: 'prazos', label: copy.detail.tabs.prazos, enabled: true },
   { key: 'solicitacoes', label: copy.detail.tabs.solicitacoes, enabled: true },
+  // Envios = document_offer requests (guias, CNDs…), split from solicitações
+  // per decision #4 (T31) so each flow is tracked on its own.
+  { key: 'envios', label: copy.detail.tabs.envios, enabled: true },
   // CFOP mapping rules are firm-wide (T19) → managed in /regras, not per company.
 ] as const;
 
@@ -375,9 +378,10 @@ export default async function EmpresaDetailPage({
         />
       ) : null}
 
-      {tab === 'solicitacoes' ? (
+      {tab === 'solicitacoes' || tab === 'envios' ? (
         <SolicitacoesSection
           companyId={id}
+          kind={tab === 'envios' ? 'document_offer' : 'upload_request'}
           requests={requests}
           companyDocs={companyDocs.map((d) => ({ id: d.id, fileName: d.fileName }))}
           docTypes={[...config.taxonomy]}
