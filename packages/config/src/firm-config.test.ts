@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseFirmConfig, validateFirmConfig } from './firm-config';
+import {
+  DEFAULT_TAXONOMY,
+  docTypeLabel,
+  parseFirmConfig,
+  validateFirmConfig,
+} from './firm-config';
 
 describe('parseFirmConfig', () => {
   it('fills full defaults for an empty (freshly seeded) config', () => {
@@ -46,5 +51,22 @@ describe('validateFirmConfig', () => {
     if (!result.success) {
       expect(result.message).toBe('O limite de confiança deve estar entre 0 e 1.');
     }
+  });
+});
+
+describe('docTypeLabel', () => {
+  it('maps every default taxonomy key to a pt-BR label (no raw keys in the UI)', () => {
+    for (const key of DEFAULT_TAXONOMY) {
+      const label = docTypeLabel(key);
+      expect(label).not.toBe(key); // never the raw key
+      expect(label.length).toBeGreaterThan(0);
+    }
+    expect(docTypeLabel('bank_statement')).toBe('Extrato bancário');
+    expect(docTypeLabel('nfe')).toBe('NF-e');
+  });
+
+  it('prettifies unknown firm-added keys instead of showing snake_case', () => {
+    expect(docTypeLabel('guia_condominio')).toBe('Guia condominio');
+    expect(docTypeLabel('')).toBe('');
   });
 });

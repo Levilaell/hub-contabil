@@ -285,7 +285,14 @@ export async function listCompanies(
   if (search) {
     // Strip characters that would break the PostgREST `or` filter grammar.
     const term = search.replace(/[,()%*]/g, ' ').trim();
-    if (term) query = query.or(`legal_name.ilike.%${term}%,trade_name.ilike.%${term}%`);
+    // A term with 3+ digits also matches the CNPJ (stored as 14 plain digits),
+    // so a pasted "12.345.678/0001-90" or a partial "12345" finds the company (T29).
+    const digits = term.replace(/\D/g, '');
+    if (term) {
+      const clauses = [`legal_name.ilike.%${term}%`, `trade_name.ilike.%${term}%`];
+      if (digits.length >= 3) clauses.push(`cnpj.like.%${digits}%`);
+      query = query.or(clauses.join(','));
+    }
   }
 
   const { data, error } = await query.order('legal_name');

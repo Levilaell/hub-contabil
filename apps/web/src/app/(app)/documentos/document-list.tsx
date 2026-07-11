@@ -7,6 +7,7 @@ import {
   type Classification,
   type DocumentItem,
 } from '@hub/db';
+import { docTypeLabel } from '@hub/config';
 import { DataList, DataListRow, DetailDrawer } from '@hub/ui';
 import { FileText, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -103,7 +104,7 @@ export function DocumentList({
                 </span>
               }
               title={doc.fileName}
-              facts={[companyName, doc.docType, place].filter(Boolean) as string[]}
+              facts={[companyName, docTypeLabel(doc.docType), place].filter(Boolean) as string[]}
               trailing={
                 <span className="flex items-center gap-1.5">
                   {isAi ? (
@@ -167,7 +168,7 @@ export function DocumentList({
                       : [selected.docType, ...docTypes]
                     ).map((t) => (
                       <option key={t} value={t}>
-                        {t}
+                        {docTypeLabel(t)}
                       </option>
                     ))}
                   </select>

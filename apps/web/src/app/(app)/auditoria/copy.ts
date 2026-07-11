@@ -39,7 +39,8 @@ export const copy = {
   actions: {
     'company.created': 'Empresa criada',
     'company.updated': 'Empresa atualizada',
-    'company.archived': 'Empresa arquivada',
+    'company.archived': 'Empresa inativada',
+    'company.restored': 'Empresa reativada',
     'company.enriched': 'Empresa enriquecida',
     'company.enrichment_requested': 'Enriquecimento solicitado',
     'companies.imported': 'Empresas importadas',

@@ -1,5 +1,6 @@
 'use client';
 
+import { docTypeLabel } from '@hub/config';
 import { parseNfe } from '@hub/core';
 import { DOCUMENTS_BUCKET, buildStoragePath, findDocumentByHash, insertDocument } from '@hub/db';
 import { DetailDrawer, StatusBadge, type StatusTone } from '@hub/ui';
@@ -179,7 +180,7 @@ export function UploadButton({
             <select id="up-type" ref={typeRef} defaultValue={docTypes[0]} className={inputClass}>
               {docTypes.map((t) => (
                 <option key={t} value={t}>
-                  {t}
+                  {docTypeLabel(t)}
                 </option>
               ))}
             </select>

@@ -1,5 +1,6 @@
 'use client';
 
+import { docTypeLabel } from '@hub/config';
 import type { DocumentRequest } from '@hub/db';
 import { StatusBadge, type StatusTone } from '@hub/ui';
 import { Check, Copy, Plus, X } from 'lucide-react';
@@ -162,7 +163,7 @@ function RequestForm({
             <option value="">{copy.solicitacoes.docTypeAny}</option>
             {docTypes.map((t) => (
               <option key={t} value={t}>
-                {t}
+                {docTypeLabel(t)}
               </option>
             ))}
           </select>

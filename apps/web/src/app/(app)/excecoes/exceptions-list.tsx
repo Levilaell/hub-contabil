@@ -1,5 +1,6 @@
 'use client';
 
+import { docTypeLabel } from '@hub/config';
 import type { ExceptionItem } from '@hub/db';
 import { DataList, DataListRow, DetailDrawer, StatusBadge, type StatusTone } from '@hub/ui';
 import { AlertTriangle } from 'lucide-react';
@@ -186,9 +187,10 @@ export function ExceptionsList({
     ? (copy.triage.reasons[triageReason] ?? triageReason)
     : null;
   const triageConfidence = selected ? ctxValue(selected.context, 'confidence') : null;
+  const suggestedType = selected ? ctxValue(selected.suggestion, 'docType') : null;
   const suggestionText = selected
     ? [
-        ctxValue(selected.suggestion, 'docType'),
+        suggestedType ? docTypeLabel(suggestedType) : null,
         triageConfidence !== null
           ? copy.triage.confidence(Math.round(Number(triageConfidence) * 100))
           : null,
@@ -398,7 +400,7 @@ export function ExceptionsList({
                   <option value="">—</option>
                   {triageOptions.taxonomy.map((t) => (
                     <option key={t} value={t}>
-                      {t}
+                      {docTypeLabel(t)}
                     </option>
                   ))}
                 </select>

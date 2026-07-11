@@ -1,4 +1,4 @@
-import { parseFirmConfig } from '@hub/config';
+import { docTypeLabel, parseFirmConfig } from '@hub/config';
 import { formatCnpj } from '@hub/core';
 import { listClassificationsByDocuments, listCompanies, listDocuments } from '@hub/db';
 import { DataList, DataListRow, EmptyState, PageHeader } from '@hub/ui';
@@ -335,7 +335,7 @@ export default async function DocumentosPage({
                 <option value="">{copy.all}</option>
                 {config.taxonomy.map((t) => (
                   <option key={t} value={t}>
-                    {t}
+                    {docTypeLabel(t)}
                   </option>
                 ))}
               </select>

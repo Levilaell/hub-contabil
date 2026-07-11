@@ -1,5 +1,6 @@
 'use client';
 
+import { docTypeLabel } from '@hub/config';
 import { AlertTriangle, FileDown, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
@@ -135,7 +136,7 @@ export function ExportBuilder({ companies, docTypes }: { companies: Company[]; d
                       on ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-accent'
                     }`}
                   >
-                    {t}
+                    {docTypeLabel(t)}
                   </button>
                 );
               })}

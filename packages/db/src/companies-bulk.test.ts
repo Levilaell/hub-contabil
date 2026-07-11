@@ -1,7 +1,7 @@
 import { type SupabaseClient, createClient } from '@supabase/supabase-js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { bulkCreateCompanies, listExistingCnpjs } from './companies';
+import { bulkCreateCompanies, listCompanies, listExistingCnpjs } from './companies';
 import type { Database } from './database.types';
 
 // Integration test for bulk onboarding against the linked Supabase Cloud dev
@@ -113,5 +113,18 @@ describe.skipIf(!hasEnv)('bulkCreateCompanies (cloud dev)', () => {
       .limit(1)
       .single();
     expect((audit?.context as { created?: number })?.created).toBe(2);
+  });
+
+  it('finds a company searching by formatted or partial CNPJ (T29)', async () => {
+    const formatted = `${NEW_A.slice(0, 2)}.${NEW_A.slice(2, 5)}.${NEW_A.slice(5, 8)}/${NEW_A.slice(8, 12)}-${NEW_A.slice(12)}`;
+    const byFormatted = await listCompanies(owner, { search: formatted });
+    expect(byFormatted.some((c) => c.cnpj === NEW_A)).toBe(true);
+
+    const byPartial = await listCompanies(owner, { search: NEW_A.slice(0, 6) });
+    expect(byPartial.some((c) => c.cnpj === NEW_A)).toBe(true);
+
+    // Name search keeps working alongside the CNPJ clause.
+    const byName = await listCompanies(owner, { search: 'Nova A' });
+    expect(byName.some((c) => c.cnpj === NEW_A)).toBe(true);
   });
 });

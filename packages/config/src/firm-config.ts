@@ -60,6 +60,41 @@ export const DEFAULT_TAXONOMY = [
   'other',
 ] as const;
 
+// pt-BR display labels for the default taxonomy keys (T29). The keys are the
+// stable English identifiers stored in DB/config and used by the AI triage; the
+// UI never shows them raw. Lives next to the taxonomy (same precedent as the
+// labeled DEFAULT_DEPARTMENTS above) so every feature renders the same words.
+export const DOC_TYPE_LABELS: Record<string, string> = {
+  nfe: 'NF-e',
+  nfce: 'NFC-e',
+  nfse: 'NFS-e',
+  cte: 'CT-e',
+  das: 'Guia DAS',
+  darf: 'DARF',
+  gare_gnre: 'GARE/GNRE',
+  iss_slip: 'Guia de ISS',
+  fgts_inss_slip: 'Guia FGTS/INSS',
+  boleto: 'Boleto',
+  bank_statement: 'Extrato bancário',
+  card_statement: 'Extrato de cartão',
+  payslip: 'Holerite',
+  certificate: 'Certidão',
+  license: 'Alvará/licença',
+  articles_of_incorporation: 'Contrato social',
+  power_of_attorney: 'Procuração',
+  payment_receipt: 'Comprovante de pagamento',
+  spreadsheet: 'Planilha',
+  other: 'Outro',
+};
+
+/** pt-BR label for a taxonomy key; unknown (firm-added) keys are prettified. */
+export function docTypeLabel(type: string): string {
+  const known = DOC_TYPE_LABELS[type];
+  if (known) return known;
+  const pretty = type.replace(/_/g, ' ').trim();
+  return pretty ? pretty.charAt(0).toUpperCase() + pretty.slice(1) : type;
+}
+
 // Document type → department (PLANEJAMENTO §6). Unmapped/low-confidence → exception queue.
 export const DEFAULT_ROUTING_MAP: Record<string, string> = {
   nfe: 'fiscal',
