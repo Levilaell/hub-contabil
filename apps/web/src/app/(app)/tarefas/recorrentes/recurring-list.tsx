@@ -26,6 +26,7 @@ interface ListProps {
   departments: KeyLabel[];
   regimes: KeyLabel[];
   companyOptions: Option[];
+  userOptions: Option[];
   canManage: boolean;
 }
 
@@ -57,12 +58,14 @@ function RecurringForm({
   departments,
   regimes,
   companyOptions,
+  userOptions,
   onDone,
 }: {
   template: RecurringTask | null;
   departments: KeyLabel[];
   regimes: KeyLabel[];
   companyOptions: Option[];
+  userOptions: Option[];
   onDone: () => void;
 }) {
   const action = template ? updateRecurringAction.bind(null, template.id) : createRecurringAction;
@@ -176,6 +179,24 @@ function RecurringForm({
         </fieldset>
       ) : null}
 
+      {/* Optional owner for every generated task (T28) — stops recurring tasks
+          from being born without a responsible person. */}
+      <Field label={copy.form.defaultAssignee} htmlFor="defaultAssigneeId">
+        <select
+          id="defaultAssigneeId"
+          name="defaultAssigneeId"
+          defaultValue={template?.defaultAssigneeId ?? ''}
+          className={inputClass}
+        >
+          <option value="">{copy.form.defaultAssigneeNone}</option>
+          {userOptions.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+
       <Field label={copy.form.handoffTo} htmlFor="handoffTo">
         <select
           id="handoffTo"
@@ -211,6 +232,7 @@ export function RecurringList({
   departments,
   regimes,
   companyOptions,
+  userOptions,
   canManage,
 }: ListProps) {
   const [openForm, setOpenForm] = useState<null | 'new' | RecurringTask>(null);
@@ -287,6 +309,7 @@ export function RecurringList({
             departments={departments}
             regimes={regimes}
             companyOptions={companyOptions}
+            userOptions={userOptions}
             onDone={() => setOpenForm(null)}
           />
         ) : null}

@@ -1,6 +1,6 @@
 'use server';
 
-import { createTask, handoffTask, updateTaskStatus } from '@hub/db';
+import { assignTask, createTask, handoffTask, updateTaskStatus } from '@hub/db';
 import { type TaskStatus, isTaskStatus } from '@hub/core';
 import { revalidatePath } from 'next/cache';
 
@@ -37,6 +37,18 @@ export async function updateStatusAction(id: string, status: string): Promise<Ta
   if (!isTaskStatus(status)) return { ok: false, message: 'Status inválido.' };
   const supabase = await createClient();
   const result = await updateTaskStatus(supabase, id, status as TaskStatus);
+  if (!result.ok) return { ok: false, message: result.message };
+  revalidatePath('/tarefas');
+  revalidatePath('/empresas', 'layout');
+  return { ok: true, message: '' };
+}
+
+export async function assignAction(
+  id: string,
+  assigneeId: string | null,
+): Promise<TaskActionState> {
+  const supabase = await createClient();
+  const result = await assignTask(supabase, id, assigneeId);
   if (!result.ok) return { ok: false, message: result.message };
   revalidatePath('/tarefas');
   revalidatePath('/empresas', 'layout');

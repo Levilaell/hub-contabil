@@ -6,6 +6,7 @@ export const copy = {
   recurring: 'Recorrentes',
   viewMine: 'Minhas tarefas de hoje',
   viewAll: 'Todas as visíveis',
+  viewUnassigned: 'Sem responsável',
   period: {
     prev: 'Mês anterior',
     next: 'Próximo mês',
@@ -35,6 +36,7 @@ export const copy = {
   } as Record<string, string>,
   emptyMine: 'Nenhuma tarefa atribuída a você. 🎉',
   emptyAll: 'Nenhuma tarefa por aqui ainda.',
+  emptyUnassigned: 'Nenhuma tarefa sem responsável — tudo tem dono. ✅',
   unassigned: 'Sem responsável',
   you: 'Você',
   handoff: 'Concluir e repassar',

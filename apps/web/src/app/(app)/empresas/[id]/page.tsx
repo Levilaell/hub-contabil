@@ -331,6 +331,7 @@ export default async function EmpresaDetailPage({
             companyNames={{ [id]: companyName }}
             departmentLabels={departmentLabels}
             userNames={Object.fromEntries(userOptions.map((u) => [u.id, u.name]))}
+            userOptions={userOptions}
           />
         </div>
       ) : null}

@@ -25,6 +25,7 @@ function parse(formData: FormData) {
     companyIds: formData.getAll('companyIds').filter((v): v is string => typeof v === 'string'),
     regimes: formData.getAll('regimes').filter((v): v is string => typeof v === 'string'),
     handoffTo: field('handoffTo'),
+    defaultAssigneeId: field('defaultAssigneeId'),
   };
 }
 

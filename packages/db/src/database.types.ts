@@ -965,6 +965,7 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          default_assignee_id: string | null
           department: string
           firm_id: string
           generation_day: number
@@ -978,6 +979,7 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          default_assignee_id?: string | null
           department: string
           firm_id: string
           generation_day?: number
@@ -991,6 +993,7 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          default_assignee_id?: string | null
           department?: string
           firm_id?: string
           generation_day?: number

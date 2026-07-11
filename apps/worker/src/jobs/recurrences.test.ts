@@ -98,4 +98,34 @@ describe.skipIf(!hasEnv)('generateRecurringTasks (cloud dev)', () => {
   it('computes the competência from a date', () => {
     expect(currentPeriod(new Date('2026-06-15T00:00:00Z'))).toBe('2026-06');
   });
+
+  it('stamps the template default assignee on generated tasks (T28)', async () => {
+    // Any seeded firm-A user works as the assignee (users FK auth.users, so the
+    // test reuses one instead of inserting).
+    const [user] = await sql<{ id: string }[]>`
+      select id from public.users where firm_id = ${FIRM_A} limit 1
+    `;
+    if (!user) throw new Error('no seeded firm-A user available');
+
+    const [tpl] = await sql<{ id: string }[]>`
+      insert into public.recurring_tasks
+        (firm_id, title, department, target_kind, target_value, default_assignee_id)
+      values (${FIRM_A}, 'Rotina com dono', 'fiscal', 'selection',
+              ${sql.json({ companyIds: [companyIds[0]!] })}, ${user.id})
+      returning id
+    `;
+    if (!tpl) throw new Error('insert template failed');
+
+    try {
+      await generateRecurringTasks(sql, PERIOD);
+      const [task] = await sql<{ assignee_id: string | null }[]>`
+        select assignee_id from public.tasks
+        where recurring_task_id = ${tpl.id} and period = ${PERIOD}
+      `;
+      expect(task?.assignee_id).toBe(user.id);
+    } finally {
+      await sql`delete from public.tasks where recurring_task_id = ${tpl.id}`;
+      await sql`delete from public.recurring_tasks where id = ${tpl.id}`;
+    }
+  });
 });

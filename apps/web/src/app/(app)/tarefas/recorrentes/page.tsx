@@ -15,12 +15,14 @@ export default async function RecorrentesPage() {
   const role = userData.user?.app_metadata?.role as string | undefined;
   const canManage = role === 'owner' || role === 'manager';
 
-  const [{ data: firm }, templates, companies] = await Promise.all([
+  const [{ data: firm }, templates, companies, { data: users }] = await Promise.all([
     supabase.from('firms').select('config').limit(1).single(),
     listRecurringTasks(supabase),
     listCompanies(supabase, { status: 'active' }),
+    supabase.from('users').select('id, full_name, email'),
   ]);
   const config = parseFirmConfig(firm?.config);
+  const userOptions = (users ?? []).map((u) => ({ id: u.id, name: u.full_name || u.email }));
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -37,6 +39,7 @@ export default async function RecorrentesPage() {
         departments={config.departments.map((d) => ({ key: d.key, label: d.label }))}
         regimes={config.taxRegimes.map((r) => ({ key: r.key, label: r.label }))}
         companyOptions={companies.map((c) => ({ id: c.id, name: c.tradeName || c.legalName }))}
+        userOptions={userOptions}
         canManage={canManage}
       />
     </div>

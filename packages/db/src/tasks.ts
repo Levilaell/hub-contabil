@@ -79,6 +79,8 @@ export async function listTasks(
     department?: string;
     companyId?: string;
     assigneeId?: string;
+    /** Only tasks with no assignee (the "Sem responsável" queue, T28). */
+    unassigned?: boolean;
     /** Competência filter (YYYY-MM). */
     period?: string;
     /** With `period`: also include tasks without a competência (ad-hoc). */
@@ -90,6 +92,7 @@ export async function listTasks(
   if (opts?.department) query = query.eq('department', opts.department);
   if (opts?.companyId) query = query.eq('company_id', opts.companyId);
   if (opts?.assigneeId) query = query.eq('assignee_id', opts.assigneeId);
+  if (opts?.unassigned) query = query.is('assignee_id', null);
   if (opts?.period && /^\d{4}-\d{2}$/.test(opts.period)) {
     query = opts.includeNoPeriod
       ? query.or(`period.eq.${opts.period},period.is.null`)
@@ -124,6 +127,50 @@ export async function countOpenTasks(supabase: SupabaseClient): Promise<number> 
     .in('status', ['pending', 'in_progress']);
   if (error) return 0;
   return count ?? 0;
+}
+
+/** Open tasks with nobody assigned — the "Sem responsável" tab count (T28). */
+export async function countUnassignedOpenTasks(supabase: SupabaseClient): Promise<number> {
+  const { count, error } = await supabase
+    .from('tasks')
+    .select('id', { count: 'exact', head: true })
+    .is('assignee_id', null)
+    .in('status', ['pending', 'in_progress']);
+  if (error) return 0;
+  return count ?? 0;
+}
+
+/** Assign (or clear, with null) a task's assignee. RLS-scoped like any task
+ *  update (managers or department members); audited with from → to. */
+export async function assignTask(
+  supabase: SupabaseClient,
+  id: string,
+  assigneeId: string | null,
+): Promise<TaskMutationResult> {
+  const { data: current, error: readError } = await supabase
+    .from('tasks')
+    .select('assignee_id')
+    .eq('id', id)
+    .maybeSingle();
+  if (readError || !current) return fail('Tarefa não encontrada.');
+
+  const to = clean(assigneeId);
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({ assignee_id: to })
+    .eq('id', id)
+    .select('id');
+  if (error || !data || data.length === 0) {
+    return fail('Não foi possível atribuir — verifique suas permissões.');
+  }
+
+  await supabase.rpc('log_audit', {
+    p_action: 'task.assigned',
+    p_entity: 'task',
+    p_entity_id: id,
+    p_context: { from: current.assignee_id, to },
+  });
+  return { ok: true, id };
 }
 
 export async function createTask(

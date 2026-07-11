@@ -47,6 +47,7 @@ export const copy = {
     'contact.updated': 'Contato atualizado',
     'contact.deleted': 'Contato removido',
     'task.created': 'Tarefa criada',
+    'task.assigned': 'Tarefa atribuída',
     'task.status_changed': 'Status de tarefa alterado',
     'task.handed_off': 'Tarefa repassada',
     'recurring_task.created': 'Tarefa recorrente criada',

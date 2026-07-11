@@ -1,5 +1,5 @@
 import { parseFirmConfig } from '@hub/config';
-import { listCompanies, listTasks } from '@hub/db';
+import { countUnassignedOpenTasks, listCompanies, listTasks } from '@hub/db';
 import { PageHeader } from '@hub/ui';
 import { ChevronLeft, ChevronRight, Repeat } from 'lucide-react';
 import Link from 'next/link';
@@ -38,7 +38,7 @@ export default async function TarefasPage({
   searchParams: Promise<{ view?: string; period?: string; department?: string }>;
 }) {
   const { view: rawView, period: rawPeriod, department: rawDepartment } = await searchParams;
-  const view = rawView === 'all' ? 'all' : 'mine';
+  const view = rawView === 'all' ? 'all' : rawView === 'unassigned' ? 'unassigned' : 'mine';
   const period =
     rawPeriod === 'all' ? 'all' : /^\d{4}-\d{2}$/.test(rawPeriod ?? '') ? rawPeriod! : currentPeriod();
 
@@ -53,14 +53,16 @@ export default async function TarefasPage({
   }));
   const department = departments.some((d) => d.key === rawDepartment) ? rawDepartment : undefined;
 
-  const [companies, tasks, { data: users }] = await Promise.all([
+  const [companies, tasks, { data: users }, unassignedCount] = await Promise.all([
     listCompanies(supabase, { status: 'all' }),
     listTasks(supabase, {
       ...(view === 'mine' ? { assigneeId: me } : {}),
+      ...(view === 'unassigned' ? { unassigned: true } : {}),
       ...(period !== 'all' ? { period, includeNoPeriod: true } : {}),
       ...(department ? { department } : {}),
     }),
     supabase.from('users').select('id, full_name, email'),
+    countUnassignedOpenTasks(supabase),
   ]);
 
   const companyOptions = companies.map((c) => ({ id: c.id, name: c.tradeName || c.legalName }));
@@ -79,7 +81,7 @@ export default async function TarefasPage({
     return `/tarefas?${q.toString()}`;
   };
 
-  const tab = (key: 'mine' | 'all', label: string) => (
+  const tab = (key: 'mine' | 'all' | 'unassigned', label: string) => (
     <Link
       href={href({ view: key })}
       aria-current={view === key ? 'page' : undefined}
@@ -125,6 +127,12 @@ export default async function TarefasPage({
       <div className="border-border flex items-center gap-1 border-b">
         {tab('mine', copy.viewMine)}
         {tab('all', copy.viewAll)}
+        {/* Queue of ownerless open tasks (T28) — count is firm-wide so the gap is
+            visible from any month/department filter. */}
+        {tab(
+          'unassigned',
+          unassignedCount > 0 ? `${copy.viewUnassigned} (${unassignedCount})` : copy.viewUnassigned,
+        )}
         <Link
           href="/tarefas/recorrentes"
           className="text-muted-foreground hover:text-foreground ml-auto inline-flex items-center gap-1 px-3 py-2 text-sm"
@@ -187,6 +195,7 @@ export default async function TarefasPage({
         companyNames={companyNames}
         departmentLabels={departmentLabels}
         userNames={userNames}
+        userOptions={userOptions}
       />
     </div>
   );

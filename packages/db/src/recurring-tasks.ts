@@ -15,6 +15,8 @@ export interface RecurringTask {
   targetKind: RecurringTargetKind;
   targetValue: Record<string, unknown>;
   handoffTo: string | null;
+  /** Optional owner stamped on every generated task (T28). */
+  defaultAssigneeId: string | null;
   active: boolean;
 }
 
@@ -26,6 +28,7 @@ interface RecurringRow {
   target_kind: string;
   target_value: unknown;
   handoff_to: string | null;
+  default_assignee_id: string | null;
   active: boolean;
 }
 
@@ -37,12 +40,13 @@ export interface RecurringTaskInput {
   companyIds?: string[];
   regimes?: string[];
   handoffTo?: string | null;
+  defaultAssigneeId?: string | null;
 }
 
 export type RecurringMutationResult = { ok: true; id: string } | { ok: false; message: string };
 
 const SELECT =
-  'id, title, department, generation_day, target_kind, target_value, handoff_to, active';
+  'id, title, department, generation_day, target_kind, target_value, handoff_to, default_assignee_id, active';
 
 function fail(message: string): { ok: false; message: string } {
   return { ok: false, message };
@@ -77,6 +81,7 @@ function mapRecurring(row: RecurringRow): RecurringTask {
     targetKind: kind,
     targetValue: asObject(row.target_value),
     handoffTo: row.handoff_to,
+    defaultAssigneeId: row.default_assignee_id,
     active: row.active,
   };
 }
@@ -117,6 +122,7 @@ function buildColumns(
       target_kind: input.targetKind,
       target_value: targetValue,
       handoff_to: clean(input.handoffTo),
+      default_assignee_id: clean(input.defaultAssigneeId),
     },
   };
 }

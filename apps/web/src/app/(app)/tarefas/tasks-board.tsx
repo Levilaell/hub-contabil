@@ -6,8 +6,8 @@ import { DetailDrawer, EmptyState, StatusBadge, type StatusTone } from '@hub/ui'
 import { ListChecks } from 'lucide-react';
 import { useState, useTransition } from 'react';
 
-import { handoffAction, updateStatusAction, type TaskActionState } from './actions';
-import { copy, primaryButtonClass, secondaryButtonClass } from './copy';
+import { assignAction, handoffAction, updateStatusAction, type TaskActionState } from './actions';
+import { copy, inputClass, primaryButtonClass, secondaryButtonClass } from './copy';
 
 const TONE: Record<TaskStatus, StatusTone> = {
   pending: 'neutral',
@@ -18,11 +18,12 @@ const TONE: Record<TaskStatus, StatusTone> = {
 
 interface BoardProps {
   tasks: Task[];
-  view: 'mine' | 'all';
+  view: 'mine' | 'all' | 'unassigned';
   me: string;
   companyNames: Record<string, string>;
   departmentLabels: Record<string, string>;
   userNames: Record<string, string>;
+  userOptions: { id: string; name: string }[];
 }
 
 export function TasksBoard({
@@ -32,6 +33,7 @@ export function TasksBoard({
   companyNames,
   departmentLabels,
   userNames,
+  userOptions,
 }: BoardProps) {
   const [selected, setSelected] = useState<Task | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +56,16 @@ export function TasksBoard({
 
   if (tasks.length === 0) {
     return (
-      <EmptyState icon={ListChecks} title={view === 'mine' ? copy.emptyMine : copy.emptyAll} />
+      <EmptyState
+        icon={ListChecks}
+        title={
+          view === 'mine'
+            ? copy.emptyMine
+            : view === 'unassigned'
+              ? copy.emptyUnassigned
+              : copy.emptyAll
+        }
+      />
     );
   }
 
@@ -155,7 +166,35 @@ export function TasksBoard({
             ) : null}
             <div>
               <dt className="text-muted-foreground text-xs">{copy.drawer.assignee}</dt>
-              <dd className="mt-0.5">{assigneeText(selected)}</dd>
+              <dd className="mt-0.5">
+                {selected.status === 'done' || selected.status === 'canceled' ? (
+                  assigneeText(selected)
+                ) : (
+                  // Assign/reassign in place (T28) — saves on change, audited.
+                  <select
+                    aria-label={copy.drawer.assignee}
+                    value={selected.assigneeId ?? ''}
+                    disabled={pending}
+                    onChange={(e) => {
+                      const value = e.target.value || null;
+                      setError(null);
+                      startTransition(async () => {
+                        const res = await assignAction(selected.id, value);
+                        if (res && !res.ok) setError(res.message);
+                        else setSelected({ ...selected, assigneeId: value });
+                      });
+                    }}
+                    className={inputClass}
+                  >
+                    <option value="">{copy.unassigned}</option>
+                    {userOptions.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.id === me ? copy.you : u.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </dd>
             </div>
             {selected.handoffTo ? (
               <div>

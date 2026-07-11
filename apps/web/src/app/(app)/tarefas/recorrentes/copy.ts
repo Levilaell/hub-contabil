@@ -29,6 +29,8 @@ export const copy = {
     target: 'Aplicar a',
     companies: 'Empresas',
     regimes: 'Regimes',
+    defaultAssignee: 'Responsável padrão (opcional)',
+    defaultAssigneeNone: 'Sem responsável — as tarefas nascem na fila "Sem responsável"',
     handoffTo: 'Repassar ao concluir (opcional)',
     handoffNone: 'Sem repasse',
     save: 'Salvar',

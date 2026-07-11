@@ -60,8 +60,10 @@ export {
 export {
   listTasks,
   countOpenTasks,
+  countUnassignedOpenTasks,
   createTask,
   updateTaskStatus,
+  assignTask,
   handoffTask,
   generateRecurringTasksForCompany,
   type Task,

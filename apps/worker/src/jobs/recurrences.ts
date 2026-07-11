@@ -21,6 +21,7 @@ interface TemplateRow {
   target_kind: string;
   target_value: unknown;
   handoff_to: string | null;
+  default_assignee_id: string | null;
 }
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -46,7 +47,8 @@ export function currentPeriod(now: Date): string {
 
 export async function generateRecurringTasks(sql: Sql, period: string): Promise<GenerateResult> {
   const templates = await sql<TemplateRow[]>`
-    select id, firm_id, title, department, target_kind, target_value, handoff_to
+    select id, firm_id, title, department, target_kind, target_value, handoff_to,
+           default_assignee_id
     from public.recurring_tasks
     where active = true
   `;
@@ -83,8 +85,9 @@ export async function generateRecurringTasks(sql: Sql, period: string): Promise<
     // completed tasks). The partial unique index is the hard backstop.
     const inserted = await sql<{ id: string }[]>`
       insert into public.tasks
-        (firm_id, company_id, period, department, title, handoff_to, recurring_task_id, status)
-      select ${t.firm_id}, c.id, ${period}, ${t.department}, ${t.title}, ${t.handoff_to}, ${t.id}, 'pending'
+        (firm_id, company_id, period, department, title, handoff_to, recurring_task_id, status, assignee_id)
+      select ${t.firm_id}, c.id, ${period}, ${t.department}, ${t.title}, ${t.handoff_to}, ${t.id}, 'pending',
+             ${t.default_assignee_id}
       from public.companies c
       where c.firm_id = ${t.firm_id}
         and ${companyFilter}
