@@ -121,6 +121,48 @@ Provision prod instance (dedicated Supabase Cloud project + Railway + domain), d
 
 ---
 
+## Phase 1.2 — Feedback round (2026-07-10)
+
+> Source: Levi's manual test round of 10/07/2026; full code analysis delivered in-session. (Phase 1.1 — Paulo's spec — was executed outside this file; see `RELATORIO-FASE-1.1.md`.) Same execution rule: **one task at a time, stop for review after each**. Items marked **[decision]** are blocked on the open decisions listed at the end of this phase. Feedback items that needed only explanation (spreadsheet import matching, inbox meaning, CNPJ-based company association) generated no task.
+
+**T26 · Request send integrity (bug)**
+A request may only be marked `sent` when the e-mail was actually accepted by the provider. Today `rotate_request_token` flips status/`sent_at` and writes `sent` timeline+audit events before — and regardless of — the send; the copy-link action also marks `sent` with no e-mail involved; and with Resend unconfigured the no-op messaging adapter reports success, so the UI shows "E-mail enviado ✅" with nothing dispatched. Fix: split token rotation from sent-marking; mark `sent` only after adapter success; copy-link stops marking sent (audit `request.link_copied` instead) and the public page must accept opening a still-`requested` link; the send action returns a clear pt-BR error when messaging is not configured; the reminder sweep skips with a log when messaging is not configured. Also verify `RESEND_API_KEY`/`RESEND_FROM` on prod. Acceptance: Resend unset → "Enviar" shows a clear error and status stays `requested`; Resend send fails → status unchanged + error; Resend ok → status `sent` + timeline event; copying a link never produces a `sent` status/event; opening a copied never-sent link still logs `viewed`.
+
+**T27 · AI must stay silent on human-handled tickets (bug)**
+The reply gate (`decideSupportResponse`) never reads ticket state, so after escalation — or a human reply — the AI answers the client's next message and even flips the ticket out of `escalated`. Add a human-takeover gate in core (pure + tests): once a ticket is escalated or a human replies, the assistant does not answer until explicitly handed back; add a "Devolver para IA" action in /atendimento; keep the escalation ack on-transition-only. Acceptance: escalated ticket + new inbound → no AI reply and ticket stays escalated; after hand-back the AI answers again when it qualifies; hand-back audited.
+
+**T28 · Task assignment + unassigned queue**
+No automatic creation path sets an assignee and the UI cannot assign one afterwards; unassigned tasks are invisible in "Minhas" and have no dedicated view. Add: assignee editing in the task drawer (audited); an "unassigned" view/filter on the board with count; optional default assignee on recurring templates, applied by both generators (registration RPC and monthly cron). Acceptance: an auto-created task gets assigned from the drawer; "Sem responsável" view lists exactly the NULL-assignee open tasks; a template with default assignee generates assigned tasks.
+
+**T29 · UX pack A — pt-BR document types, CNPJ search, "Inativa"**
+(1) pt-BR label map for the document taxonomy, used everywhere a doc type is rendered (documents filters/list, correction select, exceptions); DB/config keys stay English. (2) Companies search also matches CNPJ digits, formatted or not. (3) Replace "Arquivar/Arquivada" wording with "Inativar/Inativa" (copy only; DB values unchanged). Acceptance: no raw taxonomy key visible anywhere in the UI; pasting a formatted CNPJ in the companies search finds the company; audit labels updated.
+
+**T30 · UX pack B — confirmation dialogs + toasts**
+Replace the 9 native `window.confirm` calls with a design-system confirmation dialog in `packages/ui`; add toast feedback for action success/error (new dependency, e.g. sonner — justification: no toast primitive exists in the stack and inline messages are missed after navigation). Acceptance: zero native confirm/alert in `apps/web`; destructive actions confirm via the shared dialog; mutating actions give toast feedback.
+
+**T31 · Requests UX — create from the global page, contact picker, detail everywhere [decision]**
+Add "Nova solicitação" (with company selector) to /solicitacoes; recipient becomes a picker listing the company's contacts with the department-routed suggestion pre-selected (free-text still allowed); request rows on the company tab open the same detail drawer as /solicitacoes (copy/resend/cancel — today the link shows once and rows only cancel); present the two kinds (`upload_request` × `document_offer`) as visibly distinct things. Blocked on decision #4 for the separation shape (default proposal: two sections within the tab). Acceptance: request creatable from /solicitacoes; picker shows contacts with the suggested one pre-selected; drawer reachable from both pages.
+
+**T32 · Traceability — visible origin + consistent audit**
+Task drawer gains an "Origem" block (created at + how: manual / recurring template / deadline renewal / handoff, with the linked entity); the tasks SELECT starts including the origin columns it already has (`recurring_task_id`, `source_task_id`, `monitored_document_id`); every automatic creation path audits per item (the monthly recurrence cron writes no audit today; registration writes only an aggregate company event); add missing pt-BR audit labels (`tasks.generated_on_registration`, `recurring_task.deactivated`); mark auto-imported partners (QSA) and enrichment-filled fields as such. Acceptance: any task shows when/how it was created; the audit screen shows labeled events for all creation paths.
+
+**T33 · Atendimento — threshold presets, latency, department [decision]**
+(1) Replace the two free numeric threshold inputs in /configuracoes with presets (Rigoroso / Equilibrado / Permissivo, custom kept under advanced). (2) Add `support.aiModel` so atendimento can use a fast model independent of triage (default Haiku), and evaluate lowering the worker 2 s poll delay. (3) Allow setting/correcting a ticket's department manually in /atendimento (today only the reception menu sets it). Department-based *visibility* restriction is blocked on decision #1. Acceptance: presets persist the right values; support replies use the configured model; ticket department editable and audited.
+
+**T34 · Contacts — phone normalization, duplicates, linking**
+Normalize phone on save (canonical digits form); warn about duplicate phones within the firm, including across companies (inbound matching is already format-tolerant, so duplicates silently win by ordering today); add "Vincular a empresa" on company-less tickets in /atendimento (creating/moving the contact — requires contact-move support in the DB layer, which currently forbids changing `company_id`). Acceptance: same number saved in different formats is detected; an unlinked ticket can be linked from /atendimento and the next message keeps the link; audit emitted.
+
+**T35 · Documents module redesign (spec first) [decision]**
+Largest package — write a 1-page spec for approval before implementing: deterministic triage guards (e.g. a PDF is never auto-filed as `nfe` without an NF-e access key; boleto/fatura heuristics), inbox resolution in place (associate company / fix type without jumping to /excecoes), visible origin per document (channel, sender, date), and the module structure review. Acceptance (spec stage): proposal approved by Levi; implementation tasks then appended here.
+
+### Open decisions (Levi)
+1. Atendimento by department: real access restriction (RLS, like tasks) or filter-only? (T33)
+2. Deactivating a recurring template: also cancel the period's still-open instances, or keep them? (post-T28 follow-up)
+3. List filters default-open vs. current UX rule #8 — or middle ground (search always visible, advanced collapsed, as Documents does today)?
+4. How to separate "solicitações de documentos" from "envios de documentos" in the UI (tabs? sections? separate lists)? (T31)
+
+---
+
 ## Backlog (DO NOT execute — reference)
 
 AlterData connector (API/RPA) · SIEG/PlugStorage capture · A1 certificate vault · automatic CNDs (Infosimples/Dootax) · Integra Contador · city systems (Giss/São Vicente) · tax-calculation validation · full client portal · core extraction (week 1 of client #2).
