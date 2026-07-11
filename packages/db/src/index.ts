@@ -180,9 +180,11 @@ export {
   listSupportMessages,
   replySupportTicket,
   setSupportStatus,
+  returnTicketToAi,
   type SupportTicket,
   type SupportMessage,
   type SupportStatus,
+  type SupportHandler,
   type SupportActionResult,
 } from './support';
 export type { Database } from './database.types';

@@ -6,6 +6,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // (service role) when a client writes in — the web never inserts them directly.
 
 export type SupportStatus = 'open' | 'pending' | 'escalated' | 'resolved';
+export type SupportHandler = 'ai' | 'human';
 
 export interface SupportTicket {
   id: string;
@@ -18,6 +19,8 @@ export interface SupportTicket {
   /** Firm-config department key picked via the reception menu (or by a human). */
   department: string | null;
   aiHandled: boolean;
+  /** Who owns the conversation (T27): 'human' silences the assistant until hand-back. */
+  handledBy: SupportHandler;
   lastMessageAt: string;
   lastInboundAt: string | null;
   createdAt: string;
@@ -42,6 +45,7 @@ interface TicketRow {
   status: string;
   department: string | null;
   ai_handled: boolean;
+  handled_by: string;
   last_message_at: string;
   last_inbound_at: string | null;
   created_at: string;
@@ -57,7 +61,7 @@ interface MessageRow {
 }
 
 const TICKET_SELECT =
-  'id, company_id, channel, contact_identifier, contact_name, subject, status, department, ai_handled, last_message_at, last_inbound_at, created_at';
+  'id, company_id, channel, contact_identifier, contact_name, subject, status, department, ai_handled, handled_by, last_message_at, last_inbound_at, created_at';
 
 function asStatus(value: string): SupportStatus {
   return value === 'pending' || value === 'escalated' || value === 'resolved'
@@ -76,6 +80,7 @@ function mapTicket(row: TicketRow): SupportTicket {
     status: asStatus(row.status),
     department: row.department,
     aiHandled: row.ai_handled,
+    handledBy: row.handled_by === 'human' ? 'human' : 'ai',
     lastMessageAt: row.last_message_at,
     lastInboundAt: row.last_inbound_at,
     createdAt: row.created_at,
@@ -152,5 +157,15 @@ export async function setSupportStatus(
     p_note: note ?? null,
   });
   if (error) return { ok: false, message: 'Não foi possível atualizar — verifique e tente de novo.' };
+  return { ok: true };
+}
+
+/** Hand the conversation back to the assistant ("Devolver para IA", T27). */
+export async function returnTicketToAi(
+  supabase: SupabaseClient,
+  ticketId: string,
+): Promise<SupportActionResult> {
+  const { error } = await supabase.rpc('return_ticket_to_ai', { p_ticket_id: ticketId });
+  if (error) return { ok: false, message: 'Não foi possível devolver para a IA — tente de novo.' };
   return { ok: true };
 }

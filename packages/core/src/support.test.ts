@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   allowedSupportTransitions,
+  assistantMayEngage,
   canTransitionSupport,
   decideSupportResponse,
   isOpenSupport,
@@ -45,6 +46,23 @@ describe('isOpenSupport', () => {
     expect(isOpenSupport('escalated')).toBe(true);
     expect(isOpenSupport('pending')).toBe(false);
     expect(isOpenSupport('resolved')).toBe(false);
+  });
+});
+
+describe('assistantMayEngage (T27 human-takeover gate)', () => {
+  it('engages only while the AI owns a non-escalated conversation', () => {
+    expect(assistantMayEngage({ status: 'open', handledBy: 'ai' })).toBe(true);
+    expect(assistantMayEngage({ status: 'pending', handledBy: 'ai' })).toBe(true);
+  });
+
+  it('stays silent once a human owns the ticket, whatever the status', () => {
+    expect(assistantMayEngage({ status: 'open', handledBy: 'human' })).toBe(false);
+    expect(assistantMayEngage({ status: 'pending', handledBy: 'human' })).toBe(false);
+  });
+
+  it('stays silent on an escalated ticket even if the handler was never flipped', () => {
+    expect(assistantMayEngage({ status: 'escalated', handledBy: 'ai' })).toBe(false);
+    expect(assistantMayEngage({ status: 'escalated', handledBy: 'human' })).toBe(false);
   });
 });
 

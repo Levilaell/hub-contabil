@@ -8,6 +8,7 @@ import { useState, useTransition } from 'react';
 import {
   loadSupportMessagesAction,
   replySupportAction,
+  returnToAiAction,
   setSupportStatusAction,
 } from './actions';
 import { copy, inputClass, primaryButtonClass, secondaryButtonClass } from './copy';
@@ -98,6 +99,21 @@ export function TicketsList({
     });
   }
 
+  function handBackToAi() {
+    if (!selected) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await returnToAiAction(selected.id);
+      if (res && !res.ok) setError(res.message);
+      else {
+        // Keep the drawer open so the switch is visible; the list refreshes via
+        // revalidation, the local copy is updated for immediate feedback.
+        setSelected({ ...selected, handledBy: 'ai', status: selected.status === 'escalated' ? 'pending' : selected.status });
+        setNotice(copy.drawer.returnedToAi);
+      }
+    });
+  }
+
   const isResolved = selected?.status === 'resolved';
   const outsideWindow = selected !== null && isOutside24hWindow(selected);
 
@@ -180,6 +196,16 @@ export function TicketsList({
                     {copy.drawer.escalate}
                   </button>
                 ) : null}
+                {selected.handledBy === 'human' && !isResolved ? (
+                  <button
+                    type="button"
+                    onClick={handBackToAi}
+                    disabled={pending}
+                    className={secondaryButtonClass}
+                  >
+                    {copy.drawer.returnToAi}
+                  </button>
+                ) : null}
                 {!isResolved ? (
                   <button
                     type="button"
@@ -216,6 +242,14 @@ export function TicketsList({
               <div>
                 <dt className="text-muted-foreground text-xs">{copy.drawer.contact}</dt>
                 <dd className="mt-0.5">{selected.contactIdentifier}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">{copy.drawer.handledBy}</dt>
+                <dd className="mt-0.5">
+                  {selected.handledBy === 'human' || selected.status === 'escalated'
+                    ? copy.drawer.handledByHuman
+                    : copy.drawer.handledByAi}
+                </dd>
               </div>
             </dl>
 

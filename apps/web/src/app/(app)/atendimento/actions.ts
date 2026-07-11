@@ -1,6 +1,12 @@
 'use server';
 
-import { listSupportMessages, replySupportTicket, setSupportStatus, type SupportMessage } from '@hub/db';
+import {
+  listSupportMessages,
+  replySupportTicket,
+  returnTicketToAi,
+  setSupportStatus,
+  type SupportMessage,
+} from '@hub/db';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
@@ -30,6 +36,14 @@ export async function setSupportStatusAction(
 ): Promise<SupportActionState> {
   const supabase = await createClient();
   const res = await setSupportStatus(supabase, ticketId, status);
+  if (!res.ok) return { ok: false, message: res.message };
+  revalidatePath('/atendimento', 'layout');
+  return { ok: true, message: '' };
+}
+
+export async function returnToAiAction(ticketId: string): Promise<SupportActionState> {
+  const supabase = await createClient();
+  const res = await returnTicketToAi(supabase, ticketId);
   if (!res.ok) return { ok: false, message: res.message };
   revalidatePath('/atendimento', 'layout');
   return { ok: true, message: '' };

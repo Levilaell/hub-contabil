@@ -1079,6 +1079,7 @@ export type Database = {
           created_at: string
           department: string | null
           firm_id: string
+          handled_by: string
           id: string
           last_inbound_at: string | null
           last_message_at: string
@@ -1096,6 +1097,7 @@ export type Database = {
           created_at?: string
           department?: string | null
           firm_id: string
+          handled_by?: string
           id?: string
           last_inbound_at?: string | null
           last_message_at?: string
@@ -1113,6 +1115,7 @@ export type Database = {
           created_at?: string
           department?: string | null
           firm_id?: string
+          handled_by?: string
           id?: string
           last_inbound_at?: string | null
           last_message_at?: string
@@ -1428,6 +1431,10 @@ export type Database = {
       request_enrichment: { Args: { p_company_id: string }; Returns: undefined }
       resolve_exception: {
         Args: { p_id: string; p_note?: string; p_status: string }
+        Returns: undefined
+      }
+      return_ticket_to_ai: {
+        Args: { p_ticket_id: string }
         Returns: undefined
       }
       rotate_request_token: {

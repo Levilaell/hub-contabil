@@ -38,7 +38,7 @@ describe.skipIf(!hasEnv)('support assistant consumer (cloud dev)', () => {
    *  contact id so the unique (firm, channel, contact) never collides across tests. */
   async function newTicket(
     status: string,
-    opts: { lastInboundAt?: string | null } = {},
+    opts: { lastInboundAt?: string | null; handledBy?: 'ai' | 'human' } = {},
   ): Promise<string> {
     seq += 1;
     const [row] = await sql<{ id: string }[]>`
@@ -49,6 +49,7 @@ describe.skipIf(!hasEnv)('support assistant consumer (cloud dev)', () => {
           contact_identifier: `551199990${String(seq).padStart(4, '0')}`,
           status,
           last_inbound_at: opts.lastInboundAt ?? null,
+          handled_by: opts.handledBy ?? 'ai',
         })}
       returning id
     `;
@@ -178,17 +179,82 @@ describe.skipIf(!hasEnv)('support assistant consumer (cloud dev)', () => {
       inScope: true,
     }))({ firm_id: FIRM, ticket_id: ticketId, message_id: messageId, kind: 'inbound' });
 
-    const [ticket] = await sql<{ status: string; ai_handled: boolean }[]>`
-      select status, ai_handled from public.support_tickets where id = ${ticketId}
+    const [ticket] = await sql<{ status: string; ai_handled: boolean; handled_by: string }[]>`
+      select status, ai_handled, handled_by from public.support_tickets where id = ${ticketId}
     `;
     expect(ticket?.status).toBe('escalated');
     expect(ticket?.ai_handled).toBe(false);
+    expect(ticket?.handled_by).toBe('human'); // T27: escalation hands the ticket to a human
 
     const audit = await sql`
       select 1 from public.audit_events
       where firm_id = ${FIRM} and entity_id = ${ticketId} and action = 'support.escalated'
     `;
     expect(audit.length).toBe(1);
+  });
+
+  it('stays SILENT on a human-handled ticket even when the AI could answer (T27)', async () => {
+    await setSupportConfig({ autoReply: true, aiThreshold: 0.5 });
+    const ticketId = await newTicket('pending', {
+      lastInboundAt: new Date().toISOString(),
+      handledBy: 'human', // a human replied earlier and owns the conversation
+    });
+    const messageId = await addMessage(ticketId, {
+      direction: 'inbound',
+      author: 'client',
+      body: 'E sobre aquela outra dúvida?',
+      delivery: 'delivered',
+    });
+
+    await createSupportHandler(sql, fakeWhatsapp({ ok: true, id: 'wamid.MUTED' }), fakeAssistant({
+      reply: 'Resposta confiante que NÃO deve sair.',
+      confidence: 0.99,
+      inScope: true,
+    }))({ firm_id: FIRM, ticket_id: ticketId, message_id: messageId, kind: 'inbound' });
+
+    const outbound = await sql<{ n: number }[]>`
+      select count(*)::int as n from public.support_messages
+      where firm_id = ${FIRM} and ticket_id = ${ticketId} and direction = 'outbound'
+    `;
+    expect(outbound[0]?.n).toBe(0); // no AI reply, no ack — the human owns it
+
+    const [ticket] = await sql<{ status: string; handled_by: string }[]>`
+      select status, handled_by from public.support_tickets where id = ${ticketId}
+    `;
+    expect(ticket?.status).toBe('pending'); // untouched by the assistant
+    expect(ticket?.handled_by).toBe('human');
+  });
+
+  it('answers again after the ticket is handed back to the AI (T27)', async () => {
+    await setSupportConfig({ autoReply: true, aiThreshold: 0.5 });
+    const ticketId = await newTicket('pending', {
+      lastInboundAt: new Date().toISOString(),
+      handledBy: 'human',
+    });
+    // Hand back (what return_ticket_to_ai does; the RPC needs a firm JWT, so the
+    // service-role test applies the same effect directly).
+    await sql`
+      update public.support_tickets set handled_by = 'ai'
+      where id = ${ticketId} and firm_id = ${FIRM}
+    `;
+    const messageId = await addMessage(ticketId, {
+      direction: 'inbound',
+      author: 'client',
+      body: 'A guia já foi enviada?',
+      delivery: 'delivered',
+    });
+
+    await createSupportHandler(sql, fakeWhatsapp({ ok: true, id: 'wamid.BACK' }), fakeAssistant({
+      reply: 'Sim, a guia está em dia.',
+      confidence: 0.95,
+      inScope: true,
+    }))({ firm_id: FIRM, ticket_id: ticketId, message_id: messageId, kind: 'inbound' });
+
+    const [aiMsg] = await sql<{ author: string }[]>`
+      select author from public.support_messages
+      where ticket_id = ${ticketId} and direction = 'outbound' and author = 'ai'
+    `;
+    expect(aiMsg?.author).toBe('ai'); // the assistant is back on duty
   });
 
   it('does NOT repeat the escalation ack on an already-escalated conversation', async () => {

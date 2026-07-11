@@ -2,11 +2,13 @@ import type { SupportAssistantAdapter, WhatsappAdapter } from '@hub/adapters';
 import { parseFirmConfig } from '@hub/config';
 import {
   RECEPTION_GOODBYE,
+  assistantMayEngage,
   buildReceptionConfirmation,
   buildReceptionMenu,
   decideReception,
   decideSupportResponse,
   isWithin24hWindow,
+  type SupportStatus,
 } from '@hub/core';
 import type { Sql } from 'postgres';
 
@@ -34,6 +36,7 @@ interface TicketRow {
   status: string;
   last_inbound_at: string | null;
   department: string | null;
+  handled_by: string;
 }
 
 /** A compact pt-BR snapshot the assistant may use — only facts the hub owns. */
@@ -82,7 +85,8 @@ export function createSupportHandler(
 
   async function loadTicket(firmId: string, ticketId: string): Promise<TicketRow | null> {
     const [row] = await sql<TicketRow[]>`
-      select id, company_id, channel, contact_identifier, status, last_inbound_at, department
+      select id, company_id, channel, contact_identifier, status, last_inbound_at, department,
+             handled_by
       from public.support_tickets where id = ${ticketId} and firm_id = ${firmId}
     `;
     return row ?? null;
@@ -152,6 +156,21 @@ export function createSupportHandler(
     }
 
     // --- handle a new client message with the AI ---
+    // T27 human-takeover gate: once a human owns the conversation (escalated, or a
+    // human replied), every automated message — assistant AND reception menu —
+    // stays silent until the explicit hand-back ("Devolver para IA"). Checked
+    // BEFORE any LLM call; the inbound stays recorded and the ticket resurfaced
+    // by the inbound job, so nothing is lost — it just waits for the human.
+    if (
+      !assistantMayEngage({
+        status: ticket.status as SupportStatus,
+        handledBy: ticket.handled_by === 'human' ? 'human' : 'ai',
+      })
+    ) {
+      console.log(`[support] ${ticket_id} is human-handled; assistant stays silent`);
+      return;
+    }
+
     const [firm] = await sql<{ config: unknown }[]>`
       select config from public.firms where id = ${firm_id}
     `;
@@ -251,7 +270,8 @@ export function createSupportHandler(
       `;
     }
     await sql`
-      update public.support_tickets set status = 'escalated', last_message_at = now()
+      update public.support_tickets
+      set status = 'escalated', handled_by = 'human', last_message_at = now()
       where id = ${ticket_id} and firm_id = ${firm_id}
     `;
     await sql`

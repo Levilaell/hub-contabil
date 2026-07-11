@@ -41,6 +41,32 @@ export function statusAfterInbound(status: SupportStatus): SupportStatus {
   return status === 'escalated' ? 'escalated' : 'open';
 }
 
+// Who currently owns the conversation (T27). 'ai' = the assistant may engage;
+// 'human' = a person took over — via escalation or a human reply — and every
+// automated message (assistant AND reception menu) stays silent until an explicit
+// hand-back ("Devolver para IA"). Resolving resets it to 'ai' so a fresh
+// conversation weeks later is AI-first again.
+export const SUPPORT_HANDLERS = ['ai', 'human'] as const;
+export type SupportHandler = (typeof SUPPORT_HANDLERS)[number];
+
+export function isSupportHandler(value: string): value is SupportHandler {
+  return (SUPPORT_HANDLERS as readonly string[]).includes(value);
+}
+
+/**
+ * May the assistant (and the reception menu) engage on a new client message?
+ * Silent whenever a human owns the ticket — explicitly (`handledBy` 'human') or
+ * implicitly (status 'escalated', which by definition awaits a human). The worker
+ * MUST check this before any LLM call; the hand-back RPC flips `handledBy` back
+ * to 'ai' (and escalated → pending) to re-enable the assistant.
+ */
+export function assistantMayEngage(input: {
+  status: SupportStatus;
+  handledBy: SupportHandler;
+}): boolean {
+  return input.handledBy === 'ai' && input.status !== 'escalated';
+}
+
 // Statuses that still need someone's attention (the /atendimento default view and
 // the sidebar count badge use this).
 export const OPEN_SUPPORT_STATUSES: SupportStatus[] = ['open', 'escalated'];
