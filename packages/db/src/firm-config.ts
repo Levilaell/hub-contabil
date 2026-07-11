@@ -12,6 +12,7 @@ export interface FirmConfigEdits {
   // working unchanged; when present they patch the support block.
   supportAutoReply?: boolean;
   supportAiThreshold?: number;
+  supportAiModel?: string;
   supportFaq?: { q: string; a: string }[];
   receptionEnabled?: boolean;
   receptionGreeting?: string;
@@ -46,6 +47,9 @@ export async function saveFirmConfig(
       ...current.support,
       ...(edits.supportAutoReply !== undefined ? { autoReply: edits.supportAutoReply } : {}),
       ...(edits.supportAiThreshold !== undefined ? { aiThreshold: edits.supportAiThreshold } : {}),
+      ...(edits.supportAiModel !== undefined && edits.supportAiModel.trim()
+        ? { aiModel: edits.supportAiModel.trim() }
+        : {}),
       ...(edits.supportFaq !== undefined ? { faq: edits.supportFaq } : {}),
       reception: {
         ...current.support.reception,

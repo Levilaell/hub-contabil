@@ -47,6 +47,9 @@ export const copy = {
     contact: 'Contato',
     movedToPending:
       'Resposta enviada. A conversa foi para "Aguardando cliente" e a IA fica em silêncio nela até você usar "Devolver para a IA". Ela sai da fila padrão e volta quando o cliente responder (use o filtro Situação para encontrá-la).',
+    department: 'Departamento',
+    departmentNone: 'Sem departamento',
+    departmentSaved: 'Departamento salvo — os filtros passam a considerar a conversa.',
     handledBy: 'Quem atende',
     handledByAi: 'IA — responde automaticamente quando confiante',
     handledByHuman: 'Atendimento humano — a IA está em silêncio nesta conversa',

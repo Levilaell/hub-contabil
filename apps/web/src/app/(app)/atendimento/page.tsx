@@ -92,7 +92,7 @@ export default async function AtendimentoPage({
           description={filtered ? copy.empty.filteredDescription : copy.empty.description}
         />
       ) : (
-        <TicketsList tickets={tickets} departmentLabels={departmentLabels} />
+        <TicketsList tickets={tickets} departments={departments} />
       )}
     </div>
   );

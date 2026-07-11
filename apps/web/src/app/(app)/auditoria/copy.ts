@@ -83,6 +83,7 @@ export const copy = {
     'export_batch.downloaded': 'Lote baixado',
     'support.received': 'Atendimento recebido',
     'support.department_selected': 'Departamento escolhido pelo cliente',
+    'support.department_set': 'Departamento do atendimento definido',
     'support.closed_by_client': 'Atendimento encerrado pelo cliente',
     'support.ai_replied': 'Atendimento respondido pela IA',
     'support.replied': 'Atendimento respondido',

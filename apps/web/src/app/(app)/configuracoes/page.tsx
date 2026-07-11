@@ -28,6 +28,7 @@ export default async function ConfiguracoesPage() {
         aiThreshold={config.aiThreshold}
         supportAutoReply={config.support.autoReply}
         supportAiThreshold={config.support.aiThreshold}
+        supportAiModel={config.support.aiModel}
         supportFaq={config.support.faq}
         receptionEnabled={config.support.reception.enabled}
         receptionGreeting={config.support.reception.greeting}

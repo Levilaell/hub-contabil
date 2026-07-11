@@ -1451,6 +1451,10 @@ export type Database = {
         Args: { p_note?: string; p_status: string; p_ticket_id: string }
         Returns: undefined
       }
+      set_ticket_department: {
+        Args: { p_department: string; p_ticket_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

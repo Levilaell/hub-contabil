@@ -169,3 +169,20 @@ export async function returnTicketToAi(
   if (error) return { ok: false, message: 'Não foi possível devolver para a IA — tente de novo.' };
   return { ok: true };
 }
+
+/** Set/correct the ticket's department (T33) — until now only the reception
+ *  menu could tag it. Audited by the RPC. */
+export async function setTicketDepartment(
+  supabase: SupabaseClient,
+  ticketId: string,
+  department: string,
+): Promise<SupportActionResult> {
+  const value = department.trim();
+  if (!value) return { ok: false, message: 'Escolha o departamento.' };
+  const { error } = await supabase.rpc('set_ticket_department', {
+    p_ticket_id: ticketId,
+    p_department: value,
+  });
+  if (error) return { ok: false, message: 'Não foi possível salvar o departamento.' };
+  return { ok: true };
+}

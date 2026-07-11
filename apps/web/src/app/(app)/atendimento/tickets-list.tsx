@@ -9,6 +9,7 @@ import {
   loadSupportMessagesAction,
   replySupportAction,
   returnToAiAction,
+  setDepartmentAction,
   setSupportStatusAction,
 } from './actions';
 import { copy, inputClass, primaryButtonClass, secondaryButtonClass } from './copy';
@@ -43,11 +44,12 @@ function timeAgo(iso: string): string {
 
 export function TicketsList({
   tickets,
-  departmentLabels,
+  departments,
 }: {
   tickets: SupportTicket[];
-  departmentLabels: Record<string, string>;
+  departments: { key: string; label: string }[];
 }) {
+  const departmentLabels = Object.fromEntries(departments.map((d) => [d.key, d.label]));
   const [selected, setSelected] = useState<SupportTicket | null>(null);
   const [messages, setMessages] = useState<SupportMessage[] | null>(null);
   const [reply, setReply] = useState('');
@@ -96,6 +98,19 @@ export function TicketsList({
       const res = await setSupportStatusAction(selected.id, status);
       if (res && !res.ok) setError(res.message);
       else close();
+    });
+  }
+
+  function changeDepartment(department: string) {
+    if (!selected || !department) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await setDepartmentAction(selected.id, department);
+      if (res && !res.ok) setError(res.message);
+      else {
+        setSelected({ ...selected, department });
+        setNotice(copy.drawer.departmentSaved);
+      }
     });
   }
 
@@ -249,6 +264,37 @@ export function TicketsList({
                   {selected.handledBy === 'human' || selected.status === 'escalated'
                     ? copy.drawer.handledByHuman
                     : copy.drawer.handledByAi}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">{copy.drawer.department}</dt>
+                <dd className="mt-0.5">
+                  {isResolved ? (
+                    selected.department ? (
+                      (departmentLabels[selected.department] ?? selected.department)
+                    ) : (
+                      copy.drawer.departmentNone
+                    )
+                  ) : (
+                    // T33: set/correct in place — until now only the reception
+                    // menu could tag the department.
+                    <select
+                      aria-label={copy.drawer.department}
+                      value={selected.department ?? ''}
+                      disabled={pending}
+                      onChange={(e) => changeDepartment(e.target.value)}
+                      className={inputClass}
+                    >
+                      <option value="" disabled>
+                        {copy.drawer.departmentNone}
+                      </option>
+                      {departments.map((d) => (
+                        <option key={d.key} value={d.key}>
+                          {d.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </dd>
               </div>
             </dl>

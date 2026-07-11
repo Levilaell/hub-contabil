@@ -223,6 +223,10 @@ export const firmConfigSchema = z
           .min(0, { message: 'O limite de confiança deve estar entre 0 e 1.' })
           .max(1, { message: 'O limite de confiança deve estar entre 0 e 1.' })
           .default(0.8),
+        // Anthropic model for the support assistant (T33). Chat needs seconds,
+        // not minutes — defaults to the fast tier, independent of the triage
+        // aiModel (which favors accuracy over latency).
+        aiModel: z.string().min(1).default('claude-haiku-4-5-20251001'),
         // Shown when the AI is off/escalates, so the client knows a human will reply.
         escalationMessage: z
           .string()

@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 
 import { updateFirmConfigAction } from './actions';
 import { copy } from './copy';
@@ -14,6 +14,7 @@ interface SettingsFormProps {
   aiThreshold: number;
   supportAutoReply: boolean;
   supportAiThreshold: number;
+  supportAiModel: string;
   supportFaq: { q: string; a: string }[];
   receptionEnabled: boolean;
   receptionGreeting: string;
@@ -23,6 +24,70 @@ interface SettingsFormProps {
   routingMap: Record<string, string>;
 }
 
+// Confidence presets (T33) — plain words instead of a bare 0–1 input; the
+// numeric value still travels in the form (a hidden field), so the config
+// schema and everything downstream stay unchanged. "Personalizado" reveals
+// the raw input for fine-tuning.
+function ThresholdField({
+  id,
+  name,
+  initial,
+  presets,
+  disabled,
+}: {
+  id: string;
+  name: string;
+  initial: number;
+  presets: { value: number; label: string }[];
+  disabled: boolean;
+}) {
+  const match = presets.find((p) => Math.abs(p.value - initial) < 1e-9);
+  const [mode, setMode] = useState<string>(match ? String(match.value) : 'custom');
+  const [custom, setCustom] = useState(String(initial));
+
+  return (
+    <div className="space-y-1.5">
+      <select
+        id={id}
+        value={mode}
+        onChange={(e) => setMode(e.target.value)}
+        disabled={disabled}
+        className={inputClass}
+      >
+        {presets.map((p) => (
+          <option key={p.value} value={String(p.value)}>
+            {p.label}
+          </option>
+        ))}
+        <option value="custom">{copy.presets.custom}</option>
+      </select>
+      {mode === 'custom' ? (
+        <input
+          type="number"
+          min={0}
+          max={1}
+          step={0.01}
+          required
+          value={custom}
+          onChange={(e) => setCustom(e.target.value)}
+          disabled={disabled}
+          aria-label={copy.presets.customLabel}
+          className={`${inputClass} max-w-28`}
+        />
+      ) : null}
+      <input type="hidden" name={name} value={mode === 'custom' ? custom : mode} />
+    </div>
+  );
+}
+
+const fmt = (v: number) => v.toLocaleString('pt-BR');
+
+const SUPPORT_MODELS = [
+  { value: 'claude-haiku-4-5-20251001', label: copy.supportModelFast },
+  { value: 'claude-sonnet-5', label: copy.supportModelBalanced },
+  { value: 'claude-opus-4-8', label: copy.supportModelAdvanced },
+];
+
 export function SettingsForm(props: SettingsFormProps) {
   const {
     canEdit,
@@ -30,6 +95,7 @@ export function SettingsForm(props: SettingsFormProps) {
     aiThreshold,
     supportAutoReply,
     supportAiThreshold,
+    supportAiModel,
     supportFaq,
     receptionEnabled,
     receptionGreeting,
@@ -70,17 +136,16 @@ export function SettingsForm(props: SettingsFormProps) {
           <label htmlFor="aiThreshold" className="text-sm font-medium">
             {copy.aiLabel}
           </label>
-          <input
+          <ThresholdField
             id="aiThreshold"
             name="aiThreshold"
-            type="number"
-            min={0}
-            max={1}
-            step={0.01}
-            required
+            initial={aiThreshold}
             disabled={!canEdit}
-            defaultValue={aiThreshold}
-            className={`${inputClass} max-w-28`}
+            presets={[
+              { value: 0.95, label: copy.presets.strict(fmt(0.95)) },
+              { value: 0.85, label: copy.presets.balanced(fmt(0.85)) },
+              { value: 0.7, label: copy.presets.permissive(fmt(0.7)) },
+            ]}
           />
           <p className="text-muted-foreground text-xs">{copy.aiHint}</p>
         </div>
@@ -106,19 +171,40 @@ export function SettingsForm(props: SettingsFormProps) {
             <label htmlFor="supportAiThreshold" className="text-sm font-medium">
               {copy.supportThresholdLabel}
             </label>
-            <input
+            <ThresholdField
               id="supportAiThreshold"
               name="supportAiThreshold"
-              type="number"
-              min={0}
-              max={1}
-              step={0.01}
-              required
+              initial={supportAiThreshold}
               disabled={!canEdit}
-              defaultValue={supportAiThreshold}
-              className={`${inputClass} max-w-28`}
+              presets={[
+                { value: 0.9, label: copy.presets.strict(fmt(0.9)) },
+                { value: 0.8, label: copy.presets.balanced(fmt(0.8)) },
+                { value: 0.65, label: copy.presets.permissive(fmt(0.65)) },
+              ]}
             />
             <p className="text-muted-foreground text-xs">{copy.supportThresholdHint}</p>
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="supportAiModel" className="text-sm font-medium">
+              {copy.supportModelLabel}
+            </label>
+            <select
+              id="supportAiModel"
+              name="supportAiModel"
+              disabled={!canEdit}
+              defaultValue={supportAiModel}
+              className={inputClass}
+            >
+              {SUPPORT_MODELS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+              {SUPPORT_MODELS.every((m) => m.value !== supportAiModel) ? (
+                <option value={supportAiModel}>{copy.supportModelCurrent(supportAiModel)}</option>
+              ) : null}
+            </select>
+            <p className="text-muted-foreground text-xs">{copy.supportModelHint}</p>
           </div>
           <div className="space-y-1.5">
             <label htmlFor="supportFaq" className="text-sm font-medium">

@@ -48,6 +48,7 @@ export async function updateFirmConfigAction(
   // An unchecked checkbox submits nothing → false.
   const supportAutoReply = formData.get('supportAutoReply') === 'on';
   const supportAiThreshold = Number(formData.get('supportAiThreshold'));
+  const supportAiModelRaw = formData.get('supportAiModel');
   const faqRaw = formData.get('supportFaq');
   const receptionOptionsRaw = formData.get('receptionOptions');
   const receptionGreeting = formData.get('receptionGreeting');
@@ -58,6 +59,7 @@ export async function updateFirmConfigAction(
     aiThreshold,
     supportAutoReply,
     supportAiThreshold,
+    supportAiModel: typeof supportAiModelRaw === 'string' ? supportAiModelRaw : undefined,
     supportFaq: typeof faqRaw === 'string' ? parseFaq(faqRaw) : undefined,
     receptionEnabled: formData.get('receptionEnabled') === 'on',
     receptionGreeting: typeof receptionGreeting === 'string' ? receptionGreeting : undefined,

@@ -12,6 +12,7 @@ describe('parseFirmConfig', () => {
     const config = parseFirmConfig({});
     expect(config.deadlineTriggers.defaultDays).toBe(30);
     expect(config.aiThreshold).toBe(0.85);
+    expect(config.support.aiModel).toBe('claude-haiku-4-5-20251001'); // chat = fast tier (T33)
     expect(config.departments.length).toBeGreaterThan(0);
     expect(config.taxonomy).toContain('nfe');
     expect(config.routingMap.nfe).toBe('fiscal');

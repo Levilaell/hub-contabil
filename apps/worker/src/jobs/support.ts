@@ -223,7 +223,8 @@ export function createSupportHandler(
       question,
       context,
       faq: config.support.faq,
-      model: config.aiModel,
+      // T33: the chat uses its own (fast) model — triage keeps config.aiModel.
+      model: config.support.aiModel,
     });
     const decision = decideSupportResponse({
       autoReplyEnabled: config.support.autoReply,

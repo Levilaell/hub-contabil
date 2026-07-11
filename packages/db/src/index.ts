@@ -183,6 +183,7 @@ export {
   replySupportTicket,
   setSupportStatus,
   returnTicketToAi,
+  setTicketDepartment,
   type SupportTicket,
   type SupportMessage,
   type SupportStatus,

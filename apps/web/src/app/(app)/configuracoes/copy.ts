@@ -5,15 +5,29 @@ export const copy = {
   deadlineLabel: 'Prazo de alerta padrão',
   deadlineSuffix: 'dias antes do vencimento',
   deadlineHint: 'Quantos dias antes do vencimento um prazo entra em alerta (amarelo).',
-  aiLabel: 'Limite de confiança da triagem por IA',
-  aiHint: 'Abaixo deste valor o documento vai para a fila de exceções. Entre 0 e 1.',
+  aiLabel: 'Confiança exigida da triagem por IA',
+  aiHint: 'Documentos abaixo do nível escolhido vão para a fila de exceções, para revisão humana.',
+  presets: {
+    strict: (v: string) => `Rigoroso — quase tudo passa por revisão humana (${v})`,
+    balanced: (v: string) => `Equilibrado — recomendado (${v})`,
+    permissive: (v: string) => `Permissivo — a IA decide mais sozinha (${v})`,
+    custom: 'Personalizado…',
+    customLabel: 'Valor personalizado (entre 0 e 1)',
+  },
   supportTitle: 'Atendimento (dúvidas no WhatsApp)',
   supportAutoReplyLabel: 'Deixar a IA responder dúvidas simples',
   supportAutoReplyHint:
     'Quando ligado, a IA responde perguntas triviais com o contexto da empresa e encaminha o resto para um humano. Quando desligado, toda dúvida vai direto para a equipe.',
-  supportThresholdLabel: 'Limite de confiança do atendimento por IA',
+  supportThresholdLabel: 'Confiança exigida do atendimento por IA',
   supportThresholdHint:
-    'Abaixo deste valor a IA não responde sozinha — encaminha para um humano. Entre 0 e 1.',
+    'Abaixo do nível escolhido a IA não responde sozinha — encaminha para um humano.',
+  supportModelLabel: 'Velocidade das respostas da IA',
+  supportModelHint:
+    'O modo rápido responde em poucos segundos e resolve bem dúvidas do dia a dia; os outros pensam mais, e demoram mais.',
+  supportModelFast: 'Rápido — recomendado para conversa',
+  supportModelBalanced: 'Intermediário',
+  supportModelAdvanced: 'Avançado — máxima qualidade, mais lento',
+  supportModelCurrent: (id: string) => `Atual (${id})`,
   supportFaqLabel: 'Respostas prontas (FAQ do escritório)',
   supportFaqPlaceholder: 'Qual o horário de atendimento? | De segunda a sexta, das 8h às 18h.',
   supportFaqHint:

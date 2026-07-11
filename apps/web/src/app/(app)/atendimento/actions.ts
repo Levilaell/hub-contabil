@@ -5,6 +5,7 @@ import {
   replySupportTicket,
   returnTicketToAi,
   setSupportStatus,
+  setTicketDepartment,
   type SupportMessage,
 } from '@hub/db';
 import { revalidatePath } from 'next/cache';
@@ -44,6 +45,17 @@ export async function setSupportStatusAction(
 export async function returnToAiAction(ticketId: string): Promise<SupportActionState> {
   const supabase = await createClient();
   const res = await returnTicketToAi(supabase, ticketId);
+  if (!res.ok) return { ok: false, message: res.message };
+  revalidatePath('/atendimento', 'layout');
+  return { ok: true, message: '' };
+}
+
+export async function setDepartmentAction(
+  ticketId: string,
+  department: string,
+): Promise<SupportActionState> {
+  const supabase = await createClient();
+  const res = await setTicketDepartment(supabase, ticketId, department);
   if (!res.ok) return { ok: false, message: res.message };
   revalidatePath('/atendimento', 'layout');
   return { ok: true, message: '' };
