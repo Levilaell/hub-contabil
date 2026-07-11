@@ -120,6 +120,7 @@ export {
   countOpenRequests,
   cancelDocumentRequest,
   rotateRequestToken,
+  markRequestSent,
   getCompanyPrimaryEmail,
   getSuggestedRecipientEmail,
   getRequestByToken,

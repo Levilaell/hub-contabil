@@ -30,11 +30,12 @@ export const copy = {
     cancelConfirm: 'Cancelar esta solicitação? O link deixará de funcionar.',
   },
   events: {
-    sent: 'Link enviado',
+    sent: 'E-mail enviado',
     viewed: 'Cliente abriu o link',
     received: 'Documento recebido',
     downloaded: 'Documento baixado',
     reminded: 'Lembrete enviado',
+    link_copied: 'Novo link gerado e copiado',
   } as Record<string, string>,
   status: {
     requested: 'Aguardando envio',

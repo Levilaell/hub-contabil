@@ -1385,6 +1385,10 @@ export type Database = {
       }
       mark_export_downloaded: { Args: { p_id: string }; Returns: undefined }
       mark_notification_read: { Args: { p_id: string }; Returns: undefined }
+      mark_request_sent: {
+        Args: { p_id: string; p_to?: string }
+        Returns: undefined
+      }
       queue_rules_exception: {
         Args: { p_context: Json; p_suggestion?: Json }
         Returns: string
@@ -1427,7 +1431,7 @@ export type Database = {
         Returns: undefined
       }
       rotate_request_token: {
-        Args: { p_expiry_days?: number; p_id: string }
+        Args: { p_expiry_days?: number; p_id: string; p_record_copy?: boolean }
         Returns: string
       }
       set_support_status: {

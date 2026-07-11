@@ -10,6 +10,7 @@ import {
   getRequestOwner,
   listDocumentRequests,
   logRequestView,
+  markRequestSent,
   recordRequestDownload,
   recordRequestUpload,
   rotateRequestToken,
@@ -70,7 +71,13 @@ describe.skipIf(!hasEnv)('document requests (cloud dev)', () => {
       await service
         .from('audit_events')
         .delete()
-        .in('action', ['request.created', 'request.cancelled']);
+        .in('action', [
+          'request.created',
+          'request.cancelled',
+          'request.sent',
+          'request.link_copied',
+          'request.link_rotated',
+        ]);
       await service
         .from('audit_events')
         .delete()
@@ -299,7 +306,7 @@ describe.skipIf(!hasEnv)('document requests (cloud dev)', () => {
     expect(req?.status).toBe('cancelled');
   });
 
-  it('rotation issues a fresh link, invalidates the old one, and marks requested→sent', async () => {
+  it('rotation issues a fresh link and invalidates the old one WITHOUT marking sent (T26)', async () => {
     const created = await createDocumentRequest(owner, {
       companyId,
       kind: 'upload_request',
@@ -312,13 +319,89 @@ describe.skipIf(!hasEnv)('document requests (cloud dev)', () => {
     expect(rotated.ok).toBe(true);
     if (!rotated.ok) return;
 
-    // New token resolves and the request is now 'sent'; old token is dead.
+    // New token resolves, old token is dead — but no e-mail went out, so the
+    // request must still read as awaiting send, with no sent_at and no event.
     const fresh = await getRequestByToken(anon, rotated.token);
-    expect(fresh?.status).toBe('sent');
+    expect(fresh?.status).toBe('requested');
     expect(await getRequestByToken(anon, created.token)).toBeNull();
+
+    const { data: req } = await service
+      .from('document_requests')
+      .select('sent_at')
+      .eq('id', created.id)
+      .single();
+    expect(req?.sent_at).toBeNull();
+
+    const { count } = await service
+      .from('document_request_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('request_id', created.id)
+      .eq('event_type', 'sent');
+    expect(count).toBe(0);
   });
 
-  it('rotation keeps a viewed request viewed (no state regression)', async () => {
+  it('copy-link records link_copied on the timeline and keeps the request awaiting send', async () => {
+    const created = await createDocumentRequest(owner, {
+      companyId,
+      kind: 'upload_request',
+      title: 'Para copiar',
+      expiryDays: 7,
+    });
+    if (!created.ok) return;
+
+    const rotated = await rotateRequestToken(owner, created.id, { recordCopy: true });
+    expect(rotated.ok).toBe(true);
+    if (!rotated.ok) return;
+
+    const fresh = await getRequestByToken(anon, rotated.token);
+    expect(fresh?.status).toBe('requested');
+
+    const { count } = await service
+      .from('document_request_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('request_id', created.id)
+      .eq('event_type', 'link_copied');
+    expect(count).toBe(1);
+  });
+
+  it('mark_request_sent moves requested→sent, stamps sent_at and logs the sent event', async () => {
+    const created = await createDocumentRequest(owner, {
+      companyId,
+      kind: 'upload_request',
+      title: 'Enviada de verdade',
+      expiryDays: 7,
+    });
+    if (!created.ok) return;
+
+    const marked = await markRequestSent(owner, created.id, 'cliente@empresa.test');
+    expect(marked.ok).toBe(true);
+
+    const { data: req } = await service
+      .from('document_requests')
+      .select('status, sent_at')
+      .eq('id', created.id)
+      .single();
+    expect(req?.status).toBe('sent');
+    expect(req?.sent_at).not.toBeNull();
+
+    const { data: events } = await service
+      .from('document_request_events')
+      .select('event_type, context')
+      .eq('request_id', created.id)
+      .eq('event_type', 'sent');
+    expect(events).toHaveLength(1);
+    expect((events?.[0]?.context as { to?: string }).to).toBe('cliente@empresa.test');
+
+    // Golden rule #7: the real delivery is audited.
+    const { count: audited } = await service
+      .from('audit_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('action', 'request.sent')
+      .eq('entity_id', created.id);
+    expect(audited).toBe(1);
+  });
+
+  it('rotation and mark_request_sent keep a viewed request viewed (no state regression)', async () => {
     const created = await createDocumentRequest(owner, {
       companyId,
       kind: 'upload_request',
@@ -331,7 +414,11 @@ describe.skipIf(!hasEnv)('document requests (cloud dev)', () => {
     const rotated = await rotateRequestToken(owner, created.id);
     if (!rotated.ok) return;
 
-    const fresh = await getRequestByToken(anon, rotated.token);
+    let fresh = await getRequestByToken(anon, rotated.token);
+    expect(fresh?.status).toBe('viewed');
+
+    await markRequestSent(owner, created.id, 'cliente@empresa.test'); // re-send after view
+    fresh = await getRequestByToken(anon, rotated.token);
     expect(fresh?.status).toBe('viewed'); // not regressed to 'sent'
   });
 

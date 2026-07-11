@@ -45,7 +45,7 @@ interface DocumentRequestRow {
 
 export interface RequestEvent {
   id: string;
-  eventType: 'viewed' | 'received' | 'downloaded' | 'sent' | 'reminded';
+  eventType: 'viewed' | 'received' | 'downloaded' | 'sent' | 'reminded' | 'link_copied';
   ip: string | null;
   userAgent: string | null;
   occurredAt: string;
@@ -261,18 +261,37 @@ export async function getSuggestedRecipientEmail(
 }
 
 /** Rotate the access token (resend / new copy-link). Returns the fresh raw token
- *  to build the link; the previous link stops working. Marks the request sent. */
+ *  to build the link; the previous link stops working. Rotation does NOT mark the
+ *  request sent (T26) — the send flow calls markRequestSent after the provider
+ *  accepts the e-mail; the copy flow passes recordCopy to log the manual copy. */
 export async function rotateRequestToken(
   supabase: SupabaseClient,
   id: string,
-  expiryDays?: number,
+  opts?: { expiryDays?: number; recordCopy?: boolean },
 ): Promise<{ ok: true; token: string } | { ok: false; message: string }> {
   const { data, error } = await supabase.rpc('rotate_request_token', {
     p_id: id,
-    p_expiry_days: expiryDays ?? null,
+    p_expiry_days: opts?.expiryDays ?? null,
+    p_record_copy: opts?.recordCopy ?? false,
   });
   if (error || !data) return fail('Não foi possível gerar um novo link.');
   return { ok: true, token: data as string };
+}
+
+/** Mark the request sent — call ONLY after the provider accepted the e-mail.
+ *  requested → sent (sent/viewed preserved), stamps sent_at, logs the timeline
+ *  'sent' event and audits request.sent. */
+export async function markRequestSent(
+  supabase: SupabaseClient,
+  id: string,
+  to?: string,
+): Promise<RequestActionResult> {
+  const { error } = await supabase.rpc('mark_request_sent', {
+    p_id: id,
+    p_to: to ?? null,
+  });
+  if (error) return fail('Não foi possível marcar como enviada.');
+  return { ok: true };
 }
 
 export async function listRequestEvents(

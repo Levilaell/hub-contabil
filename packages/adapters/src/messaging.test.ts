@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { NoopMessagingAdapter, ResendMessagingAdapter, createMessagingAdapter } from './messaging';
+import {
+  NoopMessagingAdapter,
+  ResendMessagingAdapter,
+  createMessagingAdapter,
+  isMessagingConfigured,
+} from './messaging';
 
 describe('NoopMessagingAdapter', () => {
   it('reports success without sending', async () => {
@@ -59,5 +64,14 @@ describe('createMessagingAdapter', () => {
     );
     expect(createMessagingAdapter({})).toBeInstanceOf(NoopMessagingAdapter);
     expect(createMessagingAdapter({ RESEND_API_KEY: 'k' })).toBeInstanceOf(NoopMessagingAdapter);
+  });
+});
+
+describe('isMessagingConfigured', () => {
+  it('is true only with both key and sender (T26: flows must not trust the no-op)', () => {
+    expect(isMessagingConfigured({ RESEND_API_KEY: 'k', RESEND_FROM: 'a@b.test' })).toBe(true);
+    expect(isMessagingConfigured({})).toBe(false);
+    expect(isMessagingConfigured({ RESEND_API_KEY: 'k' })).toBe(false);
+    expect(isMessagingConfigured({ RESEND_FROM: 'a@b.test' })).toBe(false);
   });
 });

@@ -6,10 +6,11 @@ import {
   getRequestByToken,
   getSuggestedRecipientEmail,
   listRequestEvents,
+  markRequestSent,
   rotateRequestToken,
   type RequestEvent,
 } from '@hub/db';
-import { createMessagingAdapter } from '@hub/adapters';
+import { createMessagingAdapter, isMessagingConfigured } from '@hub/adapters';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
@@ -17,7 +18,8 @@ import { createClient } from '@/lib/supabase/server';
 
 // Follow-up actions. Sending and copy-link both ROTATE the token (only the hash
 // is stored, so a fresh link is regenerated and the previous one stops working).
-// Rotation also marks the request sent (mirrors the core resend guard).
+// Send integrity (T26): a request is marked sent ONLY after the provider accepts
+// the e-mail — never before, and never by merely copying a link.
 
 type SendResult = { ok: true } | { ok: false; message: string };
 type CopyResult = { ok: true; token: string } | { ok: false; message: string };
@@ -34,6 +36,15 @@ export async function sendRequestEmailAction(
   companyId: string,
   toOverride?: string,
 ): Promise<SendResult> {
+  // Without a configured provider nothing would leave the system — refuse up
+  // front instead of letting the no-op adapter fake a delivery.
+  if (!isMessagingConfigured()) {
+    return {
+      ok: false,
+      message: 'Envio de e-mail não configurado neste ambiente. Use "Gerar e copiar novo link".',
+    };
+  }
+
   const supabase = await createClient();
   // Fase 1.1 §1.3 — recipient suggested by the request's department; override wins.
   const to =
@@ -59,15 +70,28 @@ export async function sendRequestEmailAction(
   });
 
   const sent = await createMessagingAdapter().sendEmail({ to, ...email });
-  if (!sent.ok) return { ok: false, message: 'Link gerado, mas o e-mail falhou. Copie o link.' };
+  if (!sent.ok) {
+    return {
+      ok: false,
+      message: 'O e-mail falhou — a solicitação continua como não enviada. Tente de novo.',
+    };
+  }
 
+  const marked = await markRequestSent(supabase, requestId, to);
   revalidatePath('/solicitacoes');
+  if (!marked.ok) {
+    console.error(`request ${requestId}: e-mail accepted by provider but mark_request_sent failed`);
+    return {
+      ok: false,
+      message: 'E-mail enviado, mas o status não foi atualizado. Recarregue e confira o histórico.',
+    };
+  }
   return { ok: true };
 }
 
 export async function copyLinkAction(requestId: string): Promise<CopyResult> {
   const supabase = await createClient();
-  const rotated = await rotateRequestToken(supabase, requestId);
+  const rotated = await rotateRequestToken(supabase, requestId, { recordCopy: true });
   if (!rotated.ok) return { ok: false, message: rotated.message };
   revalidatePath('/solicitacoes');
   return { ok: true, token: rotated.token };

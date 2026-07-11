@@ -3,6 +3,7 @@ import {
   createImapInboundAdapter,
   createMessagingAdapter,
   imapConfigured,
+  isMessagingConfigured,
 } from '@hub/adapters';
 import { Cron } from 'croner';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -59,6 +60,12 @@ export function buildCronJobs(sql: Sql, storage?: SupabaseClient): CronJob[] {
       name: 'alerts',
       pattern: '0 * * * *',
       run: async () => {
+        // T26: with no provider configured the no-op adapter would fake
+        // deliveries and write 'reminded' events for e-mails that never left.
+        if (!isMessagingConfigured()) {
+          console.log('[cron] alerts: skipped — messaging not configured');
+          return;
+        }
         const r = await runRequestReminderSweep(sql, new Date(), {
           messaging: clientMessaging,
           baseUrl: appBaseUrl,

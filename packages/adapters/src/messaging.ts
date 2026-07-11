@@ -83,6 +83,13 @@ export interface MessagingEnv {
   [key: string]: string | undefined;
 }
 
+/** True when a real provider is configured. Flows that must not pretend an
+ *  e-mail left the system (request sending, reminder sweep) check this instead
+ *  of trusting the no-op's fake success. */
+export function isMessagingConfigured(env: MessagingEnv = process.env): boolean {
+  return Boolean(env.RESEND_API_KEY && env.RESEND_FROM);
+}
+
 /** Resend when a key + sender are configured, else the no-op. Used by web and worker. */
 export function createMessagingAdapter(env: MessagingEnv = process.env): MessagingAdapter {
   if (env.RESEND_API_KEY && env.RESEND_FROM) {

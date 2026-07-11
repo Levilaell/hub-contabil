@@ -17,6 +17,7 @@ export {
   NoopMessagingAdapter,
   ResendMessagingAdapter,
   createMessagingAdapter,
+  isMessagingConfigured,
   type MessagingAdapter,
   type MessagingEnv,
   type EmailMessage,
