@@ -2,7 +2,7 @@
 
 import { docTypeLabel } from '@hub/config';
 import type { DocumentRequest } from '@hub/db';
-import { StatusBadge, type StatusTone } from '@hub/ui';
+import { ConfirmDialog, StatusBadge, toast, type StatusTone } from '@hub/ui';
 import { Check, Copy, Plus, X } from 'lucide-react';
 import { useState, useTransition, type FormEvent, type ReactNode } from 'react';
 
@@ -221,11 +221,15 @@ function RequestForm({
 
 function RequestRow({ companyId, request }: { companyId: string; request: DocumentRequest }) {
   const [cancelling, startCancel] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const isOpen = OPEN_STATUSES.includes(request.status);
 
   function handleCancel() {
-    if (!window.confirm(copy.solicitacoes.cancelConfirm)) return;
-    startCancel(() => cancelRequestAction(request.id, companyId));
+    startCancel(async () => {
+      await cancelRequestAction(request.id, companyId);
+      setConfirmOpen(false);
+      toast.success(copy.solicitacoes.cancelled);
+    });
   }
 
   return (
@@ -246,7 +250,7 @@ function RequestRow({ companyId, request }: { companyId: string; request: Docume
       {isOpen ? (
         <button
           type="button"
-          onClick={handleCancel}
+          onClick={() => setConfirmOpen(true)}
           disabled={cancelling}
           aria-label={copy.solicitacoes.cancelRequest}
           className="text-muted-foreground hover:text-danger-text rounded-md p-1.5 disabled:opacity-60"
@@ -254,6 +258,17 @@ function RequestRow({ companyId, request }: { companyId: string; request: Docume
           <X className="size-4" aria-hidden />
         </button>
       ) : null}
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={copy.solicitacoes.cancelTitle}
+        description={copy.solicitacoes.cancelConfirm}
+        confirmLabel={copy.solicitacoes.cancelRequest}
+        cancelLabel={copy.dialogBack}
+        tone="danger"
+        pending={cancelling}
+        onConfirm={handleCancel}
+      />
     </li>
   );
 }

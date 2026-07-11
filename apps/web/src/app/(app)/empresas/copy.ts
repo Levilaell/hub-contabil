@@ -1,6 +1,7 @@
 // UI copy (pt-BR) for the company registry screens (T6). All user-facing strings
 // live here — never inline in JSX.
 export const copy = {
+  dialogBack: 'Voltar',
   list: {
     title: 'Empresas',
     subtitle: 'Carteira de clientes do escritório.',
@@ -76,6 +77,8 @@ export const copy = {
     restore: 'Reativar',
     archiveConfirm: 'Inativar esta empresa? Ela sai da lista de empresas ativas.',
     restoreConfirm: 'Reativar esta empresa para a lista de ativas?',
+    archived: 'Empresa inativada.',
+    restored: 'Empresa reativada.',
     working: 'Aguarde…',
     badgeActive: 'Ativa',
     badgeArchived: 'Inativa',
@@ -125,7 +128,9 @@ export const copy = {
     cancel: 'Cancelar',
     edit: 'Editar',
     remove: 'Remover',
+    removeTitle: 'Remover sócio',
     removeConfirm: 'Remover este sócio?',
+    removed: 'Sócio removido.',
     empty: 'Nenhum sócio cadastrado.',
     emptyHint: 'Os sócios vêm do quadro societário (QSA) na busca por CNPJ, ou adicione manualmente.',
   },
@@ -185,7 +190,9 @@ export const copy = {
     cancel: 'Cancelar',
     edit: 'Editar',
     remove: 'Remover',
+    removeTitle: 'Remover prazo',
     removeConfirm: 'Remover este prazo?',
+    removed: 'Prazo removido.',
     status: {
       no_date: 'Sem data',
       valid: 'Em dia',
@@ -214,7 +221,9 @@ export const copy = {
     creating: 'Gerando…',
     cancel: 'Cancelar',
     cancelRequest: 'Cancelar',
+    cancelTitle: 'Cancelar solicitação',
     cancelConfirm: 'Cancelar esta solicitação? O link deixará de funcionar.',
+    cancelled: 'Solicitação cancelada.',
     expiresIn: (days: number) =>
       days < 0
         ? 'link expirado'
@@ -255,7 +264,9 @@ export const copy = {
     cancel: 'Cancelar',
     edit: 'Editar',
     remove: 'Remover',
+    removeTitle: 'Remover contato',
     removeConfirm: 'Remover este contato?',
+    removed: 'Contato removido.',
     empty: 'Nenhum contato cadastrado.',
     emptyHint: 'Adicione quem fala pelo cliente — quem recebe cobranças e solicitações.',
   },

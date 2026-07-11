@@ -1,7 +1,7 @@
 'use client';
 
 import type { Contact, PreferredChannel } from '@hub/db';
-import { StatusBadge } from '@hub/ui';
+import { ConfirmDialog, StatusBadge, toast } from '@hub/ui';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useActionState, useEffect, useState, useTransition } from 'react';
 
@@ -156,9 +156,13 @@ function ContactRow({
     deptText,
   ].join(' · ');
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
   function handleRemove() {
-    if (!window.confirm(copy.contacts.removeConfirm)) return;
-    startRemove(() => deleteContactAction(contact.id, companyId));
+    startRemove(async () => {
+      await deleteContactAction(contact.id, companyId);
+      setConfirmOpen(false);
+      toast.success(copy.contacts.removed);
+    });
   }
 
   return (
@@ -180,13 +184,24 @@ function ContactRow({
       </button>
       <button
         type="button"
-        onClick={handleRemove}
+        onClick={() => setConfirmOpen(true)}
         disabled={removing}
         aria-label={copy.contacts.remove}
         className="text-muted-foreground hover:text-danger-text rounded-md p-1.5 disabled:opacity-60"
       >
         <Trash2 className="size-4" aria-hidden />
       </button>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={copy.contacts.removeTitle}
+        description={copy.contacts.removeConfirm}
+        confirmLabel={copy.contacts.remove}
+        cancelLabel={copy.dialogBack}
+        tone="danger"
+        pending={removing}
+        onConfirm={handleRemove}
+      />
     </li>
   );
 }

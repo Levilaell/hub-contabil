@@ -15,6 +15,9 @@ export const copy = {
     states: 'Estados de lista',
     pageHeader: 'Cabeçalho de página',
     drawer: 'Gaveta de detalhe',
+    confirmToast: 'Confirmação e toasts',
+    confirmToastHint:
+      'Ações destrutivas confirmam num diálogo (nunca window.confirm); o resultado vira toast.',
     appShell: 'Estrutura do app',
     darkMode: 'Modo escuro',
     darkModeHint: 'Os mesmos componentes com os tokens de tema escuro.',
@@ -78,6 +81,18 @@ export const copy = {
     body: 'A lista mostra só o essencial; abas e informações completas vivem aqui, a um clique de distância.',
     close: 'Fechar',
     footerAction: 'Abrir empresa',
+  },
+  confirmToast: {
+    open: 'Remover algo…',
+    title: 'Remover contato',
+    description: 'Remover este contato? Esta ação não pode ser desfeita.',
+    confirm: 'Remover',
+    back: 'Voltar',
+    confirmed: 'Contato removido.',
+    showSuccess: 'Toast de sucesso',
+    showError: 'Toast de erro',
+    successMessage: 'Tudo certo — ação concluída.',
+    errorMessage: 'Algo falhou — tente de novo.',
   },
   shell: {
     brand: 'Hub Contábil',

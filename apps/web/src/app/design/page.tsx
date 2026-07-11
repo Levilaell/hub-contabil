@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { ConfirmToastPreview } from './confirm-toast-preview';
 import { copy } from './copy';
 import { ShellPreview } from './shell-preview';
 
@@ -258,6 +259,10 @@ export default function DesignPage() {
         >
           <p className="text-muted-foreground text-sm">{copy.drawer.body}</p>
         </DetailDrawer>
+      </Section>
+
+      <Section title={copy.sections.confirmToast} hint={copy.sections.confirmToastHint}>
+        <ConfirmToastPreview />
       </Section>
 
       <Section title={copy.sections.appShell}>

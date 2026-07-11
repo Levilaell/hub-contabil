@@ -1,5 +1,6 @@
 // UI copy (pt-BR) for the global request follow-up screen (T17).
 export const copy = {
+  dialogBack: 'Voltar',
   title: 'Solicitações',
   subtitle: 'Acompanhe o que foi pedido aos clientes e reenvie quando precisar.',
   views: { open: 'Em aberto', all: 'Todas' },
@@ -27,7 +28,9 @@ export const copy = {
     copied: 'Link copiado ✅',
     copyHint: 'Gera um link novo e invalida o anterior.',
     cancel: 'Cancelar solicitação',
+    cancelTitle: 'Cancelar solicitação',
     cancelConfirm: 'Cancelar esta solicitação? O link deixará de funcionar.',
+    cancelled: 'Solicitação cancelada.',
   },
   events: {
     sent: 'E-mail enviado',

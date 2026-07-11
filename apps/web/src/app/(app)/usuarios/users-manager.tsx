@@ -1,7 +1,7 @@
 'use client';
 
 import type { FirmUser, UserRole } from '@hub/db';
-import { DataList, DataListRow, DetailDrawer, EmptyState } from '@hub/ui';
+import { ConfirmDialog, DataList, DataListRow, DetailDrawer, EmptyState, toast } from '@hub/ui';
 import { UserPlus, Users } from 'lucide-react';
 import { useActionState, useState, useTransition } from 'react';
 
@@ -167,14 +167,20 @@ function EditDrawer({
   const [role, setRole] = useState<UserRole>(user.role);
   const [depts, setDepts] = useState<string[]>(user.departments);
   const [error, setError] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  function run(fn: () => Promise<UserActionState>) {
+  function run(fn: () => Promise<UserActionState>, successToast?: string) {
     setError(null);
     startTransition(async () => {
       const res = await fn();
-      if (res && !res.ok) setError(res.message);
-      else onClose();
+      if (res && !res.ok) {
+        setConfirmRemove(false);
+        setError(res.message);
+      } else {
+        if (successToast) toast.success(successToast);
+        onClose();
+      }
     });
   }
 
@@ -252,13 +258,22 @@ function EditDrawer({
             <button
               type="button"
               disabled={pending}
-              onClick={() => {
-                if (confirm(copy.drawer.removeConfirm)) run(() => removeUserAction(user.id));
-              }}
+              onClick={() => setConfirmRemove(true)}
               className="text-danger-text hover:bg-accent rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60"
             >
               {copy.drawer.remove}
             </button>
+            <ConfirmDialog
+              open={confirmRemove}
+              onOpenChange={setConfirmRemove}
+              title={copy.drawer.removeTitle}
+              description={copy.drawer.removeConfirm}
+              confirmLabel={copy.drawer.remove}
+              cancelLabel={copy.dialogBack}
+              tone="danger"
+              pending={pending}
+              onConfirm={() => run(() => removeUserAction(user.id), copy.drawer.removed)}
+            />
           </div>
         ) : null}
       </div>

@@ -3,11 +3,13 @@
 import { isOpenRequest, type RequestStatus } from '@hub/core';
 import type { RequestEvent, RequestWithCompany } from '@hub/db';
 import {
+  ConfirmDialog,
   DataList,
   DataListRow,
   DetailDrawer,
   EmptyState,
   StatusBadge,
+  toast,
   type StatusTone,
 } from '@hub/ui';
 import { Inbox } from 'lucide-react';
@@ -54,6 +56,7 @@ function Drawer({
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const [pending, startTransition] = useTransition();
   const canAct = isOpenRequest(request.status);
 
@@ -94,9 +97,10 @@ function Drawer({
   }
 
   function handleCancel() {
-    if (!window.confirm(copy.detail.cancelConfirm)) return;
     startTransition(async () => {
       await cancelRequestAction(request.id);
+      setConfirmCancel(false);
+      toast.success(copy.detail.cancelled);
       router.refresh();
       onClose();
     });
@@ -170,12 +174,23 @@ function Drawer({
             {feedback ? <p className="text-center text-sm font-medium">{feedback}</p> : null}
             <button
               type="button"
-              onClick={handleCancel}
+              onClick={() => setConfirmCancel(true)}
               disabled={pending}
               className="text-danger-text hover:bg-accent inline-flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm disabled:opacity-60"
             >
               {copy.detail.cancel}
             </button>
+            <ConfirmDialog
+              open={confirmCancel}
+              onOpenChange={setConfirmCancel}
+              title={copy.detail.cancelTitle}
+              description={copy.detail.cancelConfirm}
+              confirmLabel={copy.detail.cancel}
+              cancelLabel={copy.dialogBack}
+              tone="danger"
+              pending={pending}
+              onConfirm={handleCancel}
+            />
           </section>
         ) : feedback ? (
           <p className="text-center text-sm font-medium">{feedback}</p>

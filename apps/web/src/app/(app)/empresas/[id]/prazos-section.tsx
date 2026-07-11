@@ -1,7 +1,7 @@
 'use client';
 
 import type { MonitoredDoc } from '@hub/db';
-import { StatusBadge, type StatusTone } from '@hub/ui';
+import { ConfirmDialog, StatusBadge, toast, type StatusTone } from '@hub/ui';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState, useTransition, type FormEvent, type ReactNode } from 'react';
 
@@ -158,9 +158,13 @@ function PrazoRow({
   onEdit: () => void;
 }) {
   const [removing, startRemove] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   function handleRemove() {
-    if (!window.confirm(copy.prazos.removeConfirm)) return;
-    startRemove(() => deletePrazoAction(prazo.id, companyId));
+    startRemove(async () => {
+      await deletePrazoAction(prazo.id, companyId);
+      setConfirmOpen(false);
+      toast.success(copy.prazos.removed);
+    });
   }
   return (
     <li className="flex items-center gap-3 p-4">
@@ -184,13 +188,24 @@ function PrazoRow({
       </button>
       <button
         type="button"
-        onClick={handleRemove}
+        onClick={() => setConfirmOpen(true)}
         disabled={removing}
         aria-label={copy.prazos.remove}
         className="text-muted-foreground hover:text-danger-text rounded-md p-1.5 disabled:opacity-60"
       >
         <Trash2 className="size-4" aria-hidden />
       </button>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={copy.prazos.removeTitle}
+        description={copy.prazos.removeConfirm}
+        confirmLabel={copy.prazos.remove}
+        cancelLabel={copy.dialogBack}
+        tone="danger"
+        pending={removing}
+        onConfirm={handleRemove}
+      />
     </li>
   );
 }

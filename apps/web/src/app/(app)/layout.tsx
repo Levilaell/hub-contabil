@@ -5,6 +5,7 @@ import {
   countUnreadNotifications,
   listNotifications,
 } from '@hub/db';
+import { Toaster } from '@hub/ui';
 import type { ReactNode } from 'react';
 
 import { createClient } from '@/lib/supabase/server';
@@ -25,14 +26,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       countUnreadNotifications(supabase),
     ]);
   return (
-    <AppNav
-      exceptionCount={exceptionCount}
-      requestCount={requestCount}
-      supportCount={supportCount}
-      notifications={notifications}
-      unreadNotifications={unreadNotifications}
-    >
-      {children}
-    </AppNav>
+    <>
+      <AppNav
+        exceptionCount={exceptionCount}
+        requestCount={requestCount}
+        supportCount={supportCount}
+        notifications={notifications}
+        unreadNotifications={unreadNotifications}
+      >
+        {children}
+      </AppNav>
+      <Toaster />
+    </>
   );
 }

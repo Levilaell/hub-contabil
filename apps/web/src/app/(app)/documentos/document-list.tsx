@@ -8,7 +8,7 @@ import {
   type DocumentItem,
 } from '@hub/db';
 import { docTypeLabel } from '@hub/config';
-import { DataList, DataListRow, DetailDrawer } from '@hub/ui';
+import { ConfirmDialog, DataList, DataListRow, DetailDrawer, toast } from '@hub/ui';
 import { FileText, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
@@ -52,6 +52,7 @@ export function DocumentList({
   const [url, setUrl] = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [correctType, setCorrectType] = useState('');
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [pending, startTransition] = useTransition();
 
   async function open(doc: DocumentItem) {
@@ -64,10 +65,11 @@ export function DocumentList({
   }
 
   function remove(doc: DocumentItem) {
-    if (!window.confirm(copy.list.removeConfirm)) return;
     startTransition(async () => {
       await deleteDocument(supabase, doc.id);
+      setConfirmRemove(false);
       setSelected(null);
+      toast.success(copy.list.removed);
       router.refresh();
     });
   }
@@ -134,12 +136,23 @@ export function DocumentList({
               ) : null}
               <button
                 type="button"
-                onClick={() => remove(selected)}
+                onClick={() => setConfirmRemove(true)}
                 disabled={pending}
                 className={secondaryButtonClass}
               >
                 {copy.list.remove}
               </button>
+              <ConfirmDialog
+                open={confirmRemove}
+                onOpenChange={setConfirmRemove}
+                title={copy.list.removeTitle}
+                description={copy.list.removeConfirm}
+                confirmLabel={copy.list.remove}
+                cancelLabel={copy.dialogBack}
+                tone="danger"
+                pending={pending}
+                onConfirm={() => remove(selected)}
+              />
             </div>
           ) : null
         }

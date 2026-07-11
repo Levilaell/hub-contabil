@@ -8,6 +8,7 @@ export const secondaryButtonClass =
   'border hover:bg-accent rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-60';
 
 export const copy = {
+  dialogBack: 'Voltar',
   title: 'Usuários e permissões',
   subtitle: 'Quem acessa o escritório e o que cada um enxerga.',
   restricted: 'Apenas titulares e gestores podem gerenciar usuários.',
@@ -48,7 +49,9 @@ export const copy = {
     departmentsSave: 'Salvar departamentos',
     departmentsOnlyStaff: 'Departamentos valem apenas para colaboradores.',
     remove: 'Remover do escritório',
+    removeTitle: 'Remover usuário',
     removeConfirm: 'Remover este usuário? Ele perde o acesso imediatamente.',
+    removed: 'Usuário removido.',
     saving: 'Salvando…',
   },
 } as const;

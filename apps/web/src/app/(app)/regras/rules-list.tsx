@@ -2,7 +2,7 @@
 
 import { formatCnpj } from '@hub/core';
 import type { MappingRuleRecord } from '@hub/db';
-import { StatusBadge, type StatusTone } from '@hub/ui';
+import { ConfirmDialog, StatusBadge, toast, type StatusTone } from '@hub/ui';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState, useTransition, type FormEvent, type ReactNode } from 'react';
 
@@ -134,13 +134,15 @@ function RuleForm({
 
 function RuleRow({ rule, onEdit }: { rule: RuleView; onEdit: () => void }) {
   const [removing, startRemove] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const tone: StatusTone = rule.level === 1 ? 'neutral' : 'muted';
   const levelLabel = rule.level === 1 ? copy.levelSpecific : copy.levelGeneral;
 
   function handleRemove() {
-    if (!window.confirm(copy.form.removeConfirm)) return;
-    startRemove(() => {
-      void deleteRuleAction(rule.id);
+    startRemove(async () => {
+      await deleteRuleAction(rule.id);
+      setConfirmOpen(false);
+      toast.success(copy.form.removed);
     });
   }
 
@@ -165,13 +167,24 @@ function RuleRow({ rule, onEdit }: { rule: RuleView; onEdit: () => void }) {
       </button>
       <button
         type="button"
-        onClick={handleRemove}
+        onClick={() => setConfirmOpen(true)}
         disabled={removing}
         aria-label={copy.form.remove}
         className="text-muted-foreground hover:text-danger-text rounded-md p-1.5 disabled:opacity-60"
       >
         <Trash2 className="size-4" aria-hidden />
       </button>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={copy.form.removeTitle}
+        description={copy.form.removeConfirm}
+        confirmLabel={copy.form.remove}
+        cancelLabel={copy.dialogBack}
+        tone="danger"
+        pending={removing}
+        onConfirm={handleRemove}
+      />
     </li>
   );
 }

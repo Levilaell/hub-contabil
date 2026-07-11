@@ -16,6 +16,8 @@ export { EmptyState, type EmptyStateProps } from './components/empty-state';
 export { Skeleton, SkeletonList } from './components/skeleton';
 export { DataList, DataListRow, type DataListRowProps } from './components/data-list';
 export { DetailDrawer, type DetailDrawerProps } from './components/detail-drawer';
+export { ConfirmDialog, type ConfirmDialogProps } from './components/confirm-dialog';
+export { Toaster, toast } from './components/toaster';
 export { PageHeader, type PageHeaderProps } from './components/page-header';
 export {
   AppShell,

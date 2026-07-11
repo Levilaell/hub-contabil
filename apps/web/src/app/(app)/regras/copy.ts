@@ -1,6 +1,7 @@
 // UI copy (pt-BR) for the mapping-rules screen (T19). First domain: CFOP. All
 // user-facing strings here — never inline in JSX.
 export const copy = {
+  dialogBack: 'Voltar',
   title: 'Regras de CFOP',
   subtitle: 'De-para de CFOP de origem para CFOP de entrada, por fornecedor.',
   back: 'Configurações',
@@ -29,7 +30,9 @@ export const copy = {
     cancel: 'Cancelar',
     edit: 'Editar',
     remove: 'Remover',
+    removeTitle: 'Remover regra',
     removeConfirm: 'Remover esta regra?',
+    removed: 'Regra removida.',
     errorCfop: 'Informe um CFOP de 4 dígitos.',
     errorEntry: 'Informe o CFOP de entrada (4 dígitos).',
     errorCnpj: 'CNPJ inválido — use 14 dígitos ou deixe em branco.',

@@ -1,6 +1,7 @@
 'use client';
 
 import type { CompanyPartner } from '@hub/db';
+import { ConfirmDialog, toast } from '@hub/ui';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useActionState, useEffect, useState, useTransition } from 'react';
 
@@ -124,9 +125,13 @@ function PartnerRow({
     .filter(Boolean)
     .join(' · ');
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
   function handleRemove() {
-    if (!window.confirm(copy.partners.removeConfirm)) return;
-    startRemove(() => deletePartnerAction(partner.id, companyId));
+    startRemove(async () => {
+      await deletePartnerAction(partner.id, companyId);
+      setConfirmOpen(false);
+      toast.success(copy.partners.removed);
+    });
   }
 
   return (
@@ -147,13 +152,24 @@ function PartnerRow({
       </button>
       <button
         type="button"
-        onClick={handleRemove}
+        onClick={() => setConfirmOpen(true)}
         disabled={removing}
         aria-label={copy.partners.remove}
         className="text-muted-foreground hover:text-danger-text rounded-md p-1.5 disabled:opacity-60"
       >
         <Trash2 className="size-4" aria-hidden />
       </button>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={copy.partners.removeTitle}
+        description={copy.partners.removeConfirm}
+        confirmLabel={copy.partners.remove}
+        cancelLabel={copy.dialogBack}
+        tone="danger"
+        pending={removing}
+        onConfirm={handleRemove}
+      />
     </li>
   );
 }

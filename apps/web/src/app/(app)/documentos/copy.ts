@@ -1,5 +1,6 @@
 // UI copy (pt-BR) for the document repository (T12).
 export const copy = {
+  dialogBack: 'Voltar',
   title: 'Documentos',
   subtitle: 'Arquivos por empresa, competência e departamento.',
   pickCompany: 'Escolha uma empresa para ver e enviar documentos.',
@@ -33,7 +34,9 @@ export const copy = {
     open: 'Abrir',
     download: 'Baixar',
     remove: 'Remover',
+    removeTitle: 'Remover documento',
     removeConfirm: 'Remover este documento? O arquivo também será apagado.',
+    removed: 'Documento removido.',
     aiBadge: 'classificado por IA',
   },
   inbox: {
