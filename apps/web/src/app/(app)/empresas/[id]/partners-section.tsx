@@ -1,7 +1,7 @@
 'use client';
 
 import type { CompanyPartner } from '@hub/db';
-import { ConfirmDialog, toast } from '@hub/ui';
+import { ConfirmDialog, StatusBadge, toast } from '@hub/ui';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useActionState, useEffect, useState, useTransition } from 'react';
 
@@ -142,6 +142,9 @@ function PartnerRow({
           <span className="text-muted-foreground mt-0.5 block truncate text-xs">{facts}</span>
         ) : null}
       </span>
+      {partner.source === 'qsa' ? (
+        <StatusBadge tone="muted" label={copy.partners.qsaBadge} />
+      ) : null}
       <button
         type="button"
         onClick={onEdit}

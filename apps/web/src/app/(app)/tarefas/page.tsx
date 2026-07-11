@@ -1,5 +1,5 @@
 import { parseFirmConfig } from '@hub/config';
-import { countUnassignedOpenTasks, listCompanies, listTasks } from '@hub/db';
+import { countUnassignedOpenTasks, listCompanies, listRecurringTasks, listTasks } from '@hub/db';
 import { PageHeader } from '@hub/ui';
 import { ChevronLeft, ChevronRight, Repeat } from 'lucide-react';
 import Link from 'next/link';
@@ -53,17 +53,19 @@ export default async function TarefasPage({
   }));
   const department = departments.some((d) => d.key === rawDepartment) ? rawDepartment : undefined;
 
-  const [companies, tasks, { data: users }, unassignedCount] = await Promise.all([
-    listCompanies(supabase, { status: 'all' }),
-    listTasks(supabase, {
-      ...(view === 'mine' ? { assigneeId: me } : {}),
-      ...(view === 'unassigned' ? { unassigned: true } : {}),
-      ...(period !== 'all' ? { period, includeNoPeriod: true } : {}),
-      ...(department ? { department } : {}),
-    }),
-    supabase.from('users').select('id, full_name, email'),
-    countUnassignedOpenTasks(supabase),
-  ]);
+  const [companies, tasks, { data: users }, unassignedCount, recurringTemplates] =
+    await Promise.all([
+      listCompanies(supabase, { status: 'all' }),
+      listTasks(supabase, {
+        ...(view === 'mine' ? { assigneeId: me } : {}),
+        ...(view === 'unassigned' ? { unassigned: true } : {}),
+        ...(period !== 'all' ? { period, includeNoPeriod: true } : {}),
+        ...(department ? { department } : {}),
+      }),
+      supabase.from('users').select('id, full_name, email'),
+      countUnassignedOpenTasks(supabase),
+      listRecurringTasks(supabase),
+    ]);
 
   const companyOptions = companies.map((c) => ({ id: c.id, name: c.tradeName || c.legalName }));
   const userOptions = (users ?? []).map((u) => ({ id: u.id, name: u.full_name || u.email }));
@@ -196,6 +198,7 @@ export default async function TarefasPage({
         departmentLabels={departmentLabels}
         userNames={userNames}
         userOptions={userOptions}
+        recurringTitles={Object.fromEntries(recurringTemplates.map((t) => [t.id, t.title]))}
       />
     </div>
   );

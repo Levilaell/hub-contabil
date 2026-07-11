@@ -47,6 +47,13 @@ export const copy = {
     period: 'Competência',
     assignee: 'Responsável',
     handoffTo: 'Repassa para',
+    origin: 'Origem',
+    originManual: 'Criada manualmente',
+    originRecurring: (template: string) => `Gerada pela recorrência "${template}"`,
+    originRecurringGeneric: 'Gerada por tarefa recorrente',
+    originDeadline: 'Criada pelo monitor de prazos (renovação de documento)',
+    originHandoff: 'Criada por repasse de outro departamento',
+    createdAt: (date: string) => `em ${date}`,
     close: 'Fechar',
   },
   form: {

@@ -132,6 +132,7 @@ export const copy = {
     removeTitle: 'Remover sócio',
     removeConfirm: 'Remover este sócio?',
     removed: 'Sócio removido.',
+    qsaBadge: 'Importado da Receita',
     empty: 'Nenhum sócio cadastrado.',
     emptyHint: 'Os sócios vêm do quadro societário (QSA) na busca por CNPJ, ou adicione manualmente.',
   },

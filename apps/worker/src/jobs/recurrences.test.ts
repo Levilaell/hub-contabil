@@ -61,6 +61,10 @@ describe.skipIf(!hasEnv)('generateRecurringTasks (cloud dev)', () => {
 
   afterAll(async () => {
     if (sql) {
+      await sql`
+        delete from public.audit_events
+        where action = 'task.created' and context->>'recurringTaskId' = ${templateId}::text
+      `;
       await sql`delete from public.tasks where recurring_task_id = ${templateId}`;
       await sql`delete from public.recurring_tasks where id = ${templateId}`;
       await sql`delete from public.companies where id = any(${companyIds}::uuid[])`;
@@ -79,6 +83,14 @@ describe.skipIf(!hasEnv)('generateRecurringTasks (cloud dev)', () => {
     `;
     expect(rows.every((r) => r.period === PERIOD)).toBe(true);
     expect(rows.some((r) => r.company_id === foreignCompanyId)).toBe(false);
+
+    // T32: every generated task carries its own audit trail (robot → null actor).
+    const [audit] = await sql<{ n: number }[]>`
+      select count(*)::int as n from public.audit_events
+      where firm_id = ${FIRM_A} and action = 'task.created'
+        and context->>'recurringTaskId' = ${templateId}::text
+    `;
+    expect(audit?.n).toBe(3);
   });
 
   it('is idempotent on a second run', async () => {
@@ -124,6 +136,10 @@ describe.skipIf(!hasEnv)('generateRecurringTasks (cloud dev)', () => {
       `;
       expect(task?.assignee_id).toBe(user.id);
     } finally {
+      await sql`
+        delete from public.audit_events
+        where action = 'task.created' and context->>'recurringTaskId' = ${tpl.id}::text
+      `;
       await sql`delete from public.tasks where recurring_task_id = ${tpl.id}`;
       await sql`delete from public.recurring_tasks where id = ${tpl.id}`;
     }

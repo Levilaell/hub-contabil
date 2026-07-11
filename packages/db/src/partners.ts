@@ -15,6 +15,8 @@ export interface CompanyPartner {
   qualification: string | null;
   ownershipPercent: number | null;
   joinedOn: string | null; // YYYY-MM-DD
+  /** 'qsa' = auto-imported from the CNPJ lookup/enrichment (T32); 'manual' otherwise. */
+  source: 'manual' | 'qsa';
 }
 
 export interface PartnerInput {
@@ -24,6 +26,8 @@ export interface PartnerInput {
   qualification?: string | null;
   ownershipPercent?: number | null;
   joinedOn?: string | null;
+  /** Set by the QSA import paths; the manual form never sends it. */
+  source?: 'manual' | 'qsa';
 }
 
 export type PartnerEdits = Omit<PartnerInput, 'companyId'>;
@@ -36,6 +40,7 @@ interface PartnerRow {
   qualification: string | null;
   ownership_percent: number | string | null;
   joined_on: string | null;
+  source: string;
 }
 
 function fail(message: string): { ok: false; message: string } {
@@ -61,6 +66,7 @@ function mapPartner(row: PartnerRow): CompanyPartner {
     qualification: row.qualification,
     ownershipPercent: percent !== null && Number.isFinite(percent) ? percent : null,
     joinedOn: row.joined_on,
+    source: row.source === 'qsa' ? 'qsa' : 'manual',
   };
 }
 
@@ -98,7 +104,7 @@ export async function listPartners(
 ): Promise<CompanyPartner[]> {
   const { data, error } = await supabase
     .from('company_partners')
-    .select('id, company_id, name, cpf_cnpj, qualification, ownership_percent, joined_on')
+    .select('id, company_id, name, cpf_cnpj, qualification, ownership_percent, joined_on, source')
     .eq('company_id', companyId)
     .order('name');
   if (error || !data) return [];
@@ -120,7 +126,12 @@ export async function createPartner(
 
   const { data, error } = await supabase
     .from('company_partners')
-    .insert({ firm_id: firm.id, company_id: companyId, ...validated.columns })
+    .insert({
+      firm_id: firm.id,
+      company_id: companyId,
+      source: input.source === 'qsa' ? 'qsa' : 'manual',
+      ...validated.columns,
+    })
     .select('id')
     .single();
   if (error || !data) {

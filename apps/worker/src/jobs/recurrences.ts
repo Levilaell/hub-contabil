@@ -82,20 +82,33 @@ export async function generateRecurringTasks(sql: Sql, period: string): Promise<
     }
 
     // firm-scoped company join; NOT EXISTS has no status filter (don't resurrect
-    // completed tasks). The partial unique index is the hard backstop.
+    // completed tasks). The partial unique index is the hard backstop. Each
+    // generated task also gets its own task.created audit row (T32, actor null =
+    // robot) — the per-item trail the aggregate log lines can't give.
     const inserted = await sql<{ id: string }[]>`
-      insert into public.tasks
-        (firm_id, company_id, period, department, title, handoff_to, recurring_task_id, status, assignee_id)
-      select ${t.firm_id}, c.id, ${period}, ${t.department}, ${t.title}, ${t.handoff_to}, ${t.id}, 'pending',
-             ${t.default_assignee_id}
-      from public.companies c
-      where c.firm_id = ${t.firm_id}
-        and ${companyFilter}
-        and not exists (
-          select 1 from public.tasks x
-          where x.recurring_task_id = ${t.id} and x.company_id = c.id and x.period = ${period}
-        )
-      returning id
+      with inserted as (
+        insert into public.tasks
+          (firm_id, company_id, period, department, title, handoff_to, recurring_task_id, status, assignee_id)
+        select ${t.firm_id}, c.id, ${period}, ${t.department}, ${t.title}, ${t.handoff_to}, ${t.id}, 'pending',
+               ${t.default_assignee_id}
+        from public.companies c
+        where c.firm_id = ${t.firm_id}
+          and ${companyFilter}
+          and not exists (
+            select 1 from public.tasks x
+            where x.recurring_task_id = ${t.id} and x.company_id = c.id and x.period = ${period}
+          )
+        returning id, company_id
+      ),
+      audited as (
+        insert into public.audit_events (firm_id, action, entity, entity_id, context)
+        select ${t.firm_id}, 'task.created', 'task', i.id,
+               jsonb_build_object('source', 'recurrence', 'recurringTaskId', ${t.id}::text,
+                                  'period', ${period}::text, 'companyId', i.company_id)
+        from inserted i
+        returning 1
+      )
+      select id from inserted
     `;
     result.created += inserted.length;
   }

@@ -276,6 +276,7 @@ export type Database = {
           name: string
           ownership_percent: number | null
           qualification: string | null
+          source: string
           updated_at: string
         }
         Insert: {
@@ -288,6 +289,7 @@ export type Database = {
           name: string
           ownership_percent?: number | null
           qualification?: string | null
+          source?: string
           updated_at?: string
         }
         Update: {
@@ -300,6 +302,7 @@ export type Database = {
           name?: string
           ownership_percent?: number | null
           qualification?: string | null
+          source?: string
           updated_at?: string
         }
         Relationships: [

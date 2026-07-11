@@ -117,9 +117,10 @@ export async function createCompanyAction(
   });
   if (!result.ok) return { ok: false, message: result.message };
 
-  // Partners from the CNPJ lookup — best-effort, never undoes creation.
+  // Partners from the CNPJ lookup — best-effort, never undoes creation. Marked
+  // 'qsa' so the panel can tell auto-imported partners from hand-entered ones (T32).
   for (const partner of partnersFromForm(formData)) {
-    await createPartner(supabase, { companyId: result.id, ...partner });
+    await createPartner(supabase, { companyId: result.id, source: 'qsa', ...partner });
   }
   // Fase 1.1 §2: the company's current-month recurring tasks exist right away.
   await generateRecurringTasksForCompany(supabase, result.id);

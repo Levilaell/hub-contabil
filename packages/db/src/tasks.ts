@@ -16,7 +16,10 @@ export interface Task {
   status: TaskStatus;
   assigneeId: string | null;
   handoffTo: string | null;
+  /** Origin links (T32): which automation — if any — created this task. */
   sourceTaskId: string | null;
+  recurringTaskId: string | null;
+  monitoredDocumentId: string | null;
   createdAt: string;
 }
 
@@ -30,6 +33,8 @@ interface TaskRow {
   assignee_id: string | null;
   handoff_to: string | null;
   source_task_id: string | null;
+  recurring_task_id: string | null;
+  monitored_document_id: string | null;
   created_at: string;
 }
 
@@ -45,7 +50,7 @@ export interface TaskInput {
 export type TaskMutationResult = { ok: true; id: string } | { ok: false; message: string };
 
 const SELECT =
-  'id, company_id, period, department, title, status, assignee_id, handoff_to, source_task_id, created_at';
+  'id, company_id, period, department, title, status, assignee_id, handoff_to, source_task_id, recurring_task_id, monitored_document_id, created_at';
 
 function fail(message: string): { ok: false; message: string } {
   return { ok: false, message };
@@ -68,6 +73,8 @@ function mapTask(row: TaskRow): Task {
     assigneeId: row.assignee_id,
     handoffTo: row.handoff_to,
     sourceTaskId: row.source_task_id,
+    recurringTaskId: row.recurring_task_id,
+    monitoredDocumentId: row.monitored_document_id,
     createdAt: row.created_at,
   };
 }

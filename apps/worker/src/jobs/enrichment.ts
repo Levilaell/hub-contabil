@@ -77,8 +77,8 @@ export function createEnrichmentHandler(sql: Sql, adapter: CnpjEnrichmentAdapter
     // so a manually curated list is never touched by a re-run.
     if (partners.length > 0) {
       await sql`
-        insert into public.company_partners (firm_id, company_id, name, qualification, cpf_cnpj)
-        select ${firm_id}, ${company_id}, p.name, p.qualification, p.cpf_cnpj
+        insert into public.company_partners (firm_id, company_id, name, qualification, cpf_cnpj, source)
+        select ${firm_id}, ${company_id}, p.name, p.qualification, p.cpf_cnpj, 'qsa'
         from jsonb_to_recordset(${sql.json(
           partners.map((p) => ({ name: p.name, qualification: p.qualification, cpf_cnpj: p.cpfCnpj })) as unknown as Parameters<typeof sql.json>[0],
         )}) as p(name text, qualification text, cpf_cnpj text)

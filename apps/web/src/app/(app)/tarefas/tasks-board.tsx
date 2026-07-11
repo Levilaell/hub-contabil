@@ -24,6 +24,8 @@ interface BoardProps {
   departmentLabels: Record<string, string>;
   userNames: Record<string, string>;
   userOptions: { id: string; name: string }[];
+  /** Recurring template titles, for the drawer's origin line (T32). */
+  recurringTitles?: Record<string, string>;
 }
 
 export function TasksBoard({
@@ -34,6 +36,7 @@ export function TasksBoard({
   departmentLabels,
   userNames,
   userOptions,
+  recurringTitles = {},
 }: BoardProps) {
   const [selected, setSelected] = useState<Task | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +55,17 @@ export function TasksBoard({
     if (!task.assigneeId) return copy.unassigned;
     if (task.assigneeId === me) return copy.you;
     return userNames[task.assigneeId] ?? '';
+  }
+
+  // Where the task came from (T32) — every creation path is nameable.
+  function originText(task: Task): string {
+    if (task.recurringTaskId) {
+      const template = recurringTitles[task.recurringTaskId];
+      return template ? copy.drawer.originRecurring(template) : copy.drawer.originRecurringGeneric;
+    }
+    if (task.monitoredDocumentId) return copy.drawer.originDeadline;
+    if (task.sourceTaskId) return copy.drawer.originHandoff;
+    return copy.drawer.originManual;
   }
 
   if (tasks.length === 0) {
@@ -204,6 +218,17 @@ export function TasksBoard({
                 </dd>
               </div>
             ) : null}
+            <div>
+              <dt className="text-muted-foreground text-xs">{copy.drawer.origin}</dt>
+              <dd className="mt-0.5">
+                {originText(selected)}
+                <span className="text-muted-foreground block text-xs">
+                  {copy.drawer.createdAt(
+                    new Date(selected.createdAt).toLocaleDateString('pt-BR'),
+                  )}
+                </span>
+              </dd>
+            </div>
             <div>
               <StatusBadge tone={TONE[selected.status]} label={copy.badge[selected.status]} />
             </div>

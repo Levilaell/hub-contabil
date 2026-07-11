@@ -8,6 +8,7 @@ import {
   listDocumentRequests,
   listMonitoredDocuments,
   listPartners,
+  listRecurringTasks,
   listTasks,
   type Classification,
   type Task,
@@ -117,16 +118,20 @@ export default async function EmpresaDetailPage({
   // when the tab is active (the assignee list is the one extra query worth saving).
   let tasks: Task[] = [];
   let userOptions: { id: string; name: string }[] = [];
+  let recurringTitles: Record<string, string> = {};
   let me = '';
   if (tab === 'tarefas') {
-    const [{ data: userData }, companyTasks, { data: users }] = await Promise.all([
-      supabase.auth.getUser(),
-      listTasks(supabase, { companyId: id }),
-      supabase.from('users').select('id, full_name, email'),
-    ]);
+    const [{ data: userData }, companyTasks, { data: users }, recurringTemplates] =
+      await Promise.all([
+        supabase.auth.getUser(),
+        listTasks(supabase, { companyId: id }),
+        supabase.from('users').select('id, full_name, email'),
+        listRecurringTasks(supabase),
+      ]);
     me = userData.user?.id ?? '';
     tasks = companyTasks;
     userOptions = (users ?? []).map((u) => ({ id: u.id, name: u.full_name || u.email }));
+    recurringTitles = Object.fromEntries(recurringTemplates.map((t) => [t.id, t.title]));
   }
 
   // Classifications for the documents tab ("classificado por IA" badge, T21).
@@ -335,6 +340,7 @@ export default async function EmpresaDetailPage({
             departmentLabels={departmentLabels}
             userNames={Object.fromEntries(userOptions.map((u) => [u.id, u.name]))}
             userOptions={userOptions}
+            recurringTitles={recurringTitles}
           />
         </div>
       ) : null}
