@@ -44,6 +44,10 @@ export const copy = {
     company: 'Empresa',
     companyLinked: 'Vinculada a uma empresa cadastrada',
     noCompany: 'Contato ainda não vinculado a uma empresa',
+    linkCompany: 'Vincular a empresa',
+    linkCompanyPick: 'Escolha a empresa…',
+    companyLinkedNotice:
+      'Empresa vinculada — o contato foi cadastrado nela e a IA passa a usar o contexto certo.',
     contact: 'Contato',
     movedToPending:
       'Resposta enviada. A conversa foi para "Aguardando cliente" e a IA fica em silêncio nela até você usar "Devolver para a IA". Ela sai da fila padrão e volta quando o cliente responder (use o filtro Situação para encontrá-la).',

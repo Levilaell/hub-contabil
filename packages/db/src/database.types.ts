@@ -1388,6 +1388,10 @@ export type Database = {
         }
         Returns: string
       }
+      link_ticket_company: {
+        Args: { p_company_id: string; p_contact_name?: string; p_ticket_id: string }
+        Returns: undefined
+      }
       log_request_view: {
         Args: { p_ip?: string; p_token: string; p_user_agent?: string }
         Returns: undefined

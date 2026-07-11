@@ -1,11 +1,13 @@
 'use client';
 
+import { formatBrazilPhone } from '@hub/core';
 import type { SupportMessage, SupportTicket } from '@hub/db';
 import { DataList, DataListRow, DetailDrawer, StatusBadge, type StatusTone } from '@hub/ui';
 import { MessageCircle } from 'lucide-react';
 import { useState, useTransition } from 'react';
 
 import {
+  linkCompanyAction,
   loadSupportMessagesAction,
   replySupportAction,
   returnToAiAction,
@@ -45,11 +47,14 @@ function timeAgo(iso: string): string {
 export function TicketsList({
   tickets,
   departments,
+  companies,
 }: {
   tickets: SupportTicket[];
   departments: { key: string; label: string }[];
+  companies: { id: string; name: string }[];
 }) {
   const departmentLabels = Object.fromEntries(departments.map((d) => [d.key, d.label]));
+  const companyNames = Object.fromEntries(companies.map((c) => [c.id, c.name]));
   const [selected, setSelected] = useState<SupportTicket | null>(null);
   const [messages, setMessages] = useState<SupportMessage[] | null>(null);
   const [reply, setReply] = useState('');
@@ -63,6 +68,7 @@ export function TicketsList({
     setReply('');
     setError(null);
     setNotice(null);
+    setLinkCompanyId('');
     void loadSupportMessagesAction(ticket.id).then(setMessages);
   }
 
@@ -98,6 +104,22 @@ export function TicketsList({
       const res = await setSupportStatusAction(selected.id, status);
       if (res && !res.ok) setError(res.message);
       else close();
+    });
+  }
+
+  const [linkCompanyId, setLinkCompanyId] = useState('');
+
+  function linkCompany() {
+    if (!selected || !linkCompanyId) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await linkCompanyAction(selected.id, linkCompanyId);
+      if (res && !res.ok) setError(res.message);
+      else {
+        setSelected({ ...selected, companyId: linkCompanyId });
+        setLinkCompanyId('');
+        setNotice(copy.drawer.companyLinkedNotice);
+      }
     });
   }
 
@@ -144,7 +166,12 @@ export function TicketsList({
                 <MessageCircle className="size-4" aria-hidden />
               </span>
             }
-            title={ticket.contactName || ticket.contactIdentifier}
+            title={
+              ticket.contactName ||
+              (ticket.channel === 'whatsapp'
+                ? formatBrazilPhone(ticket.contactIdentifier)
+                : ticket.contactIdentifier)
+            }
             facts={[
               channelLabel(ticket.channel),
               ticket.department ? (departmentLabels[ticket.department] ?? ticket.department) : null,
@@ -251,12 +278,48 @@ export function TicketsList({
               <div>
                 <dt className="text-muted-foreground text-xs">{copy.drawer.company}</dt>
                 <dd className="mt-0.5">
-                  {selected.companyId ? copy.drawer.companyLinked : copy.drawer.noCompany}
+                  {selected.companyId ? (
+                    (companyNames[selected.companyId] ?? copy.drawer.companyLinked)
+                  ) : (
+                    // T34: link in place — registers the sender as a contact of the
+                    // company and re-points the ticket for the very next reply.
+                    <span className="block space-y-2">
+                      <span className="text-muted-foreground block text-xs">
+                        {copy.drawer.noCompany}
+                      </span>
+                      <select
+                        aria-label={copy.drawer.linkCompany}
+                        value={linkCompanyId}
+                        disabled={pending}
+                        onChange={(e) => setLinkCompanyId(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">{copy.drawer.linkCompanyPick}</option>
+                        {companies.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={linkCompany}
+                        disabled={pending || !linkCompanyId}
+                        className={secondaryButtonClass}
+                      >
+                        {copy.drawer.linkCompany}
+                      </button>
+                    </span>
+                  )}
                 </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground text-xs">{copy.drawer.contact}</dt>
-                <dd className="mt-0.5">{selected.contactIdentifier}</dd>
+                <dd className="mt-0.5">
+                  {selected.channel === 'whatsapp'
+                    ? formatBrazilPhone(selected.contactIdentifier)
+                    : selected.contactIdentifier}
+                </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground text-xs">{copy.drawer.handledBy}</dt>

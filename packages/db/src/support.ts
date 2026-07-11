@@ -170,6 +170,25 @@ export async function returnTicketToAi(
   return { ok: true };
 }
 
+/** Link a company-less ticket to a company (T34): registers the sender as a
+ *  contact of the company (if new there) and re-points the ticket immediately —
+ *  the assistant uses the right context on the very next reply. Audited. */
+export async function linkTicketCompany(
+  supabase: SupabaseClient,
+  ticketId: string,
+  companyId: string,
+  contactName?: string,
+): Promise<SupportActionResult> {
+  if (!companyId) return { ok: false, message: 'Escolha a empresa.' };
+  const { error } = await supabase.rpc('link_ticket_company', {
+    p_ticket_id: ticketId,
+    p_company_id: companyId,
+    p_contact_name: contactName?.trim() || null,
+  });
+  if (error) return { ok: false, message: 'Não foi possível vincular — tente de novo.' };
+  return { ok: true };
+}
+
 /** Set/correct the ticket's department (T33) — until now only the reception
  *  menu could tag it. Audited by the RPC. */
 export async function setTicketDepartment(

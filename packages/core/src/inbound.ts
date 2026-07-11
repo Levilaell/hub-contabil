@@ -93,6 +93,26 @@ export function brazilPhoneKey(raw: string): BrazilPhoneKey | null {
 }
 
 /**
+ * pt-BR display form for a stored/inbound phone (T34): "+55 (13) 99999-0000".
+ * Falls back to the raw string when the digits don't look like a phone. Pure
+ * presentation — storage stays digits-only (normalizeInboundPhone).
+ */
+export function formatBrazilPhone(raw: string): string {
+  let d = raw.replace(/\D/g, '');
+  if (!d) return raw;
+  let cc = '';
+  if (d.length >= 12 && d.startsWith('55')) {
+    cc = '+55 ';
+    d = d.slice(2);
+  }
+  if (d.length === 11) return `${cc}(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `${cc}(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  if (d.length === 9) return `${cc}${d.slice(0, 5)}-${d.slice(5)}`;
+  if (d.length === 8) return `${cc}${d.slice(0, 4)}-${d.slice(4)}`;
+  return raw;
+}
+
+/**
  * Whether two phone numbers refer to the same Brazilian line. A missing DDD on
  * either side matches any DDD (a contact saved as "99999-0000" still resolves);
  * when neither side parses as Brazilian, falls back to exact digit equality.

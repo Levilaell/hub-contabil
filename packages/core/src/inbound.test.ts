@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   brazilPhoneKey,
   brazilPhoneMatches,
+  formatBrazilPhone,
   classifyInboundKind,
   decideInboundRouting,
   isInboundChannel,
@@ -113,6 +114,21 @@ describe('brazilPhoneMatches', () => {
     expect(brazilPhoneMatches('4930901820000', '+49 30 901820000')).toBe(true);
     expect(brazilPhoneMatches('4930901820000', '4930901820001')).toBe(false);
     expect(brazilPhoneMatches('', '')).toBe(false);
+  });
+});
+
+describe('formatBrazilPhone (T34)', () => {
+  it('formats mobile and landline numbers, with and without country code', () => {
+    expect(formatBrazilPhone('5513999990000')).toBe('+55 (13) 99999-0000');
+    expect(formatBrazilPhone('13999990000')).toBe('(13) 99999-0000');
+    expect(formatBrazilPhone('1332320000')).toBe('(13) 3232-0000');
+    expect(formatBrazilPhone('999990000')).toBe('99999-0000');
+    expect(formatBrazilPhone('32320000')).toBe('3232-0000');
+  });
+
+  it('falls back to the raw string when digits are unusable', () => {
+    expect(formatBrazilPhone('sem numero')).toBe('sem numero');
+    expect(formatBrazilPhone('4930901820000')).toBe('4930901820000'); // non-BR length
   });
 });
 

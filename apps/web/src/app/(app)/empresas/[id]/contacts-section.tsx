@@ -1,5 +1,6 @@
 'use client';
 
+import { formatBrazilPhone } from '@hub/core';
 import type { Contact, PreferredChannel } from '@hub/db';
 import { ConfirmDialog, StatusBadge, toast } from '@hub/ui';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
@@ -34,7 +35,12 @@ function ContactForm({
   const [state, formAction, pending] = useActionState(action, null);
 
   useEffect(() => {
-    if (state?.ok) onDone();
+    if (state?.ok) {
+      // Non-blocking duplicate-phone warning (T34): the save went through, but
+      // the same line exists elsewhere in the firm — the user must know.
+      if (state.message) toast.warning(state.message, { duration: 8000 });
+      onDone();
+    }
   }, [state, onDone]);
 
   return (
@@ -152,7 +158,9 @@ function ContactRow({
       ? copy.contacts.departmentsAll
       : contact.departments.map((d) => departmentLabels[d] ?? d).join(', ');
   const detail = [
-    contact.email || contact.phone || copy.contacts.channels[contact.preferredChannel],
+    contact.email ||
+      (contact.phone ? formatBrazilPhone(contact.phone) : null) ||
+      copy.contacts.channels[contact.preferredChannel],
     deptText,
   ].join(' · ');
 

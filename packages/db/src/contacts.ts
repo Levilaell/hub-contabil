@@ -1,4 +1,5 @@
 import { parseFirmConfig } from '@hub/config';
+import { brazilPhoneMatches, normalizeInboundPhone } from '@hub/core';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { loadFirm } from './firm';
@@ -35,6 +36,13 @@ export interface ContactInput {
 }
 
 export type ContactEdits = Omit<ContactInput, 'companyId'>;
+
+/** Save result; `warning` flags a same-line phone elsewhere in the firm (T34) —
+ *  the save still succeeds (two companies may legitimately share a phone), but
+ *  the inbound resolver will silently pick ONE of them, so the user must know. */
+export type ContactMutationResult =
+  | { ok: true; id: string; warning?: string }
+  | { ok: false; message: string };
 
 interface ContactRow {
   id: string;
@@ -97,7 +105,13 @@ function validateContact(
     columns: {
       name,
       email,
-      phone: cleanText(edits.phone),
+      // Canonical storage: digits only (T34) — display formats via formatBrazilPhone.
+      phone: (() => {
+        const raw = cleanText(edits.phone);
+        if (!raw) return null;
+        const digits = normalizeInboundPhone(raw);
+        return digits.length ? digits : null;
+      })(),
       preferred_channel: channel,
       is_primary: Boolean(edits.isPrimary),
       departments,
@@ -119,10 +133,38 @@ export async function listContacts(
   return (data as ContactRow[]).map(mapContact);
 }
 
+/** A same-line contact anywhere in the firm (format-tolerant, same matcher the
+ *  inbound resolver uses). Returns the pt-BR warning text, or undefined. */
+async function duplicatePhoneWarning(
+  supabase: SupabaseClient,
+  phone: unknown,
+  excludeId: string | null,
+): Promise<string | undefined> {
+  if (typeof phone !== 'string' || !phone) return undefined;
+  const { data } = await supabase
+    .from('contacts')
+    .select('id, name, phone, company_id')
+    .not('phone', 'is', null);
+  const dup = (data ?? []).find(
+    (row) => row.id !== excludeId && brazilPhoneMatches(String(row.phone), phone),
+  );
+  if (!dup) return undefined;
+
+  const { data: company } = await supabase
+    .from('companies')
+    .select('trade_name, legal_name')
+    .eq('id', dup.company_id as string)
+    .maybeSingle();
+  const companyName = (company?.trade_name || company?.legal_name) as string | undefined;
+  return `Este telefone já está no contato "${dup.name as string}"${
+    companyName ? ` (${companyName})` : ''
+  }. Mensagens recebidas desse número podem ser associadas ao outro contato.`;
+}
+
 export async function createContact(
   supabase: SupabaseClient,
   input: ContactInput,
-): Promise<MutationResult> {
+): Promise<ContactMutationResult> {
   const firm = await loadFirm(supabase);
   if (!firm) return fail('Não foi possível identificar o escritório.');
 
@@ -148,14 +190,15 @@ export async function createContact(
     p_entity_id: data.id,
     p_context: { companyId },
   });
-  return { ok: true, id: data.id };
+  const warning = await duplicatePhoneWarning(supabase, validated.columns.phone, data.id);
+  return { ok: true, id: data.id, ...(warning ? { warning } : {}) };
 }
 
 export async function updateContact(
   supabase: SupabaseClient,
   id: string,
   edits: ContactEdits,
-): Promise<MutationResult> {
+): Promise<ContactMutationResult> {
   const firm = await loadFirm(supabase);
   if (!firm) return fail('Não foi possível identificar o escritório.');
 
@@ -178,7 +221,8 @@ export async function updateContact(
     p_entity_id: id,
     p_context: {},
   });
-  return { ok: true, id };
+  const warning = await duplicatePhoneWarning(supabase, validated.columns.phone, id);
+  return { ok: true, id, ...(warning ? { warning } : {}) };
 }
 
 export async function deleteContact(supabase: SupabaseClient, id: string): Promise<MutationResult> {

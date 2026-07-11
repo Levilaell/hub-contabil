@@ -184,7 +184,8 @@ export async function createContactAction(
   });
   if (!result.ok) return { ok: false, message: result.message };
   revalidatePath(`/empresas/${companyId}`);
-  return { ok: true, message: '' };
+  // `message` on ok = non-blocking duplicate-phone warning (T34), shown as a toast.
+  return { ok: true, message: result.warning ?? '' };
 }
 
 export async function updateContactAction(
@@ -204,7 +205,7 @@ export async function updateContactAction(
   });
   if (!result.ok) return { ok: false, message: result.message };
   revalidatePath(`/empresas/${companyId}`);
-  return { ok: true, message: '' };
+  return { ok: true, message: result.warning ?? '' };
 }
 
 export async function deleteContactAction(contactId: string, companyId: string): Promise<void> {

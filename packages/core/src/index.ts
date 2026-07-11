@@ -116,6 +116,7 @@ export {
   classifyInboundKind,
   decideInboundRouting,
   normalizeInboundPhone,
+  formatBrazilPhone,
   normalizeInboundEmail,
   brazilPhoneKey,
   brazilPhoneMatches,

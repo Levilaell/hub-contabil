@@ -1,5 +1,5 @@
 import { parseFirmConfig } from '@hub/config';
-import { listSupportTickets, type SupportStatus } from '@hub/db';
+import { listCompanies, listSupportTickets, type SupportStatus } from '@hub/db';
 import { EmptyState, PageHeader } from '@hub/ui';
 import { CheckCircle2, MessageCircle } from 'lucide-react';
 
@@ -38,8 +38,11 @@ export default async function AtendimentoPage({
   const department = departments.some((d) => d.key === sp.department) ? sp.department : undefined;
   const filtered = status !== 'open_all' || Boolean(department);
 
-  const tickets = await listSupportTickets(supabase, { status, department });
-  const departmentLabels = Object.fromEntries(departments.map((d) => [d.key, d.label]));
+  const [tickets, companyRows] = await Promise.all([
+    listSupportTickets(supabase, { status, department }),
+    listCompanies(supabase, { status: 'active' }),
+  ]);
+  const companies = companyRows.map((c) => ({ id: c.id, name: c.tradeName || c.legalName }));
 
   return (
     <div className="space-y-6">
@@ -92,7 +95,7 @@ export default async function AtendimentoPage({
           description={filtered ? copy.empty.filteredDescription : copy.empty.description}
         />
       ) : (
-        <TicketsList tickets={tickets} departments={departments} />
+        <TicketsList tickets={tickets} departments={departments} companies={companies} />
       )}
     </div>
   );

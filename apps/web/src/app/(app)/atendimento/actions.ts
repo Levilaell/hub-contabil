@@ -1,6 +1,7 @@
 'use server';
 
 import {
+  linkTicketCompany,
   listSupportMessages,
   replySupportTicket,
   returnTicketToAi,
@@ -47,6 +48,19 @@ export async function returnToAiAction(ticketId: string): Promise<SupportActionS
   const res = await returnTicketToAi(supabase, ticketId);
   if (!res.ok) return { ok: false, message: res.message };
   revalidatePath('/atendimento', 'layout');
+  return { ok: true, message: '' };
+}
+
+export async function linkCompanyAction(
+  ticketId: string,
+  companyId: string,
+): Promise<SupportActionState> {
+  const supabase = await createClient();
+  const res = await linkTicketCompany(supabase, ticketId, companyId);
+  if (!res.ok) return { ok: false, message: res.message };
+  revalidatePath('/atendimento', 'layout');
+  // The new contact shows up on the company page too.
+  revalidatePath('/empresas', 'layout');
   return { ok: true, message: '' };
 }
 

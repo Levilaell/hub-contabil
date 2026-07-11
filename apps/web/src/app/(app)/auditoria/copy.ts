@@ -84,6 +84,7 @@ export const copy = {
     'support.received': 'Atendimento recebido',
     'support.department_selected': 'Departamento escolhido pelo cliente',
     'support.department_set': 'Departamento do atendimento definido',
+    'support.company_linked': 'Atendimento vinculado a empresa',
     'support.closed_by_client': 'Atendimento encerrado pelo cliente',
     'support.ai_replied': 'Atendimento respondido pela IA',
     'support.replied': 'Atendimento respondido',

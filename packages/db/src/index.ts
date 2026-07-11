@@ -37,6 +37,7 @@ export {
   type Contact,
   type ContactInput,
   type ContactEdits,
+  type ContactMutationResult,
   type PreferredChannel,
 } from './contacts';
 export {
@@ -184,6 +185,7 @@ export {
   setSupportStatus,
   returnTicketToAi,
   setTicketDepartment,
+  linkTicketCompany,
   type SupportTicket,
   type SupportMessage,
   type SupportStatus,
