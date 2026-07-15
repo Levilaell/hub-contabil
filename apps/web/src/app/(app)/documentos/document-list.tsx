@@ -6,11 +6,14 @@ import {
   deleteDocument,
   type Classification,
   type DocumentItem,
+  type DocumentOrigin,
   type ExceptionItem,
 } from '@hub/db';
 import { docTypeLabel } from '@hub/config';
+import { formatBrazilPhone } from '@hub/core';
 import { ConfirmDialog, DataList, DataListRow, DetailDrawer, toast } from '@hub/ui';
 import { FileText, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
@@ -51,6 +54,24 @@ function humanSize(bytes: number | null): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function timeAgo(iso: string): string {
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return 'agora';
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `há ${h} h`;
+  const d = Math.floor(h / 24);
+  return d === 1 ? 'há 1 dia' : `há ${d} dias`;
+}
+
+/** pt-BR channel label: inbound docs use the message's channel, others their source. */
+function channelLabel(doc: DocumentItem, origin?: DocumentOrigin): string {
+  if (doc.source === 'inbound') {
+    return copy.origin.channels[origin?.channel ?? 'inbound'] ?? copy.origin.channels.inbound;
+  }
+  return copy.origin.channels[doc.source] ?? doc.source;
+}
+
 export function DocumentList({
   documents,
   departmentLabels,
@@ -58,6 +79,7 @@ export function DocumentList({
   docTypes,
   companyNames,
   triage,
+  origins,
 }: {
   documents: DocumentItem[];
   departmentLabels: Record<string, string>;
@@ -67,6 +89,8 @@ export function DocumentList({
   companyNames?: Record<string, string>;
   /** When set (pending-filing list), the drawer offers in-place resolution (T37). */
   triage?: InboxTriageProps;
+  /** Origin of inbound documents, keyed by inboundMessageId (T38). */
+  origins?: Record<string, DocumentOrigin>;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -157,6 +181,21 @@ export function DocumentList({
 
   const kind = selected ? fileKind(selected.fileName) : 'other';
   const selectedAi = selected ? classifications[selected.id]?.decidedBy === 'ai' : false;
+  const selectedClassification = selected ? classifications[selected.id] : undefined;
+  const selectedOrigin =
+    selected && selected.inboundMessageId ? origins?.[selected.inboundMessageId] : undefined;
+  const selectedSender = selectedOrigin?.sender
+    ? `${
+        selectedOrigin.channel === 'whatsapp'
+          ? formatBrazilPhone(selectedOrigin.sender)
+          : selectedOrigin.sender
+      }${selectedOrigin.contactName ? ` — ${selectedOrigin.contactName}` : ''}`
+    : null;
+  const selectedPlace = selected
+    ? [selected.period, departmentLabels[selected.department ?? ''] ?? selected.department]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
   const selectedException = selected && triage ? triage.exceptionByDoc[selected.id] : undefined;
   const selectedReason = selectedException ? ctxValue(selectedException.context, 'reason') : null;
   const selectedSuggestionText = selectedException
@@ -181,20 +220,21 @@ export function DocumentList({
     <>
       <DataList>
         {documents.map((doc) => {
-          const place = [doc.period, departmentLabels[doc.department ?? ''] ?? doc.department]
-            .filter(Boolean)
-            .join(' · ');
           const companyName = companyNames?.[doc.companyId ?? ''];
           const isAi = classifications[doc.id]?.decidedBy === 'ai';
           const rowException = triage?.exceptionByDoc[doc.id];
           const rowReason = rowException ? ctxValue(rowException.context, 'reason') : null;
+          const rowOrigin = doc.inboundMessageId ? origins?.[doc.inboundMessageId] : undefined;
+          // T38: "há 2 dias · WhatsApp" instead of any technical detail.
+          const arrival = `${timeAgo(doc.createdAt)} · ${channelLabel(doc, rowOrigin)}`;
           const rowFacts = triage
             ? ([
                 rowReason
                   ? (exceptionsCopy.triage.reasons[rowReason] ?? rowReason)
                   : copy.resolve.waitingFact,
+                arrival,
               ].filter(Boolean) as string[])
-            : ([companyName, docTypeLabel(doc.docType), place].filter(Boolean) as string[]);
+            : ([companyName, docTypeLabel(doc.docType), arrival].filter(Boolean) as string[]);
           return (
             <DataListRow
               key={doc.id}
@@ -434,6 +474,69 @@ export function DocumentList({
                 </div>
               </div>
             )}
+
+            {/* T38: where the document came from and how it was classified. */}
+            <div className="bg-card space-y-2 rounded-lg border p-3">
+              <span className="text-xs font-medium">{copy.origin.title}</span>
+              <dl className="space-y-2 text-sm">
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
+                  <div>
+                    <dt className="text-muted-foreground text-xs">{copy.origin.channel}</dt>
+                    <dd className="mt-0.5">{channelLabel(selected, selectedOrigin)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground text-xs">{copy.origin.received}</dt>
+                    <dd
+                      className="mt-0.5"
+                      title={new Date(
+                        selectedOrigin?.receivedAt ?? selected.createdAt,
+                      ).toLocaleString('pt-BR')}
+                    >
+                      {timeAgo(selectedOrigin?.receivedAt ?? selected.createdAt)}
+                    </dd>
+                  </div>
+                  {selectedPlace ? (
+                    <div>
+                      <dt className="text-muted-foreground text-xs">{copy.period}</dt>
+                      <dd className="mt-0.5">{selectedPlace}</dd>
+                    </div>
+                  ) : null}
+                </div>
+                {selectedSender ? (
+                  <div>
+                    <dt className="text-muted-foreground text-xs">{copy.origin.sender}</dt>
+                    <dd className="mt-0.5">
+                      {selectedSender}
+                      {selectedOrigin?.ticketId ? (
+                        <Link
+                          href={`/atendimento?ticket=${selectedOrigin.ticketId}`}
+                          className="text-primary ml-2 text-xs underline-offset-2 hover:underline"
+                        >
+                          {copy.origin.openTicket}
+                        </Link>
+                      ) : null}
+                    </dd>
+                  </div>
+                ) : null}
+                {selectedClassification ? (
+                  <div>
+                    <dt className="text-muted-foreground text-xs">{copy.origin.classification}</dt>
+                    <dd className="mt-0.5">
+                      {selectedClassification.decidedBy === 'human'
+                        ? copy.origin.classifiedByHuman
+                        : copy.origin.classifiedByAi(
+                            Math.round(selectedClassification.confidence * 100),
+                          )}
+                      {selectedClassification.decidedBy === 'ai' && selectedClassification.model ? (
+                        <span className="text-muted-foreground ml-1 text-xs">
+                          ({selectedClassification.model})
+                        </span>
+                      ) : null}
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+            </div>
 
             {loadingUrl ? (
               <p className="text-muted-foreground text-sm">{copy.preview.loading}</p>

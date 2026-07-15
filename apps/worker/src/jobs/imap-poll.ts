@@ -4,11 +4,7 @@ import { decideInboundRouting, normalizeInboundEmail } from '@hub/core';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Sql } from 'postgres';
 
-import {
-  ingestInboundDocument,
-  ingestInboundQuestion,
-  recordInboundException,
-} from './inbound.js';
+import { ingestInboundDocument, ingestInboundQuestion, recordInboundException } from './inbound.js';
 
 // IMAP poll (entrada por e-mail). Pull, not webhook: fetch unseen messages, record
 // each idempotently in inbound_messages (unique uid), then route inline — an
@@ -73,6 +69,7 @@ export async function runImapPoll(
             bytes: att.bytes,
             contentType: att.mimeType,
             channel: 'imap',
+            inboundMessageId: recorded.id,
           });
         }
       } else if (route.kind === 'question') {

@@ -4,7 +4,7 @@ import { formatBrazilPhone } from '@hub/core';
 import type { SupportMessage, SupportTicket } from '@hub/db';
 import { DataList, DataListRow, DetailDrawer, StatusBadge, type StatusTone } from '@hub/ui';
 import { MessageCircle } from 'lucide-react';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 import {
   linkCompanyAction,
@@ -48,14 +48,20 @@ export function TicketsList({
   tickets,
   departments,
   companies,
+  initialTicketId,
 }: {
   tickets: SupportTicket[];
   departments: { key: string; label: string }[];
   companies: { id: string; name: string }[];
+  /** Deep link (?ticket=…): auto-open this conversation when it is in the list (T38). */
+  initialTicketId?: string;
 }) {
   const departmentLabels = Object.fromEntries(departments.map((d) => [d.key, d.label]));
   const companyNames = Object.fromEntries(companies.map((c) => [c.id, c.name]));
-  const [selected, setSelected] = useState<SupportTicket | null>(null);
+  // Deep link (?ticket=…, T38): start with the linked conversation open.
+  const [selected, setSelected] = useState<SupportTicket | null>(
+    () => (initialTicketId && tickets.find((t) => t.id === initialTicketId)) || null,
+  );
   const [messages, setMessages] = useState<SupportMessage[] | null>(null);
   const [reply, setReply] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +77,12 @@ export function TicketsList({
     setLinkCompanyId('');
     void loadSupportMessagesAction(ticket.id).then(setMessages);
   }
+
+  useEffect(() => {
+    // Load the deep-linked conversation's messages (async — mount only).
+    if (selected) void loadSupportMessagesAction(selected.id).then(setMessages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep link opens once, on mount
+  }, []);
 
   function close() {
     setSelected(null);
@@ -145,7 +157,11 @@ export function TicketsList({
       else {
         // Keep the drawer open so the switch is visible; the list refreshes via
         // revalidation, the local copy is updated for immediate feedback.
-        setSelected({ ...selected, handledBy: 'ai', status: selected.status === 'escalated' ? 'pending' : selected.status });
+        setSelected({
+          ...selected,
+          handledBy: 'ai',
+          status: selected.status === 'escalated' ? 'pending' : selected.status,
+        });
         setNotice(copy.drawer.returnedToAi);
       }
     });
@@ -172,12 +188,16 @@ export function TicketsList({
                 ? formatBrazilPhone(ticket.contactIdentifier)
                 : ticket.contactIdentifier)
             }
-            facts={[
-              channelLabel(ticket.channel),
-              ticket.department ? (departmentLabels[ticket.department] ?? ticket.department) : null,
-              ticket.subject || '—',
-              timeAgo(ticket.lastMessageAt),
-            ].filter(Boolean) as string[]}
+            facts={
+              [
+                channelLabel(ticket.channel),
+                ticket.department
+                  ? (departmentLabels[ticket.department] ?? ticket.department)
+                  : null,
+                ticket.subject || '—',
+                timeAgo(ticket.lastMessageAt),
+              ].filter(Boolean) as string[]
+            }
             trailing={
               <StatusBadge
                 tone={STATUS[ticket.status]?.tone ?? 'neutral'}

@@ -523,6 +523,7 @@ export type Database = {
           firm_id: string
           hash: string
           id: string
+          inbound_message_id: string | null
           metadata: Json
           period: string | null
           size_bytes: number | null
@@ -539,6 +540,7 @@ export type Database = {
           firm_id: string
           hash: string
           id?: string
+          inbound_message_id?: string | null
           metadata?: Json
           period?: string | null
           size_bytes?: number | null
@@ -555,6 +557,7 @@ export type Database = {
           firm_id?: string
           hash?: string
           id?: string
+          inbound_message_id?: string | null
           metadata?: Json
           period?: string | null
           size_bytes?: number | null
@@ -575,6 +578,13 @@ export type Database = {
             columns: ["firm_id"]
             isOneToOne: false
             referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_inbound_message_id_fkey"
+            columns: ["inbound_message_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -1009,6 +1019,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "recurring_tasks_default_assignee_id_fkey"
+            columns: ["default_assignee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "recurring_tasks_firm_id_fkey"
             columns: ["firm_id"]
             isOneToOne: false
@@ -1379,6 +1396,14 @@ export type Database = {
       handoff_task: { Args: { p_task_id: string }; Returns: string }
       hash_request_token: { Args: { p_token: string }; Returns: string }
       is_firm_manager: { Args: never; Returns: boolean }
+      link_ticket_company: {
+        Args: {
+          p_company_id: string
+          p_contact_name?: string
+          p_ticket_id: string
+        }
+        Returns: undefined
+      }
       log_audit: {
         Args: {
           p_action: string
@@ -1387,10 +1412,6 @@ export type Database = {
           p_entity_id?: string
         }
         Returns: string
-      }
-      link_ticket_company: {
-        Args: { p_company_id: string; p_contact_name?: string; p_ticket_id: string }
-        Returns: undefined
       }
       log_request_view: {
         Args: { p_ip?: string; p_token: string; p_user_agent?: string }
@@ -1443,10 +1464,7 @@ export type Database = {
         Args: { p_id: string; p_note?: string; p_status: string }
         Returns: undefined
       }
-      return_ticket_to_ai: {
-        Args: { p_ticket_id: string }
-        Returns: undefined
-      }
+      return_ticket_to_ai: { Args: { p_ticket_id: string }; Returns: undefined }
       rotate_request_token: {
         Args: { p_expiry_days?: number; p_id: string; p_record_copy?: boolean }
         Returns: string

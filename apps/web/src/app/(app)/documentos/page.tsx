@@ -3,6 +3,7 @@ import { formatCnpj } from '@hub/core';
 import {
   listClassificationsByDocuments,
   listCompanies,
+  listDocumentOrigins,
   listDocuments,
   listOpenTriageExceptionsByDocument,
 } from '@hub/db';
@@ -83,7 +84,7 @@ export default async function DocumentosPage({
   // resolvable IN PLACE via its open triage exception (T37).
   if (sp.company === 'inbox') {
     const docs = await listDocuments(supabase, { unassigned: true, search: q || undefined });
-    const [classificationEntries, exceptionByDoc] = await Promise.all([
+    const [classificationEntries, exceptionByDoc, origins] = await Promise.all([
       listClassificationsByDocuments(
         supabase,
         docs.map((d) => d.id),
@@ -91,6 +92,10 @@ export default async function DocumentosPage({
       listOpenTriageExceptionsByDocument(
         supabase,
         docs.map((d) => d.id),
+      ),
+      listDocumentOrigins(
+        supabase,
+        docs.map((d) => d.inboundMessageId),
       ),
     ]);
     const classifications = Object.fromEntries(classificationEntries);
@@ -133,6 +138,7 @@ export default async function DocumentosPage({
             classifications={classifications}
             docTypes={[...config.taxonomy]}
             triage={{ options: triageOptions, exceptionByDoc }}
+            origins={origins}
           />
         )}
       </div>
@@ -149,6 +155,12 @@ export default async function DocumentosPage({
             supabase,
             searchDocs.map((d) => d.id),
           ),
+        )
+      : {};
+    const searchOrigins = q
+      ? await listDocumentOrigins(
+          supabase,
+          searchDocs.map((d) => d.inboundMessageId),
         )
       : {};
     const unassignedCount = (await listDocuments(supabase, { unassigned: true })).length;
@@ -189,6 +201,7 @@ export default async function DocumentosPage({
                 classifications={searchClassifications}
                 docTypes={[...config.taxonomy]}
                 companyNames={companyNames}
+                origins={searchOrigins}
               />
             )}
           </div>
@@ -267,12 +280,17 @@ export default async function DocumentosPage({
   const filtered = Boolean(sp.period || sp.department || sp.docType || qLower);
   const base = `/documentos?company=${company.id}`;
   const advancedOpen = Boolean(sp.period || sp.docType);
-  const classifications = Object.fromEntries(
-    await listClassificationsByDocuments(
+  const [classificationEntries, origins] = await Promise.all([
+    listClassificationsByDocuments(
       supabase,
       docs.map((d) => d.id),
     ),
-  );
+    listDocumentOrigins(
+      supabase,
+      docs.map((d) => d.inboundMessageId),
+    ),
+  ]);
+  const classifications = Object.fromEntries(classificationEntries);
 
   return (
     <div className="space-y-6">
@@ -403,6 +421,7 @@ export default async function DocumentosPage({
           documents={docs}
           departmentLabels={departmentLabels}
           classifications={classifications}
+          origins={origins}
           docTypes={[...config.taxonomy]}
         />
       )}

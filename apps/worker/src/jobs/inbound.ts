@@ -124,6 +124,8 @@ export async function ingestInboundDocument(
     bytes: Buffer;
     contentType: string;
     channel: string;
+    /** inbound_messages row that delivered the file — visible origin (T38). */
+    inboundMessageId?: string | null;
     sender?: string;
     contactName?: string | null;
     caption?: string | null;
@@ -141,8 +143,9 @@ export async function ingestInboundDocument(
 
   const [doc] = await sql<{ id: string }[]>`
     insert into public.documents
-      (firm_id, company_id, doc_type, storage_path, source, hash, file_name, size_bytes)
-    values (${args.firmId}, null, 'other', ${storagePath}, 'inbound', ${hash}, ${fileName}, ${args.bytes.length})
+      (firm_id, company_id, doc_type, storage_path, source, hash, file_name, size_bytes, inbound_message_id)
+    values (${args.firmId}, null, 'other', ${storagePath}, 'inbound', ${hash}, ${fileName}, ${args.bytes.length},
+            ${args.inboundMessageId ?? null})
     returning id
   `;
   if (!doc) throw new Error('inbound document insert returned no row');
@@ -312,6 +315,7 @@ export function createInboundHandler(sql: Sql, storage: SupabaseClient, whatsapp
         bytes: media.bytes,
         contentType: media.mimeType,
         channel: row.channel,
+        inboundMessageId: row.id,
         sender: row.sender,
         contactName: str(raw.contactName),
         caption: str(raw.text),

@@ -20,6 +20,8 @@ export interface DocumentItem {
   fileName: string;
   sizeBytes: number | null;
   createdAt: string;
+  /** inbound_messages row that delivered the file (T38) — null for uploads/requests. */
+  inboundMessageId: string | null;
 }
 
 interface DocumentRow {
@@ -34,6 +36,7 @@ interface DocumentRow {
   file_name: string;
   size_bytes: number | null;
   created_at: string;
+  inbound_message_id: string | null;
 }
 
 export interface DocumentInput {
@@ -50,7 +53,7 @@ export interface DocumentInput {
 export type DocMutationResult = { ok: true; id: string } | { ok: false; message: string };
 
 const SELECT =
-  'id, company_id, period, department, doc_type, storage_path, source, hash, file_name, size_bytes, created_at';
+  'id, company_id, period, department, doc_type, storage_path, source, hash, file_name, size_bytes, created_at, inbound_message_id';
 
 function fail(message: string): { ok: false; message: string } {
   return { ok: false, message };
@@ -100,6 +103,7 @@ function mapDocument(row: DocumentRow): DocumentItem {
     fileName: row.file_name,
     sizeBytes: row.size_bytes,
     createdAt: row.created_at,
+    inboundMessageId: row.inbound_message_id,
   };
 }
 
@@ -129,6 +133,73 @@ export async function listDocuments(
   const { data, error } = await query.order('created_at', { ascending: false });
   if (error || !data) return [];
   return (data as DocumentRow[]).map(mapDocument);
+}
+
+export interface DocumentOrigin {
+  inboundMessageId: string;
+  channel: string; // 'whatsapp' | 'imap'
+  sender: string | null;
+  contactName: string | null;
+  receivedAt: string | null;
+  /** Ticket of the sender's conversation, when one exists (link target). */
+  ticketId: string | null;
+}
+
+/**
+ * Origin details for inbound documents (T38), keyed by inbound_message_id.
+ * Two firm-scoped reads (RLS): the inbound messages themselves, then the
+ * sender's ticket per (channel, contact_identifier) for the conversation link.
+ */
+export async function listDocumentOrigins(
+  supabase: SupabaseClient,
+  inboundMessageIds: (string | null)[],
+): Promise<Record<string, DocumentOrigin>> {
+  const ids = [...new Set(inboundMessageIds.filter((id): id is string => Boolean(id)))];
+  if (ids.length === 0) return {};
+
+  const { data, error } = await supabase
+    .from('inbound_messages')
+    .select('id, channel, sender, raw, received_at')
+    .in('id', ids);
+  if (error || !data) return {};
+  const rows = data as {
+    id: string;
+    channel: string;
+    sender: string | null;
+    raw: unknown;
+    received_at: string | null;
+  }[];
+
+  const senders = [...new Set(rows.map((r) => r.sender).filter(Boolean))] as string[];
+  const ticketByKey = new Map<string, string>();
+  if (senders.length > 0) {
+    const { data: tickets } = await supabase
+      .from('support_tickets')
+      .select('id, channel, contact_identifier')
+      .in('contact_identifier', senders);
+    for (const t of (tickets ?? []) as {
+      id: string;
+      channel: string;
+      contact_identifier: string;
+    }[]) {
+      ticketByKey.set(`${t.channel}|${t.contact_identifier}`, t.id);
+    }
+  }
+
+  const origins: Record<string, DocumentOrigin> = {};
+  for (const r of rows) {
+    const raw = r.raw && typeof r.raw === 'object' ? (r.raw as Record<string, unknown>) : {};
+    const contactName = typeof raw.contactName === 'string' ? raw.contactName : null;
+    origins[r.id] = {
+      inboundMessageId: r.id,
+      channel: r.channel,
+      sender: r.sender || null,
+      contactName,
+      receivedAt: r.received_at,
+      ticketId: r.sender ? (ticketByKey.get(`${r.channel}|${r.sender}`) ?? null) : null,
+    };
+  }
+  return origins;
 }
 
 /** Count of documents in the firm (dashboard, T13). */

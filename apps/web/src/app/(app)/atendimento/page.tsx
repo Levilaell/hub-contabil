@@ -24,10 +24,12 @@ function resolveStatus(raw: string | undefined): StatusFilter {
 export default async function AtendimentoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; department?: string }>;
+  searchParams: Promise<{ status?: string; department?: string; ticket?: string }>;
 }) {
   const sp = await searchParams;
-  const status = resolveStatus(sp.status);
+  // Deep link from a document's origin (T38): show every status so the linked
+  // conversation is in the list regardless of where it stands.
+  const status = sp.ticket && !sp.status ? 'all' : resolveStatus(sp.status);
 
   const supabase = await createClient();
   const { data: firm } = await supabase.from('firms').select('config').limit(1).single();
@@ -95,7 +97,12 @@ export default async function AtendimentoPage({
           description={filtered ? copy.empty.filteredDescription : copy.empty.description}
         />
       ) : (
-        <TicketsList tickets={tickets} departments={departments} companies={companies} />
+        <TicketsList
+          tickets={tickets}
+          departments={departments}
+          companies={companies}
+          initialTicketId={sp.ticket}
+        />
       )}
     </div>
   );

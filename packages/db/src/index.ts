@@ -93,6 +93,7 @@ export {
   buildStoragePath,
   buildInboxPath,
   listDocuments,
+  listDocumentOrigins,
   countDocuments,
   findDocumentByHash,
   insertDocument,
@@ -100,6 +101,7 @@ export {
   deleteDocument,
   createDocumentSignedUrl,
   type DocumentItem,
+  type DocumentOrigin,
   type DocumentInput,
   type InboxDocumentInput,
   type DocMutationResult,
@@ -154,11 +156,7 @@ export {
   type RuleMutationResult,
   type ResolveOutcome,
 } from './mapping-rules';
-export {
-  applyCfopResolution,
-  type CfopEntry,
-  type CfopApplyResult,
-} from './cfop';
+export { applyCfopResolution, type CfopEntry, type CfopApplyResult } from './cfop';
 export {
   listExportBatches,
   getExportBatch,
