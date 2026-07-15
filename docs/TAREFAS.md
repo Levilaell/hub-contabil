@@ -153,12 +153,27 @@ Task drawer gains an "Origem" block (created at + how: manual / recurring templa
 Normalize phone on save (canonical digits form); warn about duplicate phones within the firm, including across companies (inbound matching is already format-tolerant, so duplicates silently win by ordering today); add "Vincular a empresa" on company-less tickets in /atendimento (creating/moving the contact — requires contact-move support in the DB layer, which currently forbids changing `company_id`). Acceptance: same number saved in different formats is detected; an unlinked ticket can be linked from /atendimento and the next message keeps the link; audit emitted.
 
 **T35 · Documents module redesign (spec first) [decision]**
-Largest package — write a 1-page spec for approval before implementing: deterministic triage guards (e.g. a PDF is never auto-filed as `nfe` without an NF-e access key; boleto/fatura heuristics), inbox resolution in place (associate company / fix type without jumping to /excecoes), visible origin per document (channel, sender, date), and the module structure review. Acceptance (spec stage): proposal approved by Levi; implementation tasks then appended here.
+Largest package — write a 1-page spec for approval before implementing: deterministic triage guards (e.g. a PDF is never auto-filed as `nfe` without an NF-e access key; boleto/fatura heuristics), inbox resolution in place (associate company / fix type without jumping to /excecoes), visible origin per document (channel, sender, date), and the module structure review. Acceptance (spec stage): proposal approved by Levi; implementation tasks then appended here. **Spec approved 2026-07-14 → T36–T38 below.**
+
+**T36 · Deterministic triage guards (approved spec, part 1)**
+Pure rule in core, applied after AI classification and before the auto-file decision: (1) XML-native types (`nfe`, `nfce`, `cte`) suggested for a non-XML file cap confidence below the firm threshold → exception queue with the pre-filled suggestion (`nfse` exempt — city halls issue PDFs); (2) filename containing an unambiguous term of a conflicting type (`boleto`, `fatura`, `extrato`, `holerite`, `comprovante` — term list in firm config) → same. Exception context records the reason (`implausible_type`), rendered in pt-BR on the exceptions screen. Acceptance: a PDF classified as `nfe` with 0.95 confidence lands in exceptions, not the repository; core rule fully unit-tested; term list editable via config.
+
+**T37 · Inbox resolution in place (approved spec, part 2)**
+The documents inbox gains, per item, the same resolution form that lives in /excecoes today: company + type + department pre-filled from the AI suggestion, "Arquivar assim" and "Corrigir e arquivar" actions, reusing the `apply_triage_suggestion` RPC (corrections keep feeding few-shot). Resolving from the inbox resolves the matching exception and vice versa — one pending item, two places to resolve, zero duplicity. Rename "Caixa de entrada" → "Pendentes de arquivamento", now ALWAYS visible as the first section of the documents level-0 page, with count, even when empty. Acceptance: a pending document is filed from the inbox and its exception closes automatically (and the reverse); empty state explains the concept.
+
+**T38 · Visible document origin (approved spec, part 3)**
+Migration: `documents.inbound_message_id` (nullable FK). Worker links it when creating a document from an inbound message. Document drawer gains an "Origem" block: channel (WhatsApp/e-mail/upload/request link), sender when known (formatted, linking to the ticket), arrival date, and classification info (AI with confidence + model, deterministic, or human). List rows show "há 2 dias · WhatsApp" instead of technical paths. Acceptance: a WhatsApp-received document shows channel + sender in the drawer; upload/request documents show their origins; migration applied and typed.
+
+**T39 · Deactivating a recurring template offers cancelling open instances (decision #2)**
+When deactivating a template in /tarefas/recorrentes, the confirm dialog offers (checkbox, default on) cancelling the template's still-open instances (`pending`/`in_progress`, any period). Cancelled tasks get a terminal `cancelled` status (state machine in core + migration if the enum is a CHECK), are audited per task, and disappear from open views. Acceptance: deactivate with the option on → open instances cancelled + audited; with it off → instances stay; state machine tests updated.
+
+**T40 · Filters open by default (decision #3)**
+All list screens render their filters visible by default (no "Mais filtros"/collapsed disclosure); default views stay. UX rule #8 in CLAUDE.md updated to match the decision. Acceptance: /documentos, /tarefas, /excecoes, /solicitacoes, /atendimento and company tabs show filters without an extra click; no regression in mobile layout.
 
 ### Open decisions (Levi)
-1. Atendimento by department: real access restriction (RLS, like tasks) or filter-only? (T33)
-2. Deactivating a recurring template: also cancel the period's still-open instances, or keep them? (post-T28 follow-up)
-3. List filters default-open vs. current UX rule #8 — or middle ground (search always visible, advanced collapsed, as Documents does today)?
+1. ~~Atendimento by department: real access restriction (RLS, like tasks) or filter-only?~~ **Decided 14/07: filter-only** (current behavior since T33). No access restriction.
+2. ~~Deactivating a recurring template: also cancel the period's still-open instances, or keep them?~~ **Decided 14/07: yes, offer cancelling** → T39.
+3. ~~List filters default-open vs. current UX rule #8?~~ **Decided 14/07: filters open by default** → T40 (CLAUDE.md rule #8 updated).
 4. ~~How to separate "solicitações de documentos" from "envios de documentos" in the UI?~~ **Decided 11/07: a separate tab** ("Envios") on the company page — full separation for control over each flow. Implemented in T31.
 
 ---
