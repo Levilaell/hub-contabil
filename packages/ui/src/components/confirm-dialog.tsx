@@ -25,6 +25,9 @@ export interface ConfirmDialogProps {
   onConfirm: () => void;
   /** Optional element that opens the dialog (rendered via Radix asChild). */
   trigger?: ReactNode;
+  /** Optional content between the description and the buttons (e.g. a checkbox
+   *  refining what the confirmation does — T39). */
+  children?: ReactNode;
 }
 
 export function ConfirmDialog({
@@ -38,6 +41,7 @@ export function ConfirmDialog({
   pending = false,
   onConfirm,
   trigger,
+  children,
 }: ConfirmDialogProps) {
   return (
     <AlertDialog.Root open={open} onOpenChange={(o) => !pending && onOpenChange(o)}>
@@ -56,6 +60,7 @@ export function ConfirmDialog({
               {description}
             </AlertDialog.Description>
           ) : null}
+          {children ? <div className="mt-4">{children}</div> : null}
           <div className="mt-5 flex justify-end gap-2">
             <AlertDialog.Cancel
               disabled={pending}

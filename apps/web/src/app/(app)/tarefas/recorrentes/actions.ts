@@ -2,6 +2,7 @@
 
 import {
   createRecurringTask,
+  deactivateRecurringTask,
   setRecurringTaskActive,
   updateRecurringTask,
   type RecurringTargetKind,
@@ -56,4 +57,21 @@ export async function toggleRecurringActiveAction(id: string, active: boolean): 
   const supabase = await createClient();
   await setRecurringTaskActive(supabase, id, active);
   revalidatePath('/tarefas/recorrentes');
+}
+
+export type DeactivateActionState =
+  | { ok: true; cancelled: number }
+  | { ok: false; message: string };
+
+// Deactivate + optionally cancel the template's open instances (T39, decision #2).
+export async function deactivateRecurringAction(
+  id: string,
+  cancelOpen: boolean,
+): Promise<DeactivateActionState> {
+  const supabase = await createClient();
+  const result = await deactivateRecurringTask(supabase, id, cancelOpen);
+  if (!result.ok) return { ok: false, message: result.message };
+  revalidatePath('/tarefas/recorrentes');
+  revalidatePath('/tarefas');
+  return { ok: true, cancelled: result.cancelled };
 }

@@ -1,12 +1,13 @@
 'use client';
 
 import type { RecurringTask, RecurringTargetKind } from '@hub/db';
-import { DetailDrawer, EmptyState, StatusBadge } from '@hub/ui';
+import { ConfirmDialog, DetailDrawer, EmptyState, StatusBadge, toast } from '@hub/ui';
 import { Plus, Repeat } from 'lucide-react';
 import { useState, useTransition, type FormEvent, type ReactNode } from 'react';
 
 import {
   createRecurringAction,
+  deactivateRecurringAction,
   toggleRecurringActiveAction,
   updateRecurringAction,
 } from './actions';
@@ -239,8 +240,36 @@ export function RecurringList({
   const [pending, startTransition] = useTransition();
   const departmentLabel = (key: string) => departments.find((d) => d.key === key)?.label ?? key;
 
+  // T39 (decision #2): deactivating confirms first and offers cancelling the
+  // template's still-open instances (default on — matches the user expectation
+  // that "the tasks go away").
+  const [deactivating, setDeactivating] = useState<RecurringTask | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(true);
+
   function toggle(template: RecurringTask) {
-    startTransition(() => toggleRecurringActiveAction(template.id, !template.active));
+    if (template.active) {
+      setCancelOpen(true);
+      setDeactivating(template);
+      return;
+    }
+    startTransition(() => toggleRecurringActiveAction(template.id, true));
+  }
+
+  function confirmDeactivate() {
+    if (!deactivating) return;
+    startTransition(async () => {
+      const res = await deactivateRecurringAction(deactivating.id, cancelOpen);
+      setDeactivating(null);
+      if (!res.ok) {
+        toast.error(res.message);
+        return;
+      }
+      toast.success(
+        cancelOpen
+          ? copy.deactivateDialog.doneCancelled(res.cancelled)
+          : copy.deactivateDialog.doneKept,
+      );
+    });
   }
 
   return (
@@ -296,6 +325,28 @@ export function RecurringList({
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={deactivating !== null}
+        onOpenChange={(o) => !o && setDeactivating(null)}
+        title={copy.deactivateDialog.title}
+        description={copy.deactivateDialog.description}
+        confirmLabel={copy.deactivateDialog.confirm}
+        cancelLabel={copy.deactivateDialog.cancel}
+        tone="danger"
+        pending={pending}
+        onConfirm={confirmDeactivate}
+      >
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={cancelOpen}
+            onChange={(e) => setCancelOpen(e.target.checked)}
+            className="mt-0.5 size-4 rounded border"
+          />
+          {copy.deactivateDialog.cancelOpenLabel}
+        </label>
+      </ConfirmDialog>
 
       <DetailDrawer
         open={openForm !== null}

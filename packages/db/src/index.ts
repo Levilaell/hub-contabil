@@ -83,10 +83,12 @@ export {
   createRecurringTask,
   updateRecurringTask,
   setRecurringTaskActive,
+  deactivateRecurringTask,
   type RecurringTask,
   type RecurringTaskInput,
   type RecurringTargetKind,
   type RecurringMutationResult,
+  type DeactivateResult,
 } from './recurring-tasks';
 export {
   DOCUMENTS_BUCKET,

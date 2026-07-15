@@ -10,6 +10,21 @@ export const copy = {
   activate: 'Ativar',
   deactivate: 'Desativar',
   edit: 'Editar',
+  deactivateDialog: {
+    title: 'Desativar esta recorrência?',
+    description:
+      'O modelo para de gerar tarefas novas. As tarefas já geradas podem ser mantidas ou canceladas.',
+    cancelOpenLabel: 'Cancelar também as tarefas abertas já geradas por este modelo',
+    confirm: 'Desativar',
+    cancel: 'Voltar',
+    doneKept: 'Recorrência desativada — as tarefas abertas foram mantidas.',
+    doneCancelled: (n: number) =>
+      n === 0
+        ? 'Recorrência desativada — nenhuma tarefa aberta para cancelar.'
+        : n === 1
+          ? 'Recorrência desativada — 1 tarefa aberta cancelada.'
+          : `Recorrência desativada — ${n} tarefas abertas canceladas.`,
+  },
   empty: {
     title: 'Nenhuma recorrência ainda',
     description: 'Crie um modelo para gerar tarefas mensais automaticamente.',

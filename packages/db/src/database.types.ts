@@ -1364,6 +1364,10 @@ export type Database = {
       }
       create_export_batch: { Args: { p_filters: Json }; Returns: string }
       current_firm_id: { Args: never; Returns: string }
+      deactivate_recurring_task: {
+        Args: { p_cancel_open?: boolean; p_template_id: string }
+        Returns: number
+      }
       enqueue_triage: { Args: { p_document_id: string }; Returns: undefined }
       generate_recurring_tasks_for_company: {
         Args: { p_company_id: string }

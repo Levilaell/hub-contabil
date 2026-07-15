@@ -192,6 +192,27 @@ export async function updateRecurringTask(
   return { ok: true, id };
 }
 
+export type DeactivateResult = { ok: true; cancelled: number } | { ok: false; message: string };
+
+/**
+ * Deactivate a template via the deactivate_recurring_task RPC (T39, decision #2):
+ * atomically flips `active` and — when `cancelOpen` — cancels the template's
+ * still-open instances (audited per task). Returns how many were cancelled.
+ */
+export async function deactivateRecurringTask(
+  supabase: SupabaseClient,
+  id: string,
+  cancelOpen: boolean,
+): Promise<DeactivateResult> {
+  const { data, error } = await supabase.rpc('deactivate_recurring_task', {
+    p_template_id: id,
+    p_cancel_open: cancelOpen,
+  });
+  if (error)
+    return { ok: false, message: 'Não foi possível desativar — verifique suas permissões.' };
+  return { ok: true, cancelled: typeof data === 'number' ? data : 0 };
+}
+
 export async function setRecurringTaskActive(
   supabase: SupabaseClient,
   id: string,
