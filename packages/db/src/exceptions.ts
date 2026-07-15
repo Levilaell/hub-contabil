@@ -68,6 +68,36 @@ export async function listExceptions(
   return (data as ExceptionRow[]).map(mapException);
 }
 
+/**
+ * Open 'triage' exceptions keyed by the document they refer to
+ * (context.documentId). Powers in-place resolution from the documents
+ * "Pendentes de arquivamento" section (T37): the inbox shows, per pending
+ * document, the same resolution form as /excecoes — one pending item, two
+ * places to resolve it.
+ */
+export async function listOpenTriageExceptionsByDocument(
+  supabase: SupabaseClient,
+  documentIds: string[],
+): Promise<Record<string, ExceptionItem>> {
+  if (documentIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from('exception_queue')
+    .select('id, source, status, context, suggestion, resolution, created_at')
+    .eq('source', 'triage')
+    .eq('status', 'open')
+    .in('context->>documentId', documentIds)
+    .order('created_at', { ascending: false });
+  if (error || !data) return {};
+  const byDocument: Record<string, ExceptionItem> = {};
+  for (const row of data as ExceptionRow[]) {
+    const item = mapException(row);
+    const docId = item.context.documentId;
+    // Newest first — keep the first (latest) exception per document.
+    if (typeof docId === 'string' && !(docId in byDocument)) byDocument[docId] = item;
+  }
+  return byDocument;
+}
+
 export async function countOpenExceptions(supabase: SupabaseClient): Promise<number> {
   const { count, error } = await supabase
     .from('exception_queue')
@@ -118,7 +148,6 @@ export async function applyTriageSuggestion(
     p_department: input.department ?? null,
     p_note: input.note ?? null,
   });
-  if (error)
-    return { ok: false, message: 'Não foi possível aplicar — verifique e tente de novo.' };
+  if (error) return { ok: false, message: 'Não foi possível aplicar — verifique e tente de novo.' };
   return { ok: true };
 }

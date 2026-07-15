@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  DOCUMENTS_BUCKET,
-  buildInboxPath,
-  enqueueTriage,
-  insertInboxDocument,
-} from '@hub/db';
+import { DOCUMENTS_BUCKET, buildInboxPath, enqueueTriage, insertInboxDocument } from '@hub/db';
 import { DetailDrawer, StatusBadge, type StatusTone } from '@hub/ui';
 import { Sparkles, UploadCloud } from 'lucide-react';
 import { useRouter } from 'next/navigation';

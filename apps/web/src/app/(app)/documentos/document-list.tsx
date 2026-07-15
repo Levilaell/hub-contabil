@@ -6,6 +6,7 @@ import {
   deleteDocument,
   type Classification,
   type DocumentItem,
+  type ExceptionItem,
 } from '@hub/db';
 import { docTypeLabel } from '@hub/config';
 import { ConfirmDialog, DataList, DataListRow, DetailDrawer, toast } from '@hub/ui';
@@ -15,7 +16,25 @@ import { useState, useTransition } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 
+import { applyTriageSuggestionAction } from '../excecoes/actions';
+import { copy as exceptionsCopy } from '../excecoes/copy';
+import type { TriageApplyOptions } from '../excecoes/exceptions-list';
 import { copy, inputClass, primaryButtonClass, secondaryButtonClass } from './copy';
+
+/** In-place resolution on the pending-filing list (T37): per document, the same
+ * form that lives in /excecoes, backed by the same RPC — resolving in either
+ * place closes the other. */
+export interface InboxTriageProps {
+  options: TriageApplyOptions;
+  exceptionByDoc: Record<string, ExceptionItem>;
+}
+
+function ctxValue(ctx: Record<string, unknown>, key: string): string | null {
+  const v = ctx[key];
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return String(v);
+  return null;
+}
 
 function fileKind(name: string): 'pdf' | 'image' | 'xml' | 'other' {
   const ext = (name.split('.').pop() ?? '').toLowerCase();
@@ -38,6 +57,7 @@ export function DocumentList({
   classifications,
   docTypes,
   companyNames,
+  triage,
 }: {
   documents: DocumentItem[];
   departmentLabels: Record<string, string>;
@@ -45,6 +65,8 @@ export function DocumentList({
   docTypes: string[];
   /** When set (firm-wide search), each row also shows its company. */
   companyNames?: Record<string, string>;
+  /** When set (pending-filing list), the drawer offers in-place resolution (T37). */
+  triage?: InboxTriageProps;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -55,13 +77,62 @@ export function DocumentList({
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Resolution form state (T37) — pre-filled from the AI suggestion on open.
+  const [resolveEdit, setResolveEdit] = useState(false);
+  const [resolveDocType, setResolveDocType] = useState('');
+  const [resolveCompanyId, setResolveCompanyId] = useState('');
+  const [resolveDepartment, setResolveDepartment] = useState('');
+  const [resolveError, setResolveError] = useState<string | null>(null);
+
   async function open(doc: DocumentItem) {
     setSelected(doc);
     setCorrectType(doc.docType);
+    setResolveEdit(false);
+    setResolveError(null);
+    const exception = triage?.exceptionByDoc[doc.id];
+    if (exception && triage) {
+      const suggested = ctxValue(exception.suggestion, 'docType') ?? '';
+      setResolveDocType(triage.options.taxonomy.includes(suggested) ? suggested : '');
+      const cnpj = ctxValue(exception.context, 'cnpj');
+      const match = cnpj ? triage.options.companies.find((c) => c.cnpj === cnpj) : undefined;
+      setResolveCompanyId(match?.id ?? '');
+      setResolveDepartment(''); // '' = automatic by type (routingMap)
+    }
     setUrl(null);
     setLoadingUrl(true);
     setUrl(await createDocumentSignedUrl(supabase, doc.storagePath, 300));
     setLoadingUrl(false);
+  }
+
+  function submitResolve(exception: ExceptionItem) {
+    if (!resolveDocType) {
+      setResolveError(copy.resolve.needType);
+      return;
+    }
+    // An inbox document has no company yet — filing REQUIRES picking one,
+    // otherwise the RPC would close the exception and strand the document.
+    if (!resolveCompanyId) {
+      setResolveError(copy.resolve.needCompany);
+      return;
+    }
+    setResolveError(null);
+    const department =
+      resolveDepartment || (triage ? triage.options.routingMap[resolveDocType] : null) || null;
+    startTransition(async () => {
+      const res = await applyTriageSuggestionAction(exception.id, {
+        docType: resolveDocType,
+        companyId: resolveCompanyId,
+        department,
+        note: '',
+      });
+      if (res && !res.ok) {
+        setResolveError(res.message);
+        return;
+      }
+      setSelected(null);
+      toast.success(copy.resolve.archived);
+      router.refresh();
+    });
   }
 
   function remove(doc: DocumentItem) {
@@ -86,6 +157,25 @@ export function DocumentList({
 
   const kind = selected ? fileKind(selected.fileName) : 'other';
   const selectedAi = selected ? classifications[selected.id]?.decidedBy === 'ai' : false;
+  const selectedException = selected && triage ? triage.exceptionByDoc[selected.id] : undefined;
+  const selectedReason = selectedException ? ctxValue(selectedException.context, 'reason') : null;
+  const selectedSuggestionText = selectedException
+    ? [
+        ctxValue(selectedException.suggestion, 'docType')
+          ? docTypeLabel(ctxValue(selectedException.suggestion, 'docType') as string)
+          : null,
+        ctxValue(selectedException.context, 'confidence') !== null
+          ? exceptionsCopy.triage.confidence(
+              Math.round(Number(ctxValue(selectedException.context, 'confidence')) * 100),
+            )
+          : null,
+        ctxValue(selectedException.context, 'cnpj')
+          ? `CNPJ ${ctxValue(selectedException.context, 'cnpj')}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
 
   return (
     <>
@@ -96,6 +186,15 @@ export function DocumentList({
             .join(' · ');
           const companyName = companyNames?.[doc.companyId ?? ''];
           const isAi = classifications[doc.id]?.decidedBy === 'ai';
+          const rowException = triage?.exceptionByDoc[doc.id];
+          const rowReason = rowException ? ctxValue(rowException.context, 'reason') : null;
+          const rowFacts = triage
+            ? ([
+                rowReason
+                  ? (exceptionsCopy.triage.reasons[rowReason] ?? rowReason)
+                  : copy.resolve.waitingFact,
+              ].filter(Boolean) as string[])
+            : ([companyName, docTypeLabel(doc.docType), place].filter(Boolean) as string[]);
           return (
             <DataListRow
               key={doc.id}
@@ -106,7 +205,7 @@ export function DocumentList({
                 </span>
               }
               title={doc.fileName}
-              facts={[companyName, docTypeLabel(doc.docType), place].filter(Boolean) as string[]}
+              facts={rowFacts}
               trailing={
                 <span className="flex items-center gap-1.5">
                   {isAi ? (
@@ -159,43 +258,182 @@ export function DocumentList({
       >
         {selected ? (
           <div className="space-y-4">
-            {/* Correct the AI's type and feed back a few-shot example (T21). */}
-            <div className="bg-card space-y-2 rounded-lg border p-3">
-              <div className="flex items-center gap-1.5">
-                {selectedAi ? <Sparkles className="text-primary size-3.5" aria-hidden /> : null}
-                <span className="text-xs font-medium">{copy.correct.title}</span>
-              </div>
-              <div className="flex items-end gap-2">
-                <div className="flex-1 space-y-1">
-                  <label htmlFor="correct-type" className="text-muted-foreground text-xs">
-                    {copy.correct.label}
-                  </label>
-                  <select
-                    id="correct-type"
-                    value={correctType}
-                    onChange={(e) => setCorrectType(e.target.value)}
-                    className={inputClass}
-                  >
-                    {(docTypes.includes(selected.docType)
-                      ? docTypes
-                      : [selected.docType, ...docTypes]
-                    ).map((t) => (
-                      <option key={t} value={t}>
-                        {docTypeLabel(t)}
-                      </option>
-                    ))}
-                  </select>
+            {/* T37: in-place resolution for a pending document — same form and RPC
+                as /excecoes, so resolving here closes the exception (and vice versa). */}
+            {triage && selectedException ? (
+              <div className="bg-card space-y-3 rounded-lg border p-3">
+                <div>
+                  <p className="text-sm font-medium">{copy.resolve.title}</p>
+                  <p className="text-muted-foreground text-xs">{copy.resolve.subtitle}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => saveCorrection(selected)}
-                  disabled={pending || correctType === selected.docType}
-                  className={secondaryButtonClass}
-                >
-                  {pending ? copy.correct.saving : copy.correct.save}
-                </button>
+                <dl className="space-y-1 text-sm">
+                  {selectedReason ? (
+                    <div>
+                      <dt className="text-muted-foreground text-xs">{copy.resolve.reason}</dt>
+                      <dd className="mt-0.5">
+                        {exceptionsCopy.triage.reasons[selectedReason] ?? selectedReason}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {selectedSuggestionText ? (
+                    <div>
+                      <dt className="text-muted-foreground text-xs">{copy.resolve.suggestion}</dt>
+                      <dd className="mt-0.5">{selectedSuggestionText}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+
+                {resolveEdit ? (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <label htmlFor="resolve-doctype" className="text-xs font-medium">
+                        {copy.resolve.docType}
+                      </label>
+                      <select
+                        id="resolve-doctype"
+                        value={resolveDocType}
+                        onChange={(e) => setResolveDocType(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">—</option>
+                        {triage.options.taxonomy.map((t) => (
+                          <option key={t} value={t}>
+                            {docTypeLabel(t)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label htmlFor="resolve-company" className="text-xs font-medium">
+                        {copy.resolve.company}
+                      </label>
+                      <select
+                        id="resolve-company"
+                        value={resolveCompanyId}
+                        onChange={(e) => setResolveCompanyId(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">{copy.resolve.companyPick}</option>
+                        {triage.options.companies.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label htmlFor="resolve-department" className="text-xs font-medium">
+                        {copy.resolve.department}
+                      </label>
+                      <select
+                        id="resolve-department"
+                        value={resolveDepartment}
+                        onChange={(e) => setResolveDepartment(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">{copy.resolve.departmentAuto}</option>
+                        {triage.options.departments.map((d) => (
+                          <option key={d.key} value={d.key}>
+                            {d.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ) : null}
+
+                {resolveError ? <p className="text-danger-text text-sm">{resolveError}</p> : null}
+                <div className="flex flex-wrap gap-2">
+                  {resolveEdit ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => submitResolve(selectedException)}
+                        disabled={pending}
+                        className={primaryButtonClass}
+                      >
+                        {pending ? copy.resolve.archiving : copy.resolve.archive}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setResolveEdit(false);
+                          setResolveError(null);
+                        }}
+                        className={secondaryButtonClass}
+                      >
+                        {copy.resolve.cancel}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => submitResolve(selectedException)}
+                        disabled={pending}
+                        className={primaryButtonClass}
+                      >
+                        {pending ? copy.resolve.archiving : copy.resolve.archiveAsIs}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setResolveEdit(true);
+                          setResolveError(null);
+                        }}
+                        disabled={pending}
+                        className={secondaryButtonClass}
+                      >
+                        {copy.resolve.correctAndArchive}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : triage ? (
+              <p className="text-muted-foreground text-sm">{copy.resolve.waiting}</p>
+            ) : null}
+
+            {/* Correct the AI's type and feed back a few-shot example (T21).
+                Hidden on the pending-filing list — the resolution form owns the type there. */}
+            {triage ? null : (
+              <div className="bg-card space-y-2 rounded-lg border p-3">
+                <div className="flex items-center gap-1.5">
+                  {selectedAi ? <Sparkles className="text-primary size-3.5" aria-hidden /> : null}
+                  <span className="text-xs font-medium">{copy.correct.title}</span>
+                </div>
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 space-y-1">
+                    <label htmlFor="correct-type" className="text-muted-foreground text-xs">
+                      {copy.correct.label}
+                    </label>
+                    <select
+                      id="correct-type"
+                      value={correctType}
+                      onChange={(e) => setCorrectType(e.target.value)}
+                      className={inputClass}
+                    >
+                      {(docTypes.includes(selected.docType)
+                        ? docTypes
+                        : [selected.docType, ...docTypes]
+                      ).map((t) => (
+                        <option key={t} value={t}>
+                          {docTypeLabel(t)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => saveCorrection(selected)}
+                    disabled={pending || correctType === selected.docType}
+                    className={secondaryButtonClass}
+                  >
+                    {pending ? copy.correct.saving : copy.correct.save}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {loadingUrl ? (
               <p className="text-muted-foreground text-sm">{copy.preview.loading}</p>

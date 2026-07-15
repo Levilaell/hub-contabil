@@ -51,6 +51,7 @@ export {
 } from './partners';
 export {
   listExceptions,
+  listOpenTriageExceptionsByDocument,
   countOpenExceptions,
   resolveException,
   applyTriageSuggestion,

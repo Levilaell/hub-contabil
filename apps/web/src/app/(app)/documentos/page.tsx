@@ -1,6 +1,11 @@
 import { docTypeLabel, parseFirmConfig } from '@hub/config';
 import { formatCnpj } from '@hub/core';
-import { listClassificationsByDocuments, listCompanies, listDocuments } from '@hub/db';
+import {
+  listClassificationsByDocuments,
+  listCompanies,
+  listDocuments,
+  listOpenTriageExceptionsByDocument,
+} from '@hub/db';
 import { DataList, DataListRow, EmptyState, PageHeader } from '@hub/ui';
 import { Building2, ChevronLeft, Inbox, Search } from 'lucide-react';
 import Link from 'next/link';
@@ -15,7 +20,7 @@ import { UploadButton } from './upload-button';
 // Fase 1.1 §3 — the search box is ALWAYS visible (it used to hide inside the
 // collapsed filter panel and read as missing): firm-wide at level 0, per-company
 // at level 1. Documents the triage couldn't file (company_id null) surface in a
-// "Caixa de entrada" section instead of being invisible.
+// "Pendentes de arquivamento" section instead of being invisible (renamed in T37).
 
 function SearchForm({
   placeholder,
@@ -71,20 +76,32 @@ export default async function DocumentosPage({
   const config = parseFirmConfig(firm?.config);
   const firmId = (firm?.id as string) ?? '';
   const departmentLabels = Object.fromEntries(config.departments.map((d) => [d.key, d.label]));
-  const companyNames = Object.fromEntries(
-    companies.map((c) => [c.id, c.tradeName || c.legalName]),
-  );
+  const companyNames = Object.fromEntries(companies.map((c) => [c.id, c.tradeName || c.legalName]));
   const q = (sp.q ?? '').trim();
 
-  // Level 0.5 — inbox: documents not yet filed under a company.
+  // Level 0.5 — pending filing: documents not yet filed under a company, each
+  // resolvable IN PLACE via its open triage exception (T37).
   if (sp.company === 'inbox') {
     const docs = await listDocuments(supabase, { unassigned: true, search: q || undefined });
-    const classifications = Object.fromEntries(
-      await listClassificationsByDocuments(
+    const [classificationEntries, exceptionByDoc] = await Promise.all([
+      listClassificationsByDocuments(
         supabase,
         docs.map((d) => d.id),
       ),
-    );
+      listOpenTriageExceptionsByDocument(
+        supabase,
+        docs.map((d) => d.id),
+      ),
+    ]);
+    const classifications = Object.fromEntries(classificationEntries);
+    const triageOptions = {
+      taxonomy: [...config.taxonomy],
+      departments: config.departments.map((d) => ({ key: d.key, label: d.label })),
+      companies: companies
+        .filter((c) => c.status === 'active')
+        .map((c) => ({ id: c.id, name: c.tradeName || c.legalName, cnpj: c.cnpj })),
+      routingMap: config.routingMap,
+    };
     return (
       <div className="space-y-6">
         <Link
@@ -104,13 +121,18 @@ export default async function DocumentosPage({
           }
         />
         {docs.length === 0 ? (
-          <EmptyState icon={Inbox} title={copy.empty.docs} />
+          <EmptyState
+            icon={Inbox}
+            title={copy.unassigned.emptyTitle}
+            description={copy.unassigned.emptyDescription}
+          />
         ) : (
           <DocumentList
             documents={docs}
             departmentLabels={departmentLabels}
             classifications={classifications}
             docTypes={[...config.taxonomy]}
+            triage={{ options: triageOptions, exceptionByDoc }}
           />
         )}
       </div>
@@ -151,7 +173,9 @@ export default async function DocumentosPage({
         {q ? (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-muted-foreground text-sm">{copy.searchResults(searchDocs.length)}</p>
+              <p className="text-muted-foreground text-sm">
+                {copy.searchResults(searchDocs.length)}
+              </p>
               <Link href="/documentos" className={secondaryButtonClass}>
                 {copy.clearSearch}
               </Link>
@@ -170,26 +194,37 @@ export default async function DocumentosPage({
           </div>
         ) : (
           <>
-            {unassignedCount > 0 ? (
-              <DataList>
-                <DataListRow
-                  href="/documentos?company=inbox"
-                  linkComponent={Link}
-                  leading={
-                    <span className="bg-warning/15 text-warning-text grid size-9 place-items-center rounded-full">
-                      <Inbox className="size-4" aria-hidden />
-                    </span>
-                  }
-                  title={copy.unassigned.title}
-                  facts={[copy.unassigned.hint]}
-                  trailing={
-                    <span className="bg-warning/15 text-warning-text rounded-full px-2 py-0.5 text-xs font-medium">
-                      {unassignedCount}
-                    </span>
-                  }
-                />
-              </DataList>
-            ) : null}
+            {/* T37: ALWAYS visible, even at zero — hiding it hid the concept. */}
+            <DataList>
+              <DataListRow
+                href="/documentos?company=inbox"
+                linkComponent={Link}
+                leading={
+                  <span
+                    className={
+                      unassignedCount > 0
+                        ? 'bg-warning/15 text-warning-text grid size-9 place-items-center rounded-full'
+                        : 'bg-muted text-muted-foreground grid size-9 place-items-center rounded-full'
+                    }
+                  >
+                    <Inbox className="size-4" aria-hidden />
+                  </span>
+                }
+                title={copy.unassigned.title}
+                facts={[unassignedCount > 0 ? copy.unassigned.hint : copy.unassigned.hintEmpty]}
+                trailing={
+                  <span
+                    className={
+                      unassignedCount > 0
+                        ? 'bg-warning/15 text-warning-text rounded-full px-2 py-0.5 text-xs font-medium'
+                        : 'bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium'
+                    }
+                  >
+                    {unassignedCount}
+                  </span>
+                }
+              />
+            </DataList>
 
             {companies.length === 0 ? (
               <EmptyState icon={Building2} title={copy.empty.companies} />
@@ -313,7 +348,12 @@ export default async function DocumentosPage({
               <label htmlFor="period" className="text-xs font-medium">
                 {copy.period}
               </label>
-              <select id="period" name="period" defaultValue={sp.period ?? ''} className={inputClass}>
+              <select
+                id="period"
+                name="period"
+                defaultValue={sp.period ?? ''}
+                className={inputClass}
+              >
                 <option value="">{copy.all}</option>
                 {periods.map((p) => (
                   <option key={p} value={p ?? ''}>
