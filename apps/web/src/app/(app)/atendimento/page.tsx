@@ -50,7 +50,7 @@ export default async function AtendimentoPage({
     <div className="space-y-6">
       <PageHeader title={copy.title} description={copy.subtitle} />
 
-      <details open={filtered} className="bg-card rounded-xl border px-4 py-3">
+      <details open className="bg-card rounded-xl border px-4 py-3">
         <summary className="cursor-pointer text-sm font-medium">{copy.filters}</summary>
         <form method="get" className="mt-3 flex flex-wrap items-end gap-3">
           <div className="space-y-1.5">

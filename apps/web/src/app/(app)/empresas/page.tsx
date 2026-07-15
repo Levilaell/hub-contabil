@@ -55,8 +55,8 @@ export default async function EmpresasPage({
     <div className="space-y-6">
       <PageHeader title={copy.list.title} description={copy.list.subtitle} action={headerActions} />
 
-      {/* Filters collapsed by default (UX rule #8); opened when a filter is active. */}
-      <details open={filtered} className="bg-card rounded-xl border px-4 py-3">
+      {/* T40 (decision #3, 2026-07-14): filters render open by default — UX rule #8 updated. */}
+      <details open className="bg-card rounded-xl border px-4 py-3">
         <summary className="cursor-pointer text-sm font-medium">{copy.list.filters}</summary>
         <form method="get" className="mt-3 flex flex-wrap items-end gap-3">
           <div className="min-w-48 flex-1 space-y-1.5">

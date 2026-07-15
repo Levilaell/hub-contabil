@@ -279,7 +279,6 @@ export default async function DocumentosPage({
   );
   const filtered = Boolean(sp.period || sp.department || sp.docType || qLower);
   const base = `/documentos?company=${company.id}`;
-  const advancedOpen = Boolean(sp.period || sp.docType);
   const [classificationEntries, origins] = await Promise.all([
     listClassificationsByDocuments(
       supabase,
@@ -359,7 +358,8 @@ export default async function DocumentosPage({
           </button>
         </div>
 
-        <details open={advancedOpen} className="bg-card rounded-xl border px-4 py-3">
+        {/* T40 (decision #3): filters render open by default. */}
+        <details open className="bg-card rounded-xl border px-4 py-3">
           <summary className="cursor-pointer text-sm font-medium">{copy.filters}</summary>
           <div className="mt-3 flex flex-wrap items-end gap-3">
             <div className="space-y-1.5">

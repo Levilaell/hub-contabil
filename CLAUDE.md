@@ -47,7 +47,7 @@ The #1 product risk is visual overload — previous projects failed here. Every 
 5. **One primary action per screen**, visually dominant. Secondary actions live in menus/secondary buttons.
 6. **Numbers before tables.** Dashboard = max 6 large stat cards, each clickable to the filtered list behind it. Never a dense table on the dashboard.
 7. **Empty, loading, and error states are designed, not accidental.** Empty states say what the absence means and what to do ("Nenhuma exceção pendente — tudo em dia ✅"). Loading = skeletons, not spinners. Errors = plain pt-BR with a retry action.
-8. **Default views over filters.** Every list opens on an opinionated default ("Minhas tarefas de hoje", "Exceções abertas"); filters exist but are collapsed.
+8. **Default views over filters.** Every list opens on an opinionated default ("Minhas tarefas de hoje", "Exceções abertas"); filters are visible by default (firm decision 2026-07-14 — previously collapsed), kept compact so they never compete with the list itself.
 9. **Human dates and quantities.** "Vence em 5 dias", "há 2 horas" (absolute date on hover). Badges with counts on nav items that represent queues (exceptions, requests).
 10. **Plain pt-BR, zero tech jargon in UI.** No "JSONB", "payload", "queue", "tenant". A contadora who never saw the system must understand any screen in 5 seconds.
 11. **Navigation: single sidebar, max 7 items**, icon + label, queues with count badges. No nested menus in v1.
