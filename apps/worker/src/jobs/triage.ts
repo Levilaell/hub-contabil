@@ -1,6 +1,6 @@
 import type { ClassificationAdapter } from '@hub/adapters';
 import { parseFirmConfig } from '@hub/config';
-import { decideTriage, parseNfe, routeDepartment } from '@hub/core';
+import { decideTriage, detectImplausibleType, parseNfe, routeDepartment } from '@hub/core';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Sql } from 'postgres';
 
@@ -80,6 +80,7 @@ export function createTriageHandler(
     let confidence = 0;
     let cnpj: string | null = null;
     let aiDepartment: string | null = null;
+    let deterministic = false;
 
     if (doc.file_name.toLowerCase().endsWith('.xml')) {
       // NF-e: deterministic parser, NO LLM.
@@ -91,6 +92,7 @@ export function createTriageHandler(
         docType = 'nfe';
         confidence = 1;
         cnpj = parsed.issuerCnpj;
+        deterministic = true;
       } else {
         // Non-NF-e XML (NFS-e, CT-e…): fall back to the LLM over the XML text
         // instead of dumping straight to a human as "other".
@@ -148,11 +150,22 @@ export function createTriageHandler(
     // the department the classifier read from the document itself. The global
     // confidence threshold still gates the whole decision (golden rule #5).
     const department = routeDepartment(config.routingMap, docType) ?? aiDepartment;
+    // T36 deterministic guard: an implausible AI suggestion (XML-native type on a
+    // non-XML file, or a conflicting file-name term) never auto-files, no matter
+    // the confidence. The deterministic NF-e XML path is authoritative — skip it.
+    const implausibility = deterministic
+      ? null
+      : detectImplausibleType({
+          docType,
+          fileName: doc.file_name,
+          fileNameTerms: config.fileNameTerms,
+        });
     const outcome = decideTriage({
       confidence,
       threshold: config.aiThreshold,
       companyFound,
       department,
+      implausibility,
     });
 
     // Record the AI's classification either way (badge + future few-shot, T21).
@@ -221,6 +234,8 @@ export function createTriageHandler(
             suggestedType: docType,
             cnpj,
             confidence,
+            // T36: which guard fired (null when the reason is not implausible_type).
+            guard: implausibility,
           })},
           ${json({ docType, department, cnpj })}
         )

@@ -119,6 +119,18 @@ export const DEFAULT_ROUTING_MAP: Record<string, string> = {
   // deterministic override for firms that want a fixed rule.
 };
 
+// Deterministic triage guard (T36): unambiguous file-name terms → the doc types
+// they make plausible. A high-confidence AI suggestion CONFLICTING with a matched
+// term falls to the exception queue instead of auto-filing (golden rule #5).
+// Terms are matched accent/case-insensitively against the original file name.
+export const DEFAULT_FILE_NAME_TERMS: Record<string, string[]> = {
+  boleto: ['boleto'],
+  fatura: ['boleto', 'card_statement'],
+  extrato: ['bank_statement', 'card_statement'],
+  holerite: ['payslip'],
+  comprovante: ['payment_receipt'],
+};
+
 // Allowed statuses per domain — mirrors the state machines (PLANEJAMENTO §5). Minimal; no UI in v1.
 export const DEFAULT_STATUS_VOCABULARIES: Record<string, string[]> = {
   task: ['pending', 'in_progress', 'done', 'canceled'],
@@ -174,6 +186,8 @@ export const firmConfigSchema = z
     // Anthropic model for the AI triage pipeline (T20). Defaults to the latest
     // Opus; a firm may set Haiku/Sonnet here to trade accuracy for cost (#8).
     aiModel: z.string().min(1).default('claude-opus-4-8'),
+    // T36 guard: file-name term → plausible doc types (see DEFAULT_FILE_NAME_TERMS).
+    fileNameTerms: z.record(z.string(), z.array(z.string())).default(DEFAULT_FILE_NAME_TERMS),
     // Days a document-request access link stays valid (T16). Business value in
     // config (golden rule #8); the link's expires_at is stamped from this.
     requestTokenExpiryDays: z

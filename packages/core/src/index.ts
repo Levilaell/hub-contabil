@@ -91,6 +91,9 @@ export {
 export {
   routeDepartment,
   decideTriage,
+  detectImplausibleType,
+  XML_NATIVE_TYPES,
+  type Implausibility,
   type TriageDecision,
   type TriageReason,
   type TriageInput,

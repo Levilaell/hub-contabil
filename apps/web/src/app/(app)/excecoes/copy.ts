@@ -64,6 +64,7 @@ export const copy = {
       company_not_found: 'Empresa não encontrada pelo CNPJ',
       low_confidence: 'IA em dúvida — confirme o tipo',
       no_route: 'Tipo sem departamento definido',
+      implausible_type: 'Tipo improvável para este arquivo — confirme',
     } as Record<string, string>,
     suggestionSummary: 'Sugestão da IA',
     confidence: (pct: number) => `confiança ${pct}%`,
